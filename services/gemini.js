@@ -166,10 +166,11 @@ async function searchForRealtime(storeName, userQuery) {
   ]);
 
   // For broad queries, also include the original phrasing so Gemini synthesises
-  // a real overview rather than just retrieving pinpoint chunks.
+  // a real overview rather than just retrieving pinpoint chunks. Cap at 3 calls
+  // (was 4) to shave ~300ms off the slowest fan-out.
   const broadenedQueries = isBroad
-    ? [userQuery, ...queries].slice(0, 4)
-    : queries;
+    ? [...new Set([userQuery, ...queries])].slice(0, 3)
+    : queries.slice(0, 2);  // specific lookup — 2 calls is enough recall
 
   const sys = buildSearchSystemPrompt('case file');
   const calls = broadenedQueries.map(q =>
@@ -180,7 +181,10 @@ async function searchForRealtime(storeName, userQuery) {
         systemInstruction: { parts: [{ text: sys }] },
         contents: [{ role: 'user', parts: [{ text: q }] }],
         tools: [{ fileSearch: { fileSearchStoreNames: [storeName] } }],
-        generationConfig: { temperature: 0 }
+        generationConfig: {
+          temperature: 0,
+          thinkingConfig: { thinkingBudget: 0 }   // skip thinking — pure retrieval
+        }
       })
     }).then(r => r.json()).catch(() => null)
   );

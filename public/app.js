@@ -193,19 +193,37 @@ async function onRealtimeEvent(ev) {
       result = { snippets: [], refusal: 'This is not stated in the file.' };
     }
 
-    // Remember snippets used for this turn (Layer 8 verifier).
+    // Remember snippets used for this turn (Layer 8 verifier + UI display).
     if (!currentTurn) currentTurn = { snippets: [], draft: '', query };
     currentTurn.snippets = result.snippets || [];
     currentTurn.refusal = result.refusal || null;
     currentTurn.query = query;
 
-    // Send tool output back.
+    // SANITIZE before sending to Realtime — strip internal ids (S1/S2/SYN/S0)
+    // and the "GREETING_ACK" marker so the model can NEVER pronounce them.
+    // The model sees only one of these clean shapes: {greeting:true},
+    // {refusal:"..."}, or {snippets:[{page,text}|{page,pages,text}]}.
+    let toolPayload;
+    if (result.refusal) {
+      toolPayload = { refusal: result.refusal };
+    } else if ((result.snippets || []).some(s => s.text === 'GREETING_ACK')) {
+      toolPayload = { greeting: true };
+    } else {
+      toolPayload = {
+        snippets: (result.snippets || []).map(s => {
+          const out = { page: s.page, text: s.text };
+          if (Array.isArray(s.pages) && s.pages.length > 1) out.pages = s.pages;
+          return out;
+        })
+      };
+    }
+
     sendDC({
       type: 'conversation.item.create',
       item: {
         type: 'function_call_output',
         call_id: m.call_id,
-        output: JSON.stringify(result)
+        output: JSON.stringify(toolPayload)
       }
     });
     // CRITICAL — override session-level tool_choice for THIS response.
