@@ -59,7 +59,27 @@ async function uploadAndImport(storeName, buffer, filename) {
   });
   const upData = await upRes.json();
   if (!upRes.ok) throw new Error(`Gemini upload failed: ${JSON.stringify(upData)}`);
-  return { fileName: upData.name || filename };
+  // Response is an Operation (long-running). Return its name so the caller polls.
+  return { operationName: upData.name || null };
+}
+
+// Poll a File Search upload operation until done. Returns the final document name.
+async function pollIndexingComplete(operationName, { maxAttempts = 150, intervalMs = 2000 } = {}) {
+  if (!operationName) throw new Error('operation name required');
+  for (let i = 0; i < maxAttempts; i++) {
+    const res = await fetch(
+      `${BASE}/${operationName}?key=${process.env.GEMINI_API_KEY}`
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(`Operation poll failed: ${JSON.stringify(data)}`);
+    if (data.done) {
+      if (data.error) throw new Error(`Indexing failed: ${JSON.stringify(data.error)}`);
+      const docName = data.response?.document || data.response?.name || null;
+      return { documentName: docName, raw: data };
+    }
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  throw new Error('Indexing poll timed out');
 }
 
 // Light wrapper for non-search generateContent calls (temperature 0).
@@ -106,7 +126,13 @@ async function detectLanguage(text) {
 }
 
 // Layer 3 — rewrite the user query into 3 retrieval-flavoured variations.
-async function rewriteQueries(userQuery) {
+// Optimization: for short specific lookups (≤ 6 words, not a broad summary),
+// skip the rewriter LLM call entirely — saves ~400ms per turn. Recall is
+// fine because Gemini File Search already handles light morphology.
+async function rewriteQueries(userQuery, isBroad = false) {
+  const wordCount = (userQuery.trim().match(/\S+/g) || []).length;
+  if (!isBroad && wordCount <= 6) return [userQuery];
+
   try {
     const r = await _generate(
       RW_MODEL,
@@ -133,8 +159,11 @@ async function searchForRealtime(storeName, userQuery) {
 
   const isBroad = BROAD_RE.test(userQuery);
   const threshold = isBroad ? SCORE_THRESHOLD_BROAD : SCORE_THRESHOLD_LOOKUP;
-  const lang = await detectLanguage(userQuery);
-  const queries = await rewriteQueries(userQuery);
+  // run language detect + rewrite in parallel
+  const [lang, queries] = await Promise.all([
+    detectLanguage(userQuery),
+    rewriteQueries(userQuery, isBroad)
+  ]);
 
   // For broad queries, also include the original phrasing so Gemini synthesises
   // a real overview rather than just retrieving pinpoint chunks.
@@ -262,6 +291,7 @@ async function verifyClaims(snippets, draft) {
 module.exports = {
   createStore,
   uploadAndImport,
+  pollIndexingComplete,
   searchForRealtime,
   verifyClaims,
   detectLanguage

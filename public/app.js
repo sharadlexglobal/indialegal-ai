@@ -44,6 +44,17 @@ $('#upload-form').addEventListener('submit', async (e) => {
 });
 
 // ---------- Cases ----------
+const STATUS_LABELS = {
+  processing:  { label: 'Queued',                  hint: 'Just uploaded — getting started…',         cls: 'pending',  spin: true  },
+  ocr_running: { label: 'Reading PDF',             hint: 'Datalab is OCR-ing the document (≈30-90s)', cls: 'pending',  spin: true  },
+  ocr_done:    { label: 'OCR done, preparing AI',  hint: 'Sending to AI memory…',                     cls: 'pending',  spin: true  },
+  indexing:    { label: 'Indexing in AI memory',   hint: 'Embedding for fast lookup (≈30-90s)',       cls: 'pending',  spin: true  },
+  ready:       { label: 'Ready to speak',          hint: 'Tap Speak to start a voice session',        cls: 'ready',    spin: false },
+  failed:      { label: 'Failed',                  hint: 'Something went wrong — see error',          cls: 'failed',   spin: false }
+};
+
+let casePollMs = 5000;
+
 async function loadCases() {
   try {
     const res = await fetch('/api/cases');
@@ -52,17 +63,23 @@ async function loadCases() {
     ul.innerHTML = '';
     if (!list.length) {
       ul.innerHTML = '<li style="color:var(--muted);">No cases yet. Upload one above.</li>';
+      casePollMs = 5000;
       return;
     }
+    let anyInFlight = false;
     for (const c of list) {
-      const li = document.createElement('li');
+      const sx = STATUS_LABELS[c.status] || { label: c.status, hint: '', cls: 'pending', spin: false };
+      if (sx.spin) anyInFlight = true;
       const ready = c.status === 'ready' && c.has_store;
+      const spinner = sx.spin ? '<span class="spin"></span>' : '';
+      const li = document.createElement('li');
       li.innerHTML = `
         <div class="case-title">
           <div>${escapeHtml(c.title)}</div>
-          <div class="case-meta">${c.page_count || '?'} pages · ${fmt(c.created_at)}</div>
+          <div class="case-meta">${c.page_count ? c.page_count + ' pages · ' : ''}${fmt(c.created_at)}</div>
+          <div class="case-hint">${spinner}${escapeHtml(sx.hint)}</div>
         </div>
-        <span class="badge ${c.status}">${c.status}</span>
+        <span class="badge ${sx.cls}">${sx.label}</span>
         <button class="case-action" ${ready ? '' : 'disabled'} data-id="${c.id}" data-title="${escapeHtml(c.title)}">Speak</button>
       `;
       ul.appendChild(li);
@@ -70,10 +87,15 @@ async function loadCases() {
     ul.querySelectorAll('.case-action').forEach(btn => {
       btn.addEventListener('click', () => openVoiceFor(btn.dataset.id, btn.dataset.title));
     });
+    // Faster polling while any case is in-flight so the user sees prompt transitions.
+    casePollMs = anyInFlight ? 2500 : 6000;
   } catch (e) { console.error(e); }
 }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-setInterval(loadCases, 5000);
+
+(function scheduleNextPoll() {
+  setTimeout(async () => { await loadCases(); scheduleNextPoll(); }, casePollMs);
+})();
 loadCases();
 
 // ---------- Voice session ----------

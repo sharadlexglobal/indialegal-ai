@@ -57,6 +57,10 @@ app.post('/api/cases', upload.single('pdf'), async (req, res) => {
 });
 
 async function processCase(caseId, buffer, filename, title) {
+  // Stage 1 — Datalab OCR
+  await pool.query(
+    `UPDATE cases SET status='ocr_running', updated_at=NOW() WHERE id=$1`, [caseId]
+  );
   const { requestId, checkUrl } = await datalab.submitPdf(buffer, filename);
   await pool.query(
     `UPDATE cases SET request_id=$1, check_url=$2, updated_at=NOW() WHERE id=$3`,
@@ -70,17 +74,27 @@ async function processCase(caseId, buffer, filename, title) {
        token_estimate=$4, status='ocr_done', updated_at=NOW() WHERE id=$5`,
     [result.json || null, flat, result.page_count || null, tokenEstimate, caseId]
   );
+
+  // Stage 2 — Gemini store + upload + WAIT for indexing to actually finish
   try {
     const storeName = await gemini.createStore(`case-${caseId}-${title.slice(0, 40)}`);
-    const { fileName } = await gemini.uploadAndImport(storeName, buffer, filename);
+    const { operationName } = await gemini.uploadAndImport(storeName, buffer, filename);
     await pool.query(
-      `UPDATE cases SET gemini_store_name=$1, gemini_file_name=$2, status='ready', updated_at=NOW() WHERE id=$3`,
-      [storeName, fileName, caseId]
+      `UPDATE cases SET gemini_store_name=$1, gemini_file_name=$2,
+         status='indexing', updated_at=NOW() WHERE id=$3`,
+      [storeName, operationName, caseId]
+    );
+    // The critical wait — until this completes, /search will return nothing.
+    const { documentName } = await gemini.pollIndexingComplete(operationName);
+    await pool.query(
+      `UPDATE cases SET gemini_file_name=$1, status='ready', updated_at=NOW() WHERE id=$2`,
+      [documentName || operationName, caseId]
     );
   } catch (e) {
-    console.warn(`[case ${caseId}] gemini index skipped:`, e.message);
+    console.warn(`[case ${caseId}] gemini indexing failed:`, e.message);
     await pool.query(
-      `UPDATE cases SET status='ready', updated_at=NOW() WHERE id=$1`, [caseId]
+      `UPDATE cases SET status='failed', error=$1, updated_at=NOW() WHERE id=$2`,
+      [`Gemini indexing failed: ${e.message}`, caseId]
     );
   }
 }

@@ -52,10 +52,18 @@ button.secondary { background: transparent; color: var(--ink); border: 1px solid
 .case-title { flex: 1; }
 .case-meta { color: var(--muted); font-size: 12px; }
 .badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: #232319;
-  color: var(--gold); text-transform: uppercase; letter-spacing: 0.5px; }
+  color: var(--gold); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
 .badge.ready { color: var(--ok); background: rgba(138, 207, 138, 0.1); }
-.badge.processing { color: var(--gold); }
+.badge.pending { color: var(--gold); background: rgba(212, 168, 67, 0.08); }
 .badge.failed { color: var(--err); background: rgba(239, 106, 106, 0.1); }
+
+.case-hint { font-size: 11px; color: var(--muted); margin-top: 4px;
+  display: flex; align-items: center; gap: 6px; }
+.spin { width: 10px; height: 10px; border-radius: 50%;
+  border: 1.5px solid rgba(212, 168, 67, 0.25);
+  border-top-color: var(--gold);
+  animation: spin 0.9s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .case-action { background: var(--gold); color: #1a1408; padding: 8px 12px; border-radius: 8px;
   font-size: 13px; font-weight: 600; border: 0; width: auto; }
 .case-action:disabled { background: var(--line); color: var(--muted); }
