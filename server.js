@@ -243,17 +243,23 @@ app.post('/api/cases/:id/search', async (req, res) => {
   try {
     const query = (req.body && req.body.query || '').toString().trim().slice(0, 800);
     if (!query) return res.status(400).json({ error: 'query required' });
+    // Fetch ocr_markdown too so Gemini search can re-anchor page numbers to
+    // Datalab's authoritative page mapping (page repair).
     const r = await pool.query(
-      `SELECT gemini_store_name FROM cases WHERE id=$1`, [req.params.id]
+      `SELECT gemini_store_name, ocr_markdown FROM cases WHERE id=$1`,
+      [req.params.id]
     );
     if (!r.rows.length || !r.rows[0].gemini_store_name) {
       return res.status(404).json({ error: 'no store for case' });
     }
-    const result = await gemini.searchForRealtime(r.rows[0].gemini_store_name, query);
+    const result = await gemini.searchForRealtime(
+      r.rows[0].gemini_store_name,
+      query,
+      r.rows[0].ocr_markdown   // for page repair
+    );
     res.json(result);
   } catch (e) {
     console.error('search error', e);
-    // Layer 6 — even on internal error, fall back to refusal not hallucination.
     const lang = await gemini.detectLanguage(req.body?.query || '').catch(() => 'en');
     res.json({ snippets: [], refusal: REFUSAL_BY_LANG[lang] || REFUSAL_BY_LANG.en });
   }

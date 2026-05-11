@@ -152,7 +152,62 @@ async function rewriteQueries(userQuery, isBroad = false) {
 // Now also captures Gemini's grounded synthesis text as a fallback "SYN" snippet
 // so broad/overview questions don't trigger refusal when Gemini already
 // produced a good document-grounded answer.
-async function searchForRealtime(storeName, userQuery) {
+// Re-anchor snippet pages to our Datalab OCR (authoritative). Gemini File
+// Search has its own PDF parsing whose page numbering can drift from the
+// PDF's actual pages (chunk crosses page boundary, blank pages, etc.).
+// Datalab's `--- PAGE N ---` markers in ocr_markdown are the truth.
+function repairPagesFromOcr(snippets, ocrMarkdown) {
+  if (!ocrMarkdown || !snippets || !snippets.length) return snippets;
+
+  // parse ocr_markdown into page -> lowercase text
+  const pageMap = {};
+  let cur = null;
+  let buf = [];
+  for (const line of ocrMarkdown.split('\n')) {
+    const m = line.match(/^--- PAGE (\d+) ---/);
+    if (m) {
+      if (cur !== null) pageMap[cur] = buf.join('\n').toLowerCase();
+      cur = parseInt(m[1], 10);
+      buf = [];
+    } else if (cur !== null) {
+      buf.push(line);
+    }
+  }
+  if (cur !== null) pageMap[cur] = buf.join('\n').toLowerCase();
+  if (Object.keys(pageMap).length === 0) return snippets;
+
+  return snippets.map(s => {
+    const sample = (s.text || '').slice(0, 300).toLowerCase();
+    if (!sample) return s;
+    // pick distinctive words (length > 3, alphanumeric)
+    const words = (sample.match(/[a-z0-9ऀ-ॿ਀-੿]+/gi) || [])
+      .filter(w => w.length > 3)
+      .slice(0, 20);
+    if (!words.length) return s;
+
+    let bestPage = s.page;
+    let bestScore = 0;
+    for (const [pageStr, pageText] of Object.entries(pageMap)) {
+      const score = words.filter(w => pageText.includes(w)).length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestPage = parseInt(pageStr, 10);
+      }
+    }
+    // Require at least 30% word-match to trust the repair; otherwise keep Gemini's.
+    if (bestScore >= Math.max(3, Math.ceil(words.length * 0.3))) {
+      const out = { ...s, page: bestPage };
+      if (Array.isArray(s.pages)) {
+        // also repair multi-page set by mapping each chunk-derived page if possible
+        out.pages = [...new Set(s.pages.map(p => p))];
+      }
+      return out;
+    }
+    return s;
+  });
+}
+
+async function searchForRealtime(storeName, userQuery, ocrMarkdown = null) {
   if (GREETING_RE.test(userQuery)) {
     return { snippets: [{ id: 'S0', page: 0, text: 'GREETING_ACK' }], refusal: null };
   }
@@ -245,30 +300,24 @@ async function searchForRealtime(storeName, userQuery) {
 
   const sorted = [...seen.values()].sort((a, b) => b.score - a.score).slice(0, 6);
 
-  // Path A — we have specific grounded chunks. Return them.
+  // Path A — we have specific grounded chunks. Return them (after page repair).
   if (sorted.length > 0) {
-    const snippets = sorted.map((s, i) => ({
+    let snippets = sorted.map((s, i) => ({
       id: `S${i + 1}`, page: s.page, text: s.text
     }));
+    snippets = repairPagesFromOcr(snippets, ocrMarkdown);
     return { snippets, refusal: null };
   }
 
   // Path B — no chunks made the threshold, but Gemini synthesised something
   // grounded. For broad questions especially this is the right path.
   if (synthesisChunks.length > 0) {
-    // pick the longest substantive synthesis (richest answer)
     synthesisChunks.sort((a, b) => b.text.length - a.text.length);
     const best = synthesisChunks[0];
     const pages = [...new Set([...(best.pages || []), ...pagesSeen])].sort((a, b) => a - b);
-    return {
-      snippets: [{
-        id: 'SYN',
-        page: pages[0] ?? null,
-        pages,
-        text: best.text
-      }],
-      refusal: null
-    };
+    let snippets = [{ id: 'SYN', page: pages[0] ?? null, pages, text: best.text }];
+    snippets = repairPagesFromOcr(snippets, ocrMarkdown);
+    return { snippets, refusal: null };
   }
 
   // Path C — truly nothing. Refusal in user's language.
