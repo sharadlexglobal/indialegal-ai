@@ -64,6 +64,63 @@ async function pollUntilDone(checkUrl, { maxAttempts = 180, intervalMs = 2000 } 
   throw new Error('Datalab polling timed out');
 }
 
+// Build a map PDF-page-index -> printed page number (e.g. "47") by
+// scanning Datalab's PageHeader / PageFooter / SectionHeader blocks.
+// If a PDF page has no printable header/footer page number (cover, index,
+// front matter) the page is omitted from the map — caller falls back to
+// the PDF page index in that case.
+function extractPrintedPageMap(result) {
+  const map = {};
+  const json = result?.json;
+  if (!json) return map;
+
+  const PAGE_PATTERNS = [
+    /^\s*page\s+(\d+)(?:\s+of\s+\d+)?\s*$/i,    // "Page 47", "Page 47 of 100"
+    /^\s*[-—\s]*(\d{1,4})[-—\s]*$/,              // "47", "- 47 -", "—47—"
+    /^\s*(\d{1,4})\s*\/\s*\d{1,4}\s*$/           // "47/100"
+  ];
+
+  function tryExtract(text) {
+    const trimmed = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!trimmed || trimmed.length > 30) return null;
+    for (const pat of PAGE_PATTERNS) {
+      const m = trimmed.match(pat);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (Number.isFinite(n) && n > 0 && n < 10000) return n;
+      }
+    }
+    return null;
+  }
+
+  function walk(block, pageNum) {
+    if (!block) return;
+    if (block.block_type === 'Page' || block.type === 'Page') {
+      pageNum = block.page || block.page_number || pageNum;
+    }
+    const bt = String(block.block_type || block.type || '').toLowerCase();
+    const looksHeaderFooter = bt.includes('header') || bt.includes('footer')
+                            || bt === 'pagenumber' || bt === 'page_number';
+    if (looksHeaderFooter && pageNum != null && !(pageNum in map)) {
+      let txt = block.text;
+      if (!txt && block.html) {
+        txt = String(block.html).replace(/<[^>]+>/g, ' ');
+      }
+      const n = tryExtract(txt);
+      if (n) map[pageNum] = n;
+    }
+    const children = block.children || block.blocks || [];
+    for (const c of children) walk(c, pageNum);
+  }
+
+  if (Array.isArray(json)) {
+    json.forEach((page, idx) => walk(page, idx + 1));
+  } else {
+    walk(json, 1);
+  }
+  return map;
+}
+
 // Flatten the Datalab JSON tree into one readable string that preserves
 // page boundaries so the model can cite "page N".
 function flattenForPrompt(result) {
@@ -131,6 +188,6 @@ function parseExtractResult(result) {
 }
 
 module.exports = {
-  submitPdf, pollUntilDone, flattenForPrompt,
+  submitPdf, pollUntilDone, flattenForPrompt, extractPrintedPageMap,
   submitExtract, parseExtractResult, LEGAL_SCHEMA
 };

@@ -32,6 +32,10 @@ CREATE INDEX IF NOT EXISTS cases_created_idx ON cases (created_at DESC);
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS facts JSONB;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS facts_status TEXT;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS extract_check_url TEXT;
+
+-- Mapping of PDF page index -> printed page number visible in the doc
+-- (extracted from Datalab PageHeader/PageFooter blocks)
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS page_map JSONB;
 `;
 
 (async () => {

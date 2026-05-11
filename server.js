@@ -69,11 +69,13 @@ async function processCase(caseId, buffer, filename, title) {
   );
   const result = await datalab.pollUntilDone(checkUrl);
   const flat = datalab.flattenForPrompt(result);
+  const pageMap = datalab.extractPrintedPageMap(result);
   const tokenEstimate = Math.ceil(flat.length / 4);
   await pool.query(
     `UPDATE cases SET ocr_json=$1, ocr_markdown=$2, page_count=$3,
-       token_estimate=$4, status='ocr_done', updated_at=NOW() WHERE id=$5`,
-    [result.json || null, flat, result.page_count || null, tokenEstimate, caseId]
+       token_estimate=$4, page_map=$5, status='ocr_done', updated_at=NOW() WHERE id=$6`,
+    [result.json || null, flat, result.page_count || null, tokenEstimate,
+     pageMap, caseId]
   );
 
   // Stage 2 — Run in PARALLEL: Datalab structured extraction (atomic facts)
@@ -243,10 +245,10 @@ app.post('/api/cases/:id/search', async (req, res) => {
   try {
     const query = (req.body && req.body.query || '').toString().trim().slice(0, 800);
     if (!query) return res.status(400).json({ error: 'query required' });
-    // Fetch ocr_markdown too so Gemini search can re-anchor page numbers to
-    // Datalab's authoritative page mapping (page repair).
+    // Fetch ocr_markdown + page_map so we can re-anchor page numbers to
+    // Datalab's authoritative page mapping AND translate to printed pages.
     const r = await pool.query(
-      `SELECT gemini_store_name, ocr_markdown FROM cases WHERE id=$1`,
+      `SELECT gemini_store_name, ocr_markdown, page_map FROM cases WHERE id=$1`,
       [req.params.id]
     );
     if (!r.rows.length || !r.rows[0].gemini_store_name) {
@@ -255,7 +257,8 @@ app.post('/api/cases/:id/search', async (req, res) => {
     const result = await gemini.searchForRealtime(
       r.rows[0].gemini_store_name,
       query,
-      r.rows[0].ocr_markdown   // for page repair
+      r.rows[0].ocr_markdown,   // page repair (PDF pages)
+      r.rows[0].page_map        // PDF page -> printed page translation
     );
     res.json(result);
   } catch (e) {

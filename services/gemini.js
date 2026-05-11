@@ -207,7 +207,25 @@ function repairPagesFromOcr(snippets, ocrMarkdown) {
   });
 }
 
-async function searchForRealtime(storeName, userQuery, ocrMarkdown = null) {
+// Translate PDF page numbers to printed page numbers (e.g. page 5 in the
+// PDF might be printed as page 1 because of cover sheets / front matter).
+// If a page has no printed equivalent in the map, keep the PDF index so
+// the citation is still verifiable.
+function applyPrintedPageMap(snippets, pageMap) {
+  if (!pageMap || !snippets) return snippets;
+  return snippets.map(s => {
+    const out = { ...s };
+    if (s.page != null && pageMap[s.page] != null) {
+      out.page = pageMap[s.page];
+    }
+    if (Array.isArray(s.pages)) {
+      out.pages = s.pages.map(p => pageMap[p] != null ? pageMap[p] : p);
+    }
+    return out;
+  });
+}
+
+async function searchForRealtime(storeName, userQuery, ocrMarkdown = null, pageMap = null) {
   if (GREETING_RE.test(userQuery)) {
     return { snippets: [{ id: 'S0', page: 0, text: 'GREETING_ACK' }], refusal: null };
   }
@@ -300,12 +318,13 @@ async function searchForRealtime(storeName, userQuery, ocrMarkdown = null) {
 
   const sorted = [...seen.values()].sort((a, b) => b.score - a.score).slice(0, 6);
 
-  // Path A — we have specific grounded chunks. Return them (after page repair).
+  // Path A — we have specific grounded chunks.
   if (sorted.length > 0) {
     let snippets = sorted.map((s, i) => ({
       id: `S${i + 1}`, page: s.page, text: s.text
     }));
-    snippets = repairPagesFromOcr(snippets, ocrMarkdown);
+    snippets = repairPagesFromOcr(snippets, ocrMarkdown);   // PDF page accuracy
+    snippets = applyPrintedPageMap(snippets, pageMap);      // PDF -> printed
     return { snippets, refusal: null };
   }
 
@@ -317,6 +336,7 @@ async function searchForRealtime(storeName, userQuery, ocrMarkdown = null) {
     const pages = [...new Set([...(best.pages || []), ...pagesSeen])].sort((a, b) => a - b);
     let snippets = [{ id: 'SYN', page: pages[0] ?? null, pages, text: best.text }];
     snippets = repairPagesFromOcr(snippets, ocrMarkdown);
+    snippets = applyPrintedPageMap(snippets, pageMap);
     return { snippets, refusal: null };
   }
 
