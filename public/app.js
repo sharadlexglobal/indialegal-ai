@@ -186,7 +186,23 @@ async function onRealtimeEvent(ev) {
         output: JSON.stringify(result)
       }
     });
-    sendDC({ type: 'response.create' });
+    // CRITICAL — override session-level tool_choice for THIS response.
+    // Session has tool_choice="required" (forces the first call). After the
+    // tool returns we MUST tell the model to speak, not call the tool again,
+    // otherwise it loops on the preamble ("main batata hu, batata hu...").
+    sendDC({
+      type: 'response.create',
+      response: {
+        tool_choice: 'none',
+        instructions:
+          'The search_case_file tool has just returned. You ALREADY have the data ' +
+          'you need in the latest function_call_output. Speak the answer NOW, in the ' +
+          "user's most recent language, in 2-4 short sentences, following all the rules " +
+          'from your system prompt (cite [S1]/[S2]/[SYN], use refusal verbatim if present, ' +
+          'no forbidden hedging phrases, no preamble like "let me check" or "main batata hu"). ' +
+          'Do NOT call any tool in this response.'
+      }
+    });
   }
 
   // Capture assistant transcript as it streams (for verifier + phrase scan).
