@@ -14,6 +14,11 @@ const GREETING_RE = /^\s*(hi|hello|hey|namaste|namaskar|sat sri akal|adab|salaam
 // Broad / synthesis-type questions — anywhere in the query.
 const BROAD_RE = /\b(summar(y|ise|ize)|overview|main (point|argument|finding|issue|topic)s?|key (point|argument|finding|issue|takeaway)s?|gist|outline|what (is|are) (this|the)|about|sammari|saaransh|saransh|saraansh|sarvajanik|mukhya|seedha[- ]?seedha|kul milake|kya hai|brief|tldr|short)\b/i;
 
+// Patterns that signal Gemini is itself refusing (i.e. the document doesn't
+// contain the answer). We treat these as "no synthesis" so the server-side
+// refusal in the user's language fires instead.
+const GEMINI_SELF_REFUSAL_RE = /\b(i (am|'m) sorry|i cannot|i can(no|')t (find|locate|provide|answer|determine)|does (not|n't) contain|does (not|n't) (mention|provide|state|specify|include|cover)|no (information|mention|reference|details?|data) (about|on|regarding|for)|not (mentioned|contained|stated|specified|provided|present|included|found|indicated|addressed) in (the|this) (document|file|provided)|is not (in|part of|within) (the|this) (document|file|provided)|the (document|file|provided (text|content)) does (not|n't))/i;
+
 async function createStore(displayName) {
   const res = await fetch(`${BASE}/fileSearchStores?key=${process.env.GEMINI_API_KEY}`, {
     method: 'POST',
@@ -192,10 +197,16 @@ async function searchForRealtime(storeName, userQuery) {
       }
     });
 
-    if (answerText && answerText.length >= MIN_SYNTHESIS_LEN) {
-      synthesisChunks.push({ text: answerText, pages: chunks
+    if (answerText && answerText.length >= MIN_SYNTHESIS_LEN
+        && !GEMINI_SELF_REFUSAL_RE.test(answerText)) {
+      const pages = chunks
         .map(c => (c.retrievedContext || c.retrieved_context || {}).pageNumber)
-        .filter(p => p != null) });
+        .filter(p => p != null);
+      // If Gemini didn't ground ANY page, it's almost certainly speculating —
+      // don't accept the synthesis.
+      if (pages.length > 0) {
+        synthesisChunks.push({ text: answerText, pages });
+      }
     }
   }
 
