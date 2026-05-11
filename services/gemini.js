@@ -30,7 +30,7 @@ async function createStore(displayName) {
   return data.name;
 }
 
-async function uploadAndImport(storeName, buffer, filename) {
+async function uploadAndImport(storeName, buffer, filename, mimeType = 'application/pdf') {
   const initRes = await fetch(
     `https://generativelanguage.googleapis.com/upload/v1beta/${storeName}:uploadToFileSearchStore?key=${process.env.GEMINI_API_KEY}`,
     {
@@ -39,7 +39,7 @@ async function uploadAndImport(storeName, buffer, filename) {
         'X-Goog-Upload-Protocol': 'resumable',
         'X-Goog-Upload-Command': 'start',
         'X-Goog-Upload-Header-Content-Length': String(buffer.length),
-        'X-Goog-Upload-Header-Content-Type': 'application/pdf',
+        'X-Goog-Upload-Header-Content-Type': mimeType,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ displayName: filename })

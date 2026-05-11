@@ -131,9 +131,19 @@ async function runResearch(pool, jobId) {
         continue;
       }
       const filename = `judgment-${j.tid}-${(j.title || 'untitled').slice(0, 60).replace(/[^\w-]+/g, '_')}.txt`;
-      const buf = Buffer.from(text, 'utf-8');
+      // Prepend metadata header so retrieval includes searchable case provenance
+      const enriched =
+        `Title: ${j.title || 'Untitled'}\n` +
+        `Court: ${j.court || ''}\n` +
+        `Date: ${j.date || ''}\n` +
+        `Citation: ${j.citation || ''}\n` +
+        `Source: Indian Kanoon tid ${j.tid}\n\n` +
+        text;
+      const buf = Buffer.from(enriched, 'utf-8');
 
-      const { operationName } = await gemini.uploadAndImport(job.gemini_store_name, buf, filename);
+      const { operationName } = await gemini.uploadAndImport(
+        job.gemini_store_name, buf, filename, 'text/plain'
+      );
       const { documentName } = await gemini.pollIndexingComplete(operationName);
       j.indexed = true;
       j.gemini_document = documentName;
