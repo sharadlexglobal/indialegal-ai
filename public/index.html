@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0b0b10" />
+  <title>INDIALEGAL.AI</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>INDIALEGAL<span class="ai">.AI</span></h1>
+    </div>
+    <p class="tagline">Upload a case. Speak to it.</p>
+  </header>
+
+  <main>
+    <section id="upload-card" class="card">
+      <h2>1. Upload a document</h2>
+      <form id="upload-form">
+        <input type="text" id="title" placeholder="Case title (optional)" />
+        <label class="file-drop" for="file">
+          <span id="file-label">Tap to choose PDF</span>
+          <input type="file" id="file" name="pdf" accept="application/pdf" required />
+        </label>
+        <button id="upload-btn" type="submit">Upload &amp; Process</button>
+        <p id="upload-status" class="status"></p>
+      </form>
+    </section>
+
+    <section id="cases-card" class="card">
+      <h2>2. Your cases</h2>
+      <ul id="cases-list"></ul>
+    </section>
+
+    <section id="voice-card" class="card hidden">
+      <h2>3. Voice session</h2>
+      <p id="voice-case"></p>
+      <button id="start-voice" type="button">Start speaking</button>
+      <button id="stop-voice" type="button" class="hidden">End session</button>
+      <p id="voice-status" class="status"></p>
+      <audio id="ai-audio" autoplay></audio>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
