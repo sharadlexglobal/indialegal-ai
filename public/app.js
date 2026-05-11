@@ -2,12 +2,7 @@ const $ = (s) => document.querySelector(s);
 const fmt = (d) => new Date(d).toLocaleString();
 
 let activeCase = null;
-let pc = null;
-let micStream = null;
-let dc = null;
-
-// Per-turn state for verifier + forbidden-phrase tracking
-let currentTurn = null;
+let room = null;
 
 // ---------- Upload ----------
 $('#file').addEventListener('change', (e) => {
@@ -170,35 +165,46 @@ async function loadFactsPanel(caseId) {
 
 $('#start-voice').addEventListener('click', async () => {
   if (!activeCase) return;
-  setStatus('Requesting microphone…');
+  setStatus('Loading case…');
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-    });
-    setStatus('Loading case…');
-    const tokRes = await fetch(`/api/cases/${activeCase.id}/voice-token`, { method: 'POST' });
+    const tokRes = await fetch(`/api/cases/${activeCase.id}/voice-room`, { method: 'POST' });
     const tok = await tokRes.json();
     if (!tokRes.ok) throw new Error(tok.error || 'token failed');
 
-    setStatus('Connecting…');
-    pc = new RTCPeerConnection();
-    pc.ontrack = (e) => { $('#ai-audio').srcObject = e.streams[0]; };
-    for (const track of micStream.getTracks()) pc.addTrack(track, micStream);
+    setStatus('Requesting microphone…');
+    setStatus('Connecting to room…');
+    room = new LivekitClient.Room({
+      adaptiveStream: true,
+      dynacast: true,
+      audioCaptureDefaults: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
 
-    dc = pc.createDataChannel('oai-events');
-    dc.addEventListener('open', () => setStatus('Connected. Start speaking.', 'ok'));
-    dc.addEventListener('message', onRealtimeEvent);
+    // Agent audio — auto-attach when the Python agent publishes its TTS track.
+    room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, _pub, participant) => {
+      if (track.kind === 'audio') {
+        track.attach($('#ai-audio'));
+        setStatus(`Connected to ${participant.identity}. Speak now.`, 'ok');
+      }
+    });
 
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    const sdpRes = await fetch(
-      `https://api.openai.com/v1/realtime/calls?model=${encodeURIComponent(tok.model)}`,
-      { method: 'POST', body: offer.sdp,
-        headers: { Authorization: `Bearer ${tok.token}`, 'Content-Type': 'application/sdp' } }
-    );
-    const answerSdp = await sdpRes.text();
-    if (!sdpRes.ok) throw new Error(`SDP exchange failed: ${answerSdp}`);
-    await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+    // Live transcription events from Sarvam STT + agent TTS.
+    room.on(LivekitClient.RoomEvent.TranscriptionReceived, (segments, participant) => {
+      const text = segments.map(s => s.text).join(' ').trim();
+      if (!text) return;
+      const isAgent = participant && participant.identity && participant.identity.startsWith('agent-');
+      pushTurn(isAgent ? 'assistant' : 'user', text);
+    });
+
+    room.on(LivekitClient.RoomEvent.Disconnected, () => {
+      setStatus('Session ended.');
+    });
+
+    await room.connect(tok.url, tok.token);
+    await room.localParticipant.setMicrophoneEnabled(true);
 
     $('#start-voice').classList.add('hidden');
     $('#stop-voice').classList.remove('hidden');
@@ -212,133 +218,18 @@ $('#stop-voice').addEventListener('click', () => {
   $('#start-voice').classList.remove('hidden'); $('#stop-voice').classList.add('hidden');
 });
 
-function cleanup() {
-  if (pc) { try { pc.close(); } catch {} pc = null; }
-  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
-  dc = null; currentTurn = null;
+async function cleanup() {
+  if (room) { try { await room.disconnect(); } catch {} room = null; }
+  const audio = $('#ai-audio');
+  if (audio.srcObject) {
+    try { audio.srcObject.getTracks().forEach(t => t.stop()); } catch {}
+    audio.srcObject = null;
+  }
 }
 
 function setStatus(msg, cls) {
   $('#voice-status').textContent = msg;
   $('#voice-status').className = 'status' + (cls ? ' ' + cls : '');
-}
-
-// ---------- Realtime event handling ----------
-async function onRealtimeEvent(ev) {
-  let m;
-  try { m = JSON.parse(ev.data); } catch { return; }
-
-  // Track the user's most recent utterance (for verifier context).
-  if (m.type === 'conversation.item.input_audio_transcription.completed') {
-    pushTurn('user', m.transcript || '');
-  }
-
-  // Layer 1 — model issued a function call.
-  if (m.type === 'response.function_call_arguments.done' && m.name === 'search_case_file') {
-    let args = {};
-    try { args = JSON.parse(m.arguments || '{}'); } catch {}
-    const query = args.query || '';
-    pushTurn('search', query);
-
-    let result;
-    try {
-      const r = await fetch(`/api/cases/${activeCase.id}/search`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
-      });
-      result = await r.json();
-    } catch (e) {
-      result = { snippets: [], refusal: 'This is not stated in the file.' };
-    }
-
-    // Remember snippets used for this turn (Layer 8 verifier + UI display).
-    if (!currentTurn) currentTurn = { snippets: [], draft: '', query };
-    currentTurn.snippets = result.snippets || [];
-    currentTurn.refusal = result.refusal || null;
-    currentTurn.query = query;
-
-    // SANITIZE before sending to Realtime — strip internal ids (S1/S2/SYN/S0)
-    // and the "GREETING_ACK" marker so the model can NEVER pronounce them.
-    // The model sees only one of these clean shapes: {greeting:true},
-    // {refusal:"..."}, or {snippets:[{page,text}|{page,pages,text}]}.
-    let toolPayload;
-    if (result.refusal) {
-      toolPayload = { refusal: result.refusal };
-    } else if ((result.snippets || []).some(s => s.text === 'GREETING_ACK')) {
-      toolPayload = { greeting: true };
-    } else {
-      toolPayload = {
-        snippets: (result.snippets || []).map(s => {
-          const out = { page: s.page, text: s.text };
-          if (Array.isArray(s.pages) && s.pages.length > 1) out.pages = s.pages;
-          return out;
-        })
-      };
-    }
-
-    sendDC({
-      type: 'conversation.item.create',
-      item: {
-        type: 'function_call_output',
-        call_id: m.call_id,
-        output: JSON.stringify(toolPayload)
-      }
-    });
-    // CRITICAL — override session-level tool_choice for THIS response.
-    // Session has tool_choice="required" (forces the first call). After the
-    // tool returns we MUST tell the model to speak, not call the tool again,
-    // otherwise it loops on the preamble ("main batata hu, batata hu...").
-    sendDC({
-      type: 'response.create',
-      response: {
-        tool_choice: 'none',
-        instructions:
-          'The search_case_file tool has just returned. You ALREADY have the data ' +
-          'you need in the latest function_call_output. Speak the answer NOW, in the ' +
-          "user's most recent language, in 2-4 short sentences, following all the rules " +
-          'from your system prompt (cite [S1]/[S2]/[SYN], use refusal verbatim if present, ' +
-          'no forbidden hedging phrases, no preamble like "let me check" or "main batata hu"). ' +
-          'Do NOT call any tool in this response.'
-      }
-    });
-  }
-
-  // Capture assistant transcript as it streams (for verifier + phrase scan).
-  if (m.type === 'response.audio_transcript.delta') {
-    if (!currentTurn) currentTurn = { snippets: [], draft: '', query: '' };
-    currentTurn.draft += m.delta || '';
-  }
-
-  // Turn complete — run verifier + forbidden phrase scan.
-  if (m.type === 'response.done') {
-    if (currentTurn && currentTurn.draft) {
-      const draft = currentTurn.draft;
-      pushTurn('assistant', draft);
-
-      // Layer 7 — forbidden phrase scan
-      const pCheck = await fetch('/api/check-phrases', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: draft })
-      }).then(r => r.json()).catch(() => ({ hits: [] }));
-
-      // Layer 8 — verifier (only when there were real snippets, not greetings)
-      let verdict = { verdict: 'all_supported', unsupported_claims: [] };
-      const realSnips = (currentTurn.snippets || []).filter(s => s.text !== 'GREETING_ACK');
-      if (realSnips.length) {
-        verdict = await fetch(`/api/cases/${activeCase.id}/verify`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ draft, snippets: realSnips })
-        }).then(r => r.json()).catch(() => ({ verdict: 'partial', unsupported_claims: [] }));
-      }
-
-      renderWarnings(pCheck.hits, verdict, realSnips);
-      currentTurn = null;
-    }
-  }
-}
-
-function sendDC(obj) {
-  if (dc && dc.readyState === 'open') dc.send(JSON.stringify(obj));
 }
 
 // ---------- Turn log + warnings ----------
@@ -356,30 +247,3 @@ function pushTurn(kind, text) {
   log.scrollTop = log.scrollHeight;
 }
 
-function renderWarnings(phraseHits, verdict, snippets) {
-  const log = $('#turn-log');
-  const warns = [];
-  if (phraseHits && phraseHits.length) {
-    warns.push(`⚠ Hedging language detected: ${phraseHits.join(', ')}`);
-  }
-  if (verdict.verdict === 'partial' || verdict.verdict === 'unsupported') {
-    const claims = (verdict.unsupported_claims || []).slice(0, 3).map(c => `"${c}"`).join(' · ');
-    warns.push(`⚠ Unverified by file search: ${claims || '(claim not found in snippets)'}`);
-  }
-  if (snippets && snippets.length) {
-    const pages = [...new Set(snippets.map(s => s.page).filter(p => p != null))].join(', ');
-    if (pages) {
-      const div = document.createElement('div');
-      div.className = 'turn turn-cite';
-      div.innerHTML = `<span class="turn-label">Cite</span><span class="turn-text">page ${pages}</span>`;
-      log.appendChild(div);
-    }
-  }
-  for (const w of warns) {
-    const div = document.createElement('div');
-    div.className = 'turn turn-warn';
-    div.textContent = w;
-    log.appendChild(div);
-  }
-  log.scrollTop = log.scrollHeight;
-}
