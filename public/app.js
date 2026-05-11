@@ -75,12 +75,18 @@ async function loadCases() {
           <div class="case-hint">${spinner}${escapeHtml(sx.hint)}</div>
         </div>
         <span class="badge ${sx.cls}">${sx.label}</span>
-        <button class="case-action" ${ready ? '' : 'disabled'} data-id="${c.id}" data-title="${escapeHtml(c.title)}">Speak</button>
+        <div class="case-buttons">
+          <button class="case-action case-speak" ${ready ? '' : 'disabled'} data-id="${c.id}" data-title="${escapeHtml(c.title)}">Speak</button>
+          <button class="case-action case-research" ${ready ? '' : 'disabled'} data-id="${c.id}" data-title="${escapeHtml(c.title)}">Research</button>
+        </div>
       `;
       ul.appendChild(li);
     }
-    ul.querySelectorAll('.case-action').forEach(btn => {
-      btn.addEventListener('click', () => openVoiceFor(btn.dataset.id, btn.dataset.title));
+    ul.querySelectorAll('.case-speak').forEach(btn => {
+      btn.addEventListener('click', () => openVoiceFor(btn.dataset.id, btn.dataset.title, 'case'));
+    });
+    ul.querySelectorAll('.case-research').forEach(btn => {
+      btn.addEventListener('click', () => openVoiceFor(btn.dataset.id, btn.dataset.title, 'research'));
     });
     // Faster polling while any case is in-flight so the user sees prompt transitions.
     casePollMs = anyInFlight ? 2500 : 6000;
@@ -94,16 +100,50 @@ function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;'
 loadCases();
 
 // ---------- Voice session ----------
-function openVoiceFor(id, title) {
-  activeCase = { id, title };
+function openVoiceFor(id, title, mode = 'case') {
+  activeCase = { id, title, mode };
   $('#voice-card').classList.remove('hidden');
-  $('#voice-case').textContent = `Case: ${title}`;
+  $('#voice-card-title').textContent = mode === 'research' ? '3. Legal Research session' : '3. Voice session';
+  $('#voice-case').textContent = (mode === 'research' ? 'Research on: ' : 'Case: ') + title;
   $('#voice-status').textContent = '';
   $('#turn-log').innerHTML = '';
   $('#start-voice').classList.remove('hidden');
   $('#stop-voice').classList.add('hidden');
-  loadFactsPanel(id);
+  if (mode === 'research') {
+    $('#facts-panel').classList.add('hidden');
+    $('#research-panel').classList.remove('hidden');
+    loadResearchPanel(id);
+  } else {
+    $('#research-panel').classList.add('hidden');
+    loadFactsPanel(id);
+  }
   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+async function loadResearchPanel(caseId) {
+  try {
+    const r = await fetch(`/api/cases/${caseId}/research`);
+    const jobs = await r.json();
+    const box = $('#research-list');
+    if (!jobs.length) {
+      box.innerHTML = '<div class="research-empty">No research jobs yet. Start a conversation to begin.</div>';
+      return;
+    }
+    const RUNNING = jobs.some(j => j.status === 'running' || j.status === 'confirmed' || j.status === 'scoping');
+    box.innerHTML = jobs.map(j => {
+      const cls = j.status === 'done' ? 'done' : j.status === 'failed' ? 'failed' : 'running';
+      const spinner = (j.status === 'running' || j.status === 'confirmed') ? '<span class="spin"></span>' : '';
+      const summary = j.summary || j.plan || `Status: ${j.status}`;
+      return `<div class="research-row ${cls}">
+        ${spinner}<div class="r-text">
+          <div class="r-title">${escapeHtml(j.plan || 'Research job')}</div>
+          <div class="r-meta">${j.judgment_count || 0} judgments · ${escapeHtml(j.status)} · ${fmt(j.created_at)}</div>
+          ${j.status === 'done' ? `<div class="r-summary">${escapeHtml(summary)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    if (RUNNING) setTimeout(() => loadResearchPanel(caseId), 5000);
+  } catch (e) { console.error(e); }
 }
 
 const FACT_LABELS = [
@@ -165,9 +205,10 @@ async function loadFactsPanel(caseId) {
 
 $('#start-voice').addEventListener('click', async () => {
   if (!activeCase) return;
-  setStatus('Loading case…');
+  setStatus(activeCase.mode === 'research' ? 'Opening research session…' : 'Loading case…');
   try {
-    const tokRes = await fetch(`/api/cases/${activeCase.id}/voice-room`, { method: 'POST' });
+    const endpoint = activeCase.mode === 'research' ? 'research-room' : 'voice-room';
+    const tokRes = await fetch(`/api/cases/${activeCase.id}/${endpoint}`, { method: 'POST' });
     const tok = await tokRes.json();
     if (!tokRes.ok) throw new Error(tok.error || 'token failed');
 

@@ -8,6 +8,7 @@ const { AccessToken } = require('livekit-server-sdk');
 const datalab = require('./services/datalab');
 const openai = require('./services/openai');
 const gemini = require('./services/gemini');
+const research = require('./services/research');
 const {
   buildRealtimeSystemPrompt,
   FORBIDDEN_PHRASES,
@@ -214,6 +215,92 @@ app.post('/api/cases/:id/voice-room', async (req, res) => {
     console.error('voice-room error', e);
     res.status(500).json({ error: e.message });
   }
+});
+
+// ───── Legal Research (multi-turn scoping + IKAPI fetch + index) ─────
+
+// Issues a LiveKit JWT for a research room. Agent detects mode from the
+// 'research-' room name prefix and switches to research instructions.
+app.post('/api/cases/:id/research-room', async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT id, title, status, gemini_store_name FROM cases WHERE id=$1`,
+      [req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'case not found' });
+    const c = r.rows[0];
+    if (c.status !== 'ready' || !c.gemini_store_name) {
+      return res.status(409).json({ error: `case status is ${c.status}` });
+    }
+    const roomName = `research-${c.id}-${Date.now().toString(36)}`;
+    const identity = `user-${Date.now().toString(36)}`;
+    const at = new AccessToken(
+      process.env.LIVEKIT_API_KEY,
+      process.env.LIVEKIT_API_SECRET,
+      { identity, ttl: 60 * 60 }
+    );
+    at.addGrant({
+      roomJoin: true, room: roomName,
+      canPublish: true, canSubscribe: true, canPublishData: true
+    });
+    at.metadata = JSON.stringify({ case_id: c.id, case_title: c.title, mode: 'research' });
+    const token = await at.toJwt();
+    res.json({ url: process.env.LIVEKIT_URL, token, roomName, caseId: c.id, caseTitle: c.title });
+  } catch (e) {
+    console.error('research-room error', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Voice agent calls this once the user has approved its plan.
+app.post('/api/cases/:id/start-research', async (req, res) => {
+  try {
+    const caseId = req.params.id;
+    const scope = (req.body && req.body.scope) || {};
+    const plan = (req.body && req.body.plan) || null;
+    const cr = await pool.query(`SELECT gemini_store_name FROM cases WHERE id=$1`, [caseId]);
+    if (!cr.rows.length || !cr.rows[0].gemini_store_name) {
+      return res.status(404).json({ error: 'case not ready' });
+    }
+    const ins = await pool.query(
+      `INSERT INTO research_jobs (case_id, scope, plan, status)
+         VALUES ($1, $2, $3, 'confirmed') RETURNING id`,
+      [caseId, scope, plan]
+    );
+    const jobId = ins.rows[0].id;
+    // fire-and-forget background work
+    research.runResearch(pool, jobId).catch(async (e) => {
+      console.error(`[research ${jobId}] crashed`, e);
+      await pool.query(
+        `UPDATE research_jobs SET status='failed', error=$1, updated_at=NOW() WHERE id=$2`,
+        [String(e.message || e), jobId]
+      );
+    });
+    res.json({ jobId, status: 'confirmed' });
+  } catch (e) {
+    console.error('start-research error', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/cases/:id/research/:jobId', async (req, res) => {
+  const r = await pool.query(
+    `SELECT id, case_id, scope, plan, status, judgments, summary, error, created_at, updated_at
+       FROM research_jobs WHERE id=$1 AND case_id=$2`,
+    [req.params.jobId, req.params.id]
+  );
+  if (!r.rows.length) return res.status(404).json({ error: 'job not found' });
+  res.json(r.rows[0]);
+});
+
+app.get('/api/cases/:id/research', async (req, res) => {
+  const r = await pool.query(
+    `SELECT id, plan, status, summary, created_at,
+            jsonb_array_length(COALESCE(judgments, '[]'::jsonb)) AS judgment_count
+       FROM research_jobs WHERE case_id=$1 ORDER BY created_at DESC LIMIT 20`,
+    [req.params.id]
+  );
+  res.json(r.rows);
 });
 
 // Old OpenAI Realtime path kept as a fallback while LiveKit migration stabilises.

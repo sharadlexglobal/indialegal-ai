@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#0b0b10" />
   <title>INDIALEGAL.AI</title>
-  <link rel="stylesheet" href="/styles.css?v=3" />
+  <link rel="stylesheet" href="/styles.css?v=4" />
   <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.7.5/dist/livekit-client.umd.min.js"></script>
 </head>
 <body>
@@ -37,9 +37,13 @@
     </section>
 
     <section id="voice-card" class="card hidden">
-      <h2>3. Voice session</h2>
+      <h2 id="voice-card-title">3. Voice session</h2>
       <p id="voice-case"></p>
       <div id="facts-panel" class="facts-panel hidden"></div>
+      <div id="research-panel" class="research-panel hidden">
+        <h3>Active research</h3>
+        <div id="research-list"></div>
+      </div>
       <button id="start-voice" type="button">Start speaking</button>
       <button id="stop-voice" type="button" class="hidden">End session</button>
       <p id="voice-status" class="status"></p>
@@ -48,6 +52,6 @@
     </section>
   </main>
 
-  <script src="/app.js?v=3"></script>
+  <script src="/app.js?v=4"></script>
 </body>
 </html>

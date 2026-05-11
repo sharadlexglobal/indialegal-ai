@@ -31,7 +31,7 @@ from livekit.agents import (
 )
 from livekit.plugins import google, sarvam, silero
 
-from prompts import build_system_prompt
+from prompts import build_system_prompt, build_research_system_prompt
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -43,10 +43,12 @@ HTTP_TIMEOUT = httpx.Timeout(30.0, connect=5.0)
 IKAPI_TIMEOUT = httpx.Timeout(60.0, connect=5.0)
 
 
-def parse_case_id(room_name: str) -> str | None:
-    """Room name pattern: case-{id}-{nonce}"""
-    m = re.match(r"case-(\d+)-", room_name or "")
-    return m.group(1) if m else None
+def parse_room(room_name: str) -> tuple[str, str | None]:
+    """Returns (mode, case_id). Mode is 'case' or 'research'."""
+    m = re.match(r"(case|research)-(\d+)-", room_name or "")
+    if not m:
+        return ("case", None)
+    return (m.group(1), m.group(2))
 
 
 async def fetch_case_meta(case_id: str) -> dict:
@@ -137,6 +139,83 @@ async def search_indian_kanoon(
         return json.dumps({"refusal": "Indian Kanoon abhi available nahi hai. Please thodi der baad try kariye."})
 
 
+def make_research_tools(case_id: str):
+    """Tools specific to legal research sessions: kick off research,
+    poll progress. Both round-trip through the Node backend so the
+    actual IKAPI fan-out + Gemini indexing runs server-side."""
+
+    @function_tool
+    async def execute_legal_research(
+        context: RunContext,
+        keywords: str,
+        doctype: str | None = None,
+        sections: list[str] | None = None,
+        principle: str | None = None,
+        years_back: int | None = None,
+        max_results: int = 5,
+    ) -> str:
+        """Kick off the actual Indian Kanoon research + indexing.
+        CALL THIS ONLY AFTER the user has explicitly approved your plan
+        ('haan', 'shuru karo', 'go ahead', 'okay').
+
+        Args:
+          keywords: The main search phrase (e.g. "Section 482 CrPC quashing FIR").
+          doctype:  Optional - "supremecourt", "highcourts", "tribunals".
+          sections: Optional list like ["482 CrPC", "439 CrPC"].
+          principle: Optional principle/doctrine, e.g. "inherent powers of HC".
+          years_back: Optional number of years to limit results to (e.g. 2).
+          max_results: How many top judgments to fetch + index (default 5).
+
+        Returns a JSON string: {"jobId": <int>, "status": "confirmed"}.
+        Tell the user research is running in the background; they can
+        ask for status later.
+        """
+        scope = {
+            "keywords": keywords,
+            "doctype": doctype,
+            "sections": sections or [],
+            "principle": principle,
+            "years_back": years_back,
+            "max_results": max_results,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as c:
+                r = await c.post(
+                    f"{NODE_URL}/api/cases/{case_id}/start-research",
+                    json={"scope": scope, "plan": keywords},
+                )
+                r.raise_for_status()
+                return r.text
+        except Exception as e:
+            log.error("execute_legal_research error: %s", e)
+            return json.dumps({"error": "could not start research, try again later"})
+
+    @function_tool
+    async def check_research_progress(context: RunContext) -> str:
+        """Check status of the most recent research job for this case.
+        Returns a JSON string with status and (if done) summary +
+        judgment count. Speak the result in 1 sentence."""
+        try:
+            async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as c:
+                r = await c.get(f"{NODE_URL}/api/cases/{case_id}/research")
+                r.raise_for_status()
+                jobs = r.json()
+            if not jobs:
+                return json.dumps({"status": "none"})
+            latest = jobs[0]
+            return json.dumps({
+                "jobId": latest.get("id"),
+                "status": latest.get("status"),
+                "summary": latest.get("summary"),
+                "judgment_count": latest.get("judgment_count") or 0,
+            })
+        except Exception as e:
+            log.error("check_research_progress error: %s", e)
+            return json.dumps({"status": "error"})
+
+    return [execute_legal_research, check_research_progress]
+
+
 def make_search_tool(case_id: str):
     """Returns a @function_tool bound to a specific case id so each room
     has its own search scope. The strict 9-layer logic lives server-side
@@ -195,11 +274,22 @@ class LegalAgent(Agent):
         )
 
 
+class LegalResearchAgent(Agent):
+    """Multi-turn research scoper. Different prompt (RESEARCH_RULES),
+    different tools (execute + check_progress). Reuses the same
+    search_indian_kanoon tool only for OPTIONAL recon during scoping."""
+    def __init__(self, case_id: str, case_title: str, page_count: int | None):
+        super().__init__(
+            instructions=build_research_system_prompt(case_title, page_count),
+            tools=make_research_tools(case_id) + [search_indian_kanoon],
+        )
+
+
 async def entrypoint(ctx: JobContext):
     await ctx.connect()
     room = ctx.room
-    case_id = parse_case_id(room.name)
-    log.info("Agent joined room=%s case_id=%s", room.name, case_id)
+    mode, case_id = parse_room(room.name)
+    log.info("Agent joined room=%s mode=%s case_id=%s", room.name, mode, case_id)
 
     if not case_id:
         log.error("Could not parse case_id from room name %r", room.name)
@@ -237,10 +327,12 @@ async def entrypoint(ctx: JobContext):
         min_endpointing_delay=0.07,
     )
 
-    await session.start(
-        agent=LegalAgent(case_id, case_title, page_count),
-        room=room,
+    agent = (
+        LegalResearchAgent(case_id, case_title, page_count)
+        if mode == "research"
+        else LegalAgent(case_id, case_title, page_count)
     )
+    await session.start(agent=agent, room=room)
 
 
 if __name__ == "__main__":

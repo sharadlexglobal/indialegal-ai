@@ -36,6 +36,24 @@ ALTER TABLE cases ADD COLUMN IF NOT EXISTS extract_check_url TEXT;
 -- Mapping of PDF page index -> printed page number visible in the doc
 -- (extracted from Datalab PageHeader/PageFooter blocks)
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS page_map JSONB;
+
+-- Legal Research jobs — multi-turn scoping in voice, then IKAPI fetch +
+-- index judgments into the case's existing Gemini File Search store.
+CREATE TABLE IF NOT EXISTS research_jobs (
+  id           BIGSERIAL PRIMARY KEY,
+  case_id      BIGINT NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  scope        JSONB,          -- { keywords, doctype, sections, years_back, ... }
+  plan         TEXT,           -- agent's plan summary (what it'll fetch)
+  status       TEXT NOT NULL DEFAULT 'scoping',
+                                -- scoping | confirmed | running | done | failed
+  judgments    JSONB,          -- [{tid,title,court,date,citation,indexed,error}]
+  summary      TEXT,           -- final paragraph the agent will narrate
+  error        TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS research_jobs_case_idx ON research_jobs (case_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS research_jobs_status_idx ON research_jobs (status);
 `;
 
 (async () => {
