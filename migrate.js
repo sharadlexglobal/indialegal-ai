@@ -27,6 +27,11 @@ CREATE TABLE IF NOT EXISTS cases (
 
 CREATE INDEX IF NOT EXISTS cases_status_idx ON cases (status);
 CREATE INDEX IF NOT EXISTS cases_created_idx ON cases (created_at DESC);
+
+-- Structured legal facts extracted by Datalab /api/v1/extract
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS facts JSONB;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS facts_status TEXT;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS extract_check_url TEXT;
 `;
 
 (async () => {

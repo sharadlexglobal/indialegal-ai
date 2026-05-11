@@ -107,7 +107,65 @@ function openVoiceFor(id, title) {
   $('#turn-log').innerHTML = '';
   $('#start-voice').classList.remove('hidden');
   $('#stop-voice').classList.add('hidden');
+  loadFactsPanel(id);
   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+const FACT_LABELS = [
+  ['document_type', 'Type'],
+  ['case_title', 'Title'],
+  ['case_number', 'Case No.'],
+  ['court', 'Court'],
+  ['judge', 'Judge'],
+  ['filing_date', 'Filed'],
+  ['fir_number', 'FIR No.'],
+  ['fir_date', 'FIR Date'],
+  ['police_station', 'P.S.'],
+  ['petitioner', 'Petitioner'],
+  ['respondent', 'Respondent'],
+  ['advocate_for_petitioner', 'Counsel (P)'],
+  ['advocate_for_respondent', 'Counsel (R)'],
+  ['sections', 'Sections'],
+  ['prayer', 'Prayer'],
+  ['next_hearing_date', 'Next Hearing'],
+  ['one_line_summary', 'Summary']
+];
+
+async function loadFactsPanel(caseId) {
+  const panel = $('#facts-panel');
+  panel.classList.remove('hidden');
+  panel.innerHTML = '<div class="facts-pending"><span class="spin"></span>Loading case facts…</div>';
+  try {
+    const r = await fetch(`/api/cases/${caseId}/facts`);
+    const d = await r.json();
+    if (d.facts_status === 'extracting' || !d.facts) {
+      panel.innerHTML = `<div class="facts-pending"><span class="spin"></span>${
+        d.facts_status === 'failed' ? 'Fact extraction failed — voice still works.' :
+        'Extracting structured facts from the document…'
+      }</div>`;
+      // poll until ready
+      if (d.facts_status === 'extracting') setTimeout(() => loadFactsPanel(caseId), 4000);
+      return;
+    }
+    const fmtVal = (v) => {
+      if (v == null || v === '') return null;
+      if (Array.isArray(v)) return v.filter(Boolean).join(', ') || null;
+      return String(v).trim() || null;
+    };
+    const rows = FACT_LABELS
+      .map(([k, label]) => ({ label, val: fmtVal(d.facts[k]) }))
+      .filter(x => x.val != null);
+    if (!rows.length) {
+      panel.innerHTML = '<div class="facts-pending">No structured facts found in this document.</div>';
+      return;
+    }
+    panel.innerHTML = `<h3>Case facts</h3>
+      <div class="facts-grid">${rows.map(r =>
+        `<div class="k">${escapeHtml(r.label)}</div><div class="v">${escapeHtml(r.val)}</div>`
+      ).join('')}</div>`;
+  } catch (e) {
+    panel.innerHTML = '<div class="facts-pending">Could not load facts.</div>';
+  }
 }
 
 $('#start-voice').addEventListener('click', async () => {

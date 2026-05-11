@@ -76,6 +76,16 @@ button.secondary { background: transparent; color: var(--ink); border: 1px solid
 #start-voice, #stop-voice { margin-top: 8px; }
 #voice-case { color: var(--muted); margin: 0 0 8px; font-size: 14px; }
 
+.facts-panel { background: rgba(212, 168, 67, 0.05); border: 1px solid rgba(212, 168, 67, 0.18);
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+.facts-panel h3 { margin: 0 0 10px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--gold-soft); font-weight: 500; }
+.facts-grid { display: grid; grid-template-columns: 90px 1fr; gap: 6px 12px; font-size: 13px; }
+.facts-grid .k { color: var(--muted); }
+.facts-grid .v { color: var(--ink); }
+.facts-grid .v.dim { color: var(--muted); font-style: italic; }
+.facts-pending { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 8px; }
+
 .turn-log { margin-top: 16px; max-height: 320px; overflow-y: auto;
   border-top: 1px solid var(--line); padding-top: 12px; }
 .turn { display: flex; gap: 10px; padding: 8px 0; font-size: 14px; line-height: 1.4;

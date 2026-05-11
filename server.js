@@ -57,7 +57,7 @@ app.post('/api/cases', upload.single('pdf'), async (req, res) => {
 });
 
 async function processCase(caseId, buffer, filename, title) {
-  // Stage 1 — Datalab OCR
+  // Stage 1 — Datalab marker OCR (sequential; everything else needs page_count)
   await pool.query(
     `UPDATE cases SET status='ocr_running', updated_at=NOW() WHERE id=$1`, [caseId]
   );
@@ -75,34 +75,68 @@ async function processCase(caseId, buffer, filename, title) {
     [result.json || null, flat, result.page_count || null, tokenEstimate, caseId]
   );
 
-  // Stage 2 — Gemini store + upload + WAIT for indexing to actually finish
-  try {
-    const storeName = await gemini.createStore(`case-${caseId}-${title.slice(0, 40)}`);
-    const { operationName } = await gemini.uploadAndImport(storeName, buffer, filename);
-    await pool.query(
-      `UPDATE cases SET gemini_store_name=$1, gemini_file_name=$2,
-         status='indexing', updated_at=NOW() WHERE id=$3`,
-      [storeName, operationName, caseId]
-    );
-    // The critical wait — until this completes, /search will return nothing.
-    const { documentName } = await gemini.pollIndexingComplete(operationName);
-    await pool.query(
-      `UPDATE cases SET gemini_file_name=$1, status='ready', updated_at=NOW() WHERE id=$2`,
-      [documentName || operationName, caseId]
-    );
-  } catch (e) {
-    console.warn(`[case ${caseId}] gemini indexing failed:`, e.message);
-    await pool.query(
-      `UPDATE cases SET status='failed', error=$1, updated_at=NOW() WHERE id=$2`,
-      [`Gemini indexing failed: ${e.message}`, caseId]
-    );
-  }
+  // Stage 2 — Run in PARALLEL: Datalab structured extraction (atomic facts)
+  // and Gemini File Search upload+indexing (semantic search). Independent
+  // failures are fine. Voice readiness ('ready' status) tracks Gemini only.
+  const extractTask = (async () => {
+    try {
+      await pool.query(
+        `UPDATE cases SET facts_status='extracting', updated_at=NOW() WHERE id=$1`,
+        [caseId]
+      );
+      const { checkUrl: extractUrl } = await datalab.submitExtract(buffer, filename);
+      await pool.query(
+        `UPDATE cases SET extract_check_url=$1, updated_at=NOW() WHERE id=$2`,
+        [extractUrl, caseId]
+      );
+      const extractResult = await datalab.pollUntilDone(extractUrl);
+      const facts = datalab.parseExtractResult(extractResult);
+      await pool.query(
+        `UPDATE cases SET facts=$1, facts_status='done', updated_at=NOW() WHERE id=$2`,
+        [facts, caseId]
+      );
+    } catch (e) {
+      console.warn(`[case ${caseId}] datalab extract failed:`, e.message);
+      await pool.query(
+        `UPDATE cases SET facts_status='failed', updated_at=NOW() WHERE id=$1`,
+        [caseId]
+      );
+    }
+  })();
+
+  const geminiTask = (async () => {
+    try {
+      const storeName = await gemini.createStore(`case-${caseId}-${title.slice(0, 40)}`);
+      const { operationName } = await gemini.uploadAndImport(storeName, buffer, filename);
+      await pool.query(
+        `UPDATE cases SET gemini_store_name=$1, gemini_file_name=$2,
+           status='indexing', updated_at=NOW() WHERE id=$3`,
+        [storeName, operationName, caseId]
+      );
+      const { documentName } = await gemini.pollIndexingComplete(operationName);
+      await pool.query(
+        `UPDATE cases SET gemini_file_name=$1, status='ready', updated_at=NOW() WHERE id=$2`,
+        [documentName || operationName, caseId]
+      );
+    } catch (e) {
+      console.warn(`[case ${caseId}] gemini indexing failed:`, e.message);
+      await pool.query(
+        `UPDATE cases SET status='failed', error=$1, updated_at=NOW() WHERE id=$2`,
+        [`Gemini indexing failed: ${e.message}`, caseId]
+      );
+    }
+  })();
+
+  await Promise.allSettled([extractTask, geminiTask]);
 }
 
 app.get('/api/cases', async (_req, res) => {
   const r = await pool.query(
     `SELECT id, title, filename, status, page_count, token_estimate,
-            gemini_store_name IS NOT NULL AS has_store, created_at
+            facts_status,
+            gemini_store_name IS NOT NULL AS has_store,
+            facts IS NOT NULL AS has_facts,
+            created_at
        FROM cases ORDER BY created_at DESC LIMIT 50`
   );
   res.json(r.rows);
@@ -111,8 +145,20 @@ app.get('/api/cases', async (_req, res) => {
 app.get('/api/cases/:id', async (req, res) => {
   const r = await pool.query(
     `SELECT id, title, filename, status, page_count, token_estimate,
-            gemini_store_name, error, created_at FROM cases WHERE id=$1`,
+            gemini_store_name, facts, facts_status, error, created_at
+       FROM cases WHERE id=$1`,
     [req.params.id]
+  );
+  if (!r.rows.length) return res.status(404).json({ error: 'not found' });
+  res.json(r.rows[0]);
+});
+
+// Just the facts for a case — used by the frontend Facts panel and (later)
+// by a query router that answers atomic questions from this without
+// hitting Gemini.
+app.get('/api/cases/:id/facts', async (req, res) => {
+  const r = await pool.query(
+    `SELECT facts, facts_status FROM cases WHERE id=$1`, [req.params.id]
   );
   if (!r.rows.length) return res.status(404).json({ error: 'not found' });
   res.json(r.rows[0]);
