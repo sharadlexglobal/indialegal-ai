@@ -67,3 +67,22 @@ button.secondary { background: transparent; color: var(--ink); border: 1px solid
 
 #start-voice, #stop-voice { margin-top: 8px; }
 #voice-case { color: var(--muted); margin: 0 0 8px; font-size: 14px; }
+
+.turn-log { margin-top: 16px; max-height: 320px; overflow-y: auto;
+  border-top: 1px solid var(--line); padding-top: 12px; }
+.turn { display: flex; gap: 10px; padding: 8px 0; font-size: 14px; line-height: 1.4;
+  border-bottom: 1px dashed var(--line); align-items: flex-start; }
+.turn:last-child { border-bottom: 0; }
+.turn-label { flex-shrink: 0; width: 56px; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 1px; padding-top: 2px;
+  color: var(--muted); }
+.turn-text { flex: 1; color: var(--ink); white-space: pre-wrap; }
+.turn-user .turn-label { color: var(--gold); }
+.turn-assistant .turn-label { color: var(--ok); }
+.turn-search .turn-label { color: var(--muted); }
+.turn-search .turn-text { color: var(--muted); font-style: italic; font-size: 13px; }
+.turn-cite .turn-label { color: var(--gold-soft); }
+.turn-cite .turn-text { color: var(--gold-soft); font-size: 12px; }
+.turn-warn { background: rgba(239, 106, 106, 0.08); border-radius: 6px;
+  padding: 8px 10px; color: var(--err); font-size: 13px; }
+.turn-warn .turn-label, .turn-warn .turn-text { display: block; }
