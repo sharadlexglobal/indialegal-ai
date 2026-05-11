@@ -148,7 +148,7 @@ app.get('/api/cases', async (_req, res) => {
 app.get('/api/cases/:id', async (req, res) => {
   const r = await pool.query(
     `SELECT id, title, filename, status, page_count, token_estimate,
-            gemini_store_name, facts, facts_status, error, created_at
+            gemini_store_name, facts, facts_status, page_map, error, created_at
        FROM cases WHERE id=$1`,
     [req.params.id]
   );
