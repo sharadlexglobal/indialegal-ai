@@ -14,9 +14,9 @@ async function createStore(displayName) {
 }
 
 async function uploadAndImport(storeName, buffer, filename) {
-  // Step 1 — Resumable upload init
+  // Single-step: media.uploadToFileSearchStore with resumable upload protocol.
   const initRes = await fetch(
-    `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${process.env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/upload/v1beta/${storeName}:uploadToFileSearchStore?key=${process.env.GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: {
@@ -26,13 +26,12 @@ async function uploadAndImport(storeName, buffer, filename) {
         'X-Goog-Upload-Header-Content-Type': 'application/pdf',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ file: { display_name: filename } })
+      body: JSON.stringify({ displayName: filename })
     }
   );
   const uploadUrl = initRes.headers.get('x-goog-upload-url');
   if (!uploadUrl) throw new Error(`Gemini upload init failed: ${await initRes.text()}`);
 
-  // Step 2 — Upload bytes
   const upRes = await fetch(uploadUrl, {
     method: 'POST',
     headers: {
@@ -44,27 +43,8 @@ async function uploadAndImport(storeName, buffer, filename) {
   });
   const upData = await upRes.json();
   if (!upRes.ok) throw new Error(`Gemini upload failed: ${JSON.stringify(upData)}`);
-  const fileUri = upData.file && upData.file.uri;
-  const fileName = upData.file && upData.file.name;
-
-  // Step 3 — Import into file search store
-  const impRes = await fetch(
-    `${BASE}/${storeName}/documents:import?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fileSearchStore: storeName,
-        documents: [{ file: fileUri, displayName: filename }]
-      })
-    }
-  );
-  const impData = await impRes.json();
-  if (!impRes.ok) {
-    // Non-fatal — Gemini is a fallback layer.
-    console.warn('Gemini import warning:', impData);
-  }
-  return { fileName, fileUri };
+  // Response is an Operation; the eventual document name is in response.name after polling.
+  return { fileName: upData.name || filename };
 }
 
 async function generateGroundedAnswer(storeName, systemPrompt, userText) {
