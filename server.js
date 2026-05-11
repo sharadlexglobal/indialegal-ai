@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const { Pool } = require('pg');
 
+const { AccessToken } = require('livekit-server-sdk');
 const datalab = require('./services/datalab');
 const openai = require('./services/openai');
 const gemini = require('./services/gemini');
@@ -164,7 +165,56 @@ app.get('/api/cases/:id/facts', async (req, res) => {
   res.json(r.rows[0]);
 });
 
-// Voice session — STRICT MODE: no document in the prompt, only rules + tool.
+// Voice session — LiveKit path. Issues a participant JWT for joining a
+// per-case room. The room name encodes the case id so the Python agent
+// can identify which case the user is asking about.
+app.post('/api/cases/:id/voice-room', async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT id, title, status, gemini_store_name FROM cases WHERE id=$1`,
+      [req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'case not found' });
+    const c = r.rows[0];
+    if (c.status !== 'ready' || !c.gemini_store_name) {
+      return res.status(409).json({ error: `case status is ${c.status}` });
+    }
+
+    const roomName = `case-${c.id}-${Date.now().toString(36)}`;
+    const identity = `user-${Date.now().toString(36)}`;
+
+    const at = new AccessToken(
+      process.env.LIVEKIT_API_KEY,
+      process.env.LIVEKIT_API_SECRET,
+      { identity, ttl: 60 * 60 }   // 1 hour
+    );
+    at.addGrant({
+      roomJoin: true,
+      room: roomName,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true
+    });
+    // Tell the agent worker which case this room is for via room metadata.
+    // (Agent reads room.metadata when it joins.)
+    at.metadata = JSON.stringify({ case_id: c.id, case_title: c.title });
+
+    const token = await at.toJwt();
+
+    res.json({
+      url: process.env.LIVEKIT_URL,
+      token,
+      roomName,
+      caseId: c.id,
+      caseTitle: c.title
+    });
+  } catch (e) {
+    console.error('voice-room error', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Old OpenAI Realtime path kept as a fallback while LiveKit migration stabilises.
 app.post('/api/cases/:id/voice-token', async (req, res) => {
   try {
     const r = await pool.query(
