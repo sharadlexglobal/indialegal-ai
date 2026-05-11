@@ -222,7 +222,7 @@ async def entrypoint(ctx: JobContext):
             flush_signal=True,
         ),
         llm=google.LLM(
-            model="gemini-2.5-flash",
+            model="gemini-3-flash-preview",
             temperature=0.1,
         ),
         tts=sarvam.TTS(
