@@ -148,10 +148,13 @@ def make_research_tools(case_id: str):
     async def execute_legal_research(
         context: RunContext,
         keywords: str,
-        doctype: str | None = None,
+        court_code: str | None = None,
         sections: list[str] | None = None,
         principle: str | None = None,
-        years_back: int | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+        author: str | None = None,
+        bench: str | None = None,
         max_results: int = 5,
     ) -> str:
         """Kick off the actual Indian Kanoon research + indexing.
@@ -159,23 +162,32 @@ def make_research_tools(case_id: str):
         ('haan', 'shuru karo', 'go ahead', 'okay').
 
         Args:
-          keywords: The main search phrase (e.g. "Section 482 CrPC quashing FIR").
-          doctype:  Optional - "supremecourt", "highcourts", "tribunals".
+          keywords: Main search phrase (e.g. "Section 482 CrPC quashing FIR").
+          court_code: One of the EXACT COURT CODES from your system prompt.
+              Examples: "supremecourt", "delhi" (Delhi HC), "delhidc"
+              (Delhi District Courts), "bombay", "kerala", "itat", "cci".
+              Use "judgments" if user didn't specify.
           sections: Optional list like ["482 CrPC", "439 CrPC"].
-          principle: Optional principle/doctrine, e.g. "inherent powers of HC".
-          years_back: Optional number of years to limit results to (e.g. 2).
+          principle: Optional principle/doctrine, e.g. "inherent powers".
+          from_date: Optional earliest date in DD-MM-YYYY (e.g. "01-01-2023").
+          to_date: Optional latest date in DD-MM-YYYY.
+          author: Optional judge who authored the judgment.
+          bench: Optional judge present on the bench.
           max_results: How many top judgments to fetch + index (default 5).
 
         Returns a JSON string: {"jobId": <int>, "status": "confirmed"}.
-        Tell the user research is running in the background; they can
-        ask for status later.
+        After calling, say one short sentence that research is running
+        in the background and that you'll let them know when done.
         """
         scope = {
             "keywords": keywords,
-            "doctype": doctype,
+            "doctype": court_code,
             "sections": sections or [],
             "principle": principle,
-            "years_back": years_back,
+            "from_date": from_date,
+            "to_date": to_date,
+            "author": author,
+            "bench": bench,
             "max_results": max_results,
         }
         try:

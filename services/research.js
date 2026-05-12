@@ -81,6 +81,12 @@ async function runResearch(pool, jobId) {
 
   const maxResults = Math.max(1, Math.min(scope.max_results ?? 5, 8));
   const doctype = scope.doctype || undefined;
+  // optional filters from scope — forwarded as-is to IKAPI MCP
+  const filters = {};
+  if (scope.from_date) filters.fromdate = scope.from_date;
+  if (scope.to_date) filters.todate = scope.to_date;
+  if (scope.author) filters.author = scope.author;
+  if (scope.bench) filters.bench = scope.bench;
 
   // 1) Search via IKAPI — fan out queries, dedupe by tid
   const seen = new Map();
@@ -89,6 +95,7 @@ async function runResearch(pool, jobId) {
       const res = await ikapiCall('search_cases', {
         query: q,
         ...(doctype ? { doctype } : {}),
+        ...filters,
         max_results: maxResults
       });
       const list = res?.results || [];
