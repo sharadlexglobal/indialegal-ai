@@ -88,32 +88,36 @@ async function runResearch(pool, jobId) {
   if (scope.author) filters.author = scope.author;
   if (scope.bench) filters.bench = scope.bench;
 
-  // 1) Search via IKAPI — fan out queries, dedupe by tid
+  // 1) Search via IKAPI — fan out queries IN PARALLEL, dedupe by tid.
+  // Sequential awaits used to cost 4-6s here; parallel cuts that to ~2s.
   const seen = new Map();
-  for (const q of queries) {
-    try {
-      const res = await ikapiCall('search_cases', {
+  const searchResults = await Promise.allSettled(
+    queries.map(q => ikapiCall('search_cases', {
+      query: q,
+      ...(doctype ? { doctype } : {}),
+      ...filters,
+      max_results: maxResults
+    }).then(res => ({ q, res })))
+  );
+  for (const sr of searchResults) {
+    if (sr.status !== 'fulfilled') {
+      console.warn(`[research ${jobId}] search failed:`, sr.reason?.message);
+      continue;
+    }
+    const { q, res } = sr.value;
+    const list = res?.results || [];
+    for (const r of list) {
+      if (!r.tid || seen.has(r.tid)) continue;
+      seen.set(r.tid, {
+        tid: r.tid,
+        title: r.title,
+        court: r.court,
+        date: r.date || r.judgment_date,
+        citation: r.citation,
+        cited_by: r.cited_by,
         query: q,
-        ...(doctype ? { doctype } : {}),
-        ...filters,
-        max_results: maxResults
+        indexed: false
       });
-      const list = res?.results || [];
-      for (const r of list) {
-        if (!r.tid || seen.has(r.tid)) continue;
-        seen.set(r.tid, {
-          tid: r.tid,
-          title: r.title,
-          court: r.court,
-          date: r.date || r.judgment_date,
-          citation: r.citation,
-          cited_by: r.cited_by,
-          query: q,
-          indexed: false
-        });
-      }
-    } catch (e) {
-      console.warn(`[research ${jobId}] search '${q}' failed:`, e.message);
     }
   }
 
@@ -127,18 +131,30 @@ async function runResearch(pool, jobId) {
     [JSON.stringify(judgments), jobId]
   );
 
-  // 2) For each judgment: fetch full text, upload to Gemini File Search store
-  for (let i = 0; i < judgments.length; i++) {
-    const j = judgments[i];
+  // 2) Process all judgments IN PARALLEL — this is the biggest win.
+  // pollIndexingComplete blocks for 30s-5min per judgment on Google's side.
+  // Sequentially that is 5-15 minutes total; in parallel total time
+  // ≈ max(individual times) ≈ 2-3 minutes.
+  // Checkpoint to DB whenever any single judgment completes so the
+  // frontend keeps seeing progress every few seconds.
+
+  let dbWriteInFlight = Promise.resolve();
+  function checkpoint() {
+    dbWriteInFlight = pool.query(
+      `UPDATE research_jobs SET judgments=$1, updated_at=NOW() WHERE id=$2`,
+      [JSON.stringify(judgments), jobId]
+    ).catch(e => console.warn(`[research ${jobId}] checkpoint failed:`, e.message));
+  }
+
+  async function processOne(j) {
     try {
       const doc = await ikapiCall('get_case_document', { tid: j.tid }, { timeoutMs: 120000 });
       const text = (doc?.text || doc?.body || doc?.raw || '').toString();
       if (!text || text.length < 200) {
         j.error = 'empty document text';
-        continue;
+        return;
       }
       const filename = `judgment-${j.tid}-${(j.title || 'untitled').slice(0, 60).replace(/[^\w-]+/g, '_')}.txt`;
-      // Prepend metadata header so retrieval includes searchable case provenance
       const enriched =
         `Title: ${j.title || 'Untitled'}\n` +
         `Court: ${j.court || ''}\n` +
@@ -157,14 +173,13 @@ async function runResearch(pool, jobId) {
     } catch (e) {
       console.warn(`[research ${jobId}] judgment ${j.tid} failed:`, e.message);
       j.error = String(e.message || e).slice(0, 200);
+    } finally {
+      checkpoint();
     }
-
-    // checkpoint after every judgment
-    await pool.query(
-      `UPDATE research_jobs SET judgments=$1, updated_at=NOW() WHERE id=$2`,
-      [JSON.stringify(judgments), jobId]
-    );
   }
+
+  await Promise.allSettled(judgments.map(processOne));
+  await dbWriteInFlight;  // ensure the last checkpoint flushed
 
   const indexedCount = judgments.filter(j => j.indexed).length;
   const failedCount = judgments.length - indexedCount;
