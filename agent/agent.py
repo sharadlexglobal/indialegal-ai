@@ -117,7 +117,10 @@ async def search_indian_kanoon(
             return json.dumps({"refusal": "Indian Kanoon abhi available nahi hai. Please thodi der baad try kariye."})
         content = data.get("result", {}).get("content", [])
         if not content:
-            return json.dumps({"results": []})
+            return json.dumps({
+                "results": [],
+                "refusal": "Indian Kanoon par is specific point ke liye koi clear judgment nahi mila. Scope thoda widen karenge?"
+            })
         text = content[0].get("text") or ""
         try:
             payload = json.loads(text)
@@ -132,6 +135,11 @@ async def search_indian_kanoon(
                 "date": r.get("date") or r.get("judgment_date"),
                 "citation": r.get("citation"),
                 "snippet": (r.get("snippet") or "").strip()[:400],
+            })
+        if not cleaned:
+            return json.dumps({
+                "results": [],
+                "refusal": "Indian Kanoon par is specific point ke liye koi clear judgment nahi mila. Scope thoda widen karenge?"
             })
         return json.dumps({"results": cleaned})
     except Exception as e:
