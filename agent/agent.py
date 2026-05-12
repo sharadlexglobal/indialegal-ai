@@ -412,8 +412,12 @@ async def entrypoint(ctx: JobContext):
             temperature=0.6,
         ),
         vad=silero.VAD.load(),
+        # Hindi/Punjabi/Marathi mein natural pauses 200-300ms ke
+        # hote hain shabdon ke beech. 70ms wala aggressive setting
+        # STT-VAD ko fight kara raha tha — 400ms balanced hai.
         turn_detection="stt",
-        min_endpointing_delay=0.07,
+        min_endpointing_delay=0.4,
+        min_interruption_duration=0.5,
     )
 
     agent = (
