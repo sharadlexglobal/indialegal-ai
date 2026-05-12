@@ -363,13 +363,20 @@ class LegalResearchAgent(Agent):
     """Multi-turn research scoper. Different prompt (RESEARCH_RULES),
     different tools. Includes the case-sheet lookup so the agent can
     quickly check facts about the uploaded PDF during scoping
-    ('what was the court of the original case?')."""
+    ('what was the court of the original case?').
+    Also includes search_case_file so after research is done, the
+    user can ask about indexed judgments WITHOUT switching to Speak
+    mode."""
     def __init__(self, case_id: str, case_title: str, page_count: int | None):
         super().__init__(
             instructions=build_research_system_prompt(case_title, page_count),
             tools=(
                 make_research_tools(case_id)
-                + [make_lookup_tool(case_id), search_indian_kanoon]
+                + [
+                    make_lookup_tool(case_id),
+                    make_search_tool(case_id),   # query indexed judgments after research
+                    search_indian_kanoon,
+                ]
             ),
         )
 
