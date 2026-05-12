@@ -139,6 +139,75 @@ async def search_indian_kanoon(
         return json.dumps({"refusal": "Indian Kanoon abhi available nahi hai. Please thodi der baad try kariye."})
 
 
+def make_lookup_tool(case_id: str):
+    """Tool that hits /api/cases/:id/facts for an instant atomic answer
+    from the Datalab-extracted case-sheet. ~10ms vs 5s for Gemini File
+    Search. Cache the facts JSON for the agent's lifetime (one HTTP
+    fetch per session)."""
+
+    cache: dict = {}
+
+    @function_tool
+    async def lookup_case_fact(context: RunContext, field: str) -> str:
+        """Instant lookup of an atomic fact from the case-sheet that was
+        pre-extracted from the uploaded PDF at upload time. ALWAYS try
+        this FIRST for any question about a single specific field of
+        the case. Sub-second. If this returns null/empty, only THEN
+        fall back to search_case_file.
+
+        Args:
+          field: one of these field names (exact spelling):
+            "document_type", "case_title", "case_number",
+            "court", "judge", "filing_date",
+            "fir_number", "fir_date", "police_station",
+            "petitioner", "respondent",
+            "advocate_for_petitioner", "advocate_for_respondent",
+            "sections", "prayer", "next_hearing_date",
+            "key_orders_or_holdings", "one_line_summary"
+
+        Returns a JSON string. Possible shapes:
+          {"field": "<name>", "value": "<the value>"}        // present
+          {"field": "<name>", "value": null, "reason": "not in case-sheet"}
+
+        Map the user's spoken question to one of the field names above.
+        Examples (user → field):
+          "judge kaun hai"           → "judge"
+          "kis court mein chal raha" → "court"
+          "petitioner kaun hai"      → "petitioner"
+          "kis section mein hai"     → "sections"
+          "case number kya hai"      → "case_number"
+          "FIR kab hua tha"          → "fir_date"
+          "agli sunwai kab hai"      → "next_hearing_date"
+          "yeh case kya hai"         → "one_line_summary"
+        """
+        try:
+            if "facts" not in cache:
+                async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as c:
+                    r = await c.get(f"{NODE_URL}/api/cases/{case_id}/facts")
+                    r.raise_for_status()
+                    cache["facts"] = (r.json() or {}).get("facts") or {}
+            facts = cache["facts"]
+            if field not in facts:
+                return json.dumps({
+                    "field": field,
+                    "value": None,
+                    "reason": "unknown field name"
+                })
+            val = facts.get(field)
+            if val is None or val == "" or (isinstance(val, list) and not val):
+                return json.dumps({
+                    "field": field,
+                    "value": None,
+                    "reason": "not in case-sheet"
+                })
+            return json.dumps({"field": field, "value": val})
+        except Exception as e:
+            log.error("lookup_case_fact error: %s", e)
+            return json.dumps({"field": field, "value": None, "reason": "lookup failed"})
+
+    return lookup_case_fact
+
+
 def make_research_tools(case_id: str):
     """Tools specific to legal research sessions: kick off research,
     poll progress. Both round-trip through the Node backend so the
@@ -282,18 +351,26 @@ class LegalAgent(Agent):
     def __init__(self, case_id: str, case_title: str, page_count: int | None):
         super().__init__(
             instructions=build_system_prompt(case_title, page_count),
-            tools=[make_search_tool(case_id), search_indian_kanoon],
+            tools=[
+                make_lookup_tool(case_id),       # 1st-tier: instant case-sheet
+                make_search_tool(case_id),       # 2nd-tier: Gemini File Search
+                search_indian_kanoon,            # 3rd-tier: external law
+            ],
         )
 
 
 class LegalResearchAgent(Agent):
     """Multi-turn research scoper. Different prompt (RESEARCH_RULES),
-    different tools (execute + check_progress). Reuses the same
-    search_indian_kanoon tool only for OPTIONAL recon during scoping."""
+    different tools. Includes the case-sheet lookup so the agent can
+    quickly check facts about the uploaded PDF during scoping
+    ('what was the court of the original case?')."""
     def __init__(self, case_id: str, case_title: str, page_count: int | None):
         super().__init__(
             instructions=build_research_system_prompt(case_title, page_count),
-            tools=make_research_tools(case_id) + [search_indian_kanoon],
+            tools=(
+                make_research_tools(case_id)
+                + [make_lookup_tool(case_id), search_indian_kanoon]
+            ),
         )
 
 
