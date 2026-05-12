@@ -37,6 +37,12 @@ ALTER TABLE cases ADD COLUMN IF NOT EXISTS extract_check_url TEXT;
 -- (extracted from Datalab PageHeader/PageFooter blocks)
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS page_map JSONB;
 
+-- Distinguish uploaded PDF case files from standalone research sessions
+-- (no PDF — pure voice-based legal research, judgments still indexed
+-- into the case's Gemini File Search store for later Speak access)
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'document';
+CREATE INDEX IF NOT EXISTS cases_kind_idx ON cases (kind);
+
 -- Legal Research jobs — multi-turn scoping in voice, then IKAPI fetch +
 -- index judgments into the case's existing Gemini File Search store.
 CREATE TABLE IF NOT EXISTS research_jobs (

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#0b0b10" />
   <title>INDIALEGAL.AI</title>
-  <link rel="stylesheet" href="/styles.css?v=4" />
+  <link rel="stylesheet" href="/styles.css?v=5" />
   <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.7.5/dist/livekit-client.umd.min.js"></script>
 </head>
 <body>
@@ -31,8 +31,25 @@
       </form>
     </section>
 
+    <section id="research-card" class="card">
+      <h2>Pure legal research <span class="hint-inline">— no PDF needed, just talk</span></h2>
+      <p class="card-blurb">
+        Tap below to start a voice-only research session. Discuss the
+        question with the agent, approve a plan, and it fetches the
+        relevant Supreme Court / High Court judgments from Indian
+        Kanoon and indexes them so you can keep using them later.
+      </p>
+      <form id="standalone-form" class="standalone-form">
+        <input type="text" id="standalone-title" maxlength="200"
+               placeholder="Optional title — e.g. 'NDPS Section 37 bail research'" />
+        <button id="start-standalone" type="submit">Start new research</button>
+      </form>
+      <p id="standalone-status" class="status"></p>
+      <ul id="research-list" class="research-sessions-list"></ul>
+    </section>
+
     <section id="cases-card" class="card">
-      <h2>2. Your cases</h2>
+      <h2>Your case files <span class="hint-inline">— uploaded PDFs</span></h2>
       <ul id="cases-list"></ul>
     </section>
 
@@ -52,6 +69,6 @@
     </section>
   </main>
 
-  <script src="/app.js?v=4"></script>
+  <script src="/app.js?v=5"></script>
 </body>
 </html>

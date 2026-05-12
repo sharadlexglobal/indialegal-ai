@@ -52,7 +52,7 @@ let casePollMs = 5000;
 
 async function loadCases() {
   try {
-    const res = await fetch('/api/cases');
+    const res = await fetch('/api/cases?kind=document');
     const list = await res.json();
     const ul = $('#cases-list');
     ul.innerHTML = '';
@@ -98,6 +98,73 @@ function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;'
   setTimeout(async () => { await loadCases(); scheduleNextPoll(); }, casePollMs);
 })();
 loadCases();
+
+// ---------- Standalone Research sessions ----------
+async function loadResearchSessions() {
+  try {
+    const res = await fetch('/api/cases?kind=standalone_research');
+    const list = await res.json();
+    const ul = $('#research-list');
+    ul.innerHTML = '';
+    if (!list.length) {
+      ul.innerHTML = '<li class="research-empty">No past research sessions yet.</li>';
+      return;
+    }
+    for (const c of list) {
+      const ready = c.status === 'ready' && c.has_store;
+      const li = document.createElement('li');
+      li.className = 'research-session-row';
+      li.innerHTML = `
+        <div class="research-session-meta">
+          <div class="research-session-title">${escapeHtml(c.title)}</div>
+          <div class="research-session-sub">${fmt(c.created_at)} · ${escapeHtml(c.status)}</div>
+        </div>
+        <div class="research-session-buttons">
+          <button class="case-action research-continue" ${ready ? '' : 'disabled'} data-id="${c.id}" data-title="${escapeHtml(c.title)}">Continue research</button>
+          <button class="case-action case-speak" ${ready ? '' : 'disabled'} data-id="${c.id}" data-title="${escapeHtml(c.title)}">Speak</button>
+        </div>
+      `;
+      ul.appendChild(li);
+    }
+    ul.querySelectorAll('.research-continue').forEach(btn => {
+      btn.addEventListener('click', () => openVoiceFor(btn.dataset.id, btn.dataset.title, 'research'));
+    });
+    ul.querySelectorAll('.case-speak').forEach(btn => {
+      btn.addEventListener('click', () => openVoiceFor(btn.dataset.id, btn.dataset.title, 'case'));
+    });
+  } catch (e) { console.error(e); }
+}
+setInterval(loadResearchSessions, 6000);
+loadResearchSessions();
+
+$('#standalone-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const titleInput = $('#standalone-title');
+  const title = (titleInput.value || '').trim();
+  const btn = $('#start-standalone');
+  btn.disabled = true;
+  $('#standalone-status').textContent = 'Creating research session…';
+  $('#standalone-status').className = 'status';
+  try {
+    const res = await fetch('/api/research/new', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'create failed');
+    $('#standalone-status').textContent = 'Opening voice session…';
+    $('#standalone-status').className = 'status ok';
+    titleInput.value = '';
+    openVoiceFor(data.id, data.title, 'research');
+    loadResearchSessions();
+  } catch (err) {
+    $('#standalone-status').textContent = err.message;
+    $('#standalone-status').className = 'status err';
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 // ---------- Voice session ----------
 function openVoiceFor(id, title, mode = 'case') {

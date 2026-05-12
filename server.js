@@ -142,14 +142,21 @@ async function processCase(caseId, buffer, filename, title) {
   await Promise.allSettled([extractTask, geminiTask]);
 }
 
-app.get('/api/cases', async (_req, res) => {
+app.get('/api/cases', async (req, res) => {
+  // Optional ?kind=document|standalone_research to filter
+  const kind = (req.query.kind || '').toString();
+  const where = kind === 'document' || kind === 'standalone_research'
+    ? `WHERE kind = $1` : '';
+  const params = kind === 'document' || kind === 'standalone_research'
+    ? [kind] : [];
   const r = await pool.query(
-    `SELECT id, title, filename, status, page_count, token_estimate,
+    `SELECT id, title, filename, kind, status, page_count, token_estimate,
             facts_status,
             gemini_store_name IS NOT NULL AS has_store,
             facts IS NOT NULL AS has_facts,
             created_at
-       FROM cases ORDER BY created_at DESC LIMIT 50`
+       FROM cases ${where} ORDER BY created_at DESC LIMIT 50`,
+    params
   );
   res.json(r.rows);
 });
@@ -221,6 +228,44 @@ app.post('/api/cases/:id/voice-room', async (req, res) => {
     });
   } catch (e) {
     console.error('voice-room error', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Standalone Legal Research — no PDF needed. Create a virtual "case"
+// (kind='standalone_research') plus an empty Gemini File Search store
+// so the existing research-room + execute_legal_research pipeline
+// works unchanged. Research findings index into THIS virtual case's
+// store and become permanently searchable in future Speak sessions.
+app.post('/api/research/new', async (req, res) => {
+  try {
+    const title = (req.body?.title || `Research session — ${new Date().toLocaleString()}`)
+      .toString().trim().slice(0, 200);
+    const ins = await pool.query(
+      `INSERT INTO cases (title, filename, kind, status)
+       VALUES ($1, $2, 'standalone_research', 'creating_store')
+       RETURNING id`,
+      [title, '']
+    );
+    const caseId = ins.rows[0].id;
+    // create Gemini File Search store so research-room can immediately proceed
+    try {
+      const storeName = await gemini.createStore(`research-${caseId}-${title.slice(0, 40)}`);
+      await pool.query(
+        `UPDATE cases SET gemini_store_name=$1, status='ready', updated_at=NOW()
+           WHERE id=$2`,
+        [storeName, caseId]
+      );
+      res.json({ id: caseId, kind: 'standalone_research', title, status: 'ready' });
+    } catch (e) {
+      await pool.query(
+        `UPDATE cases SET status='failed', error=$1, updated_at=NOW() WHERE id=$2`,
+        [`Gemini store creation failed: ${e.message}`, caseId]
+      );
+      res.status(500).json({ error: 'could not initialise research store' });
+    }
+  } catch (e) {
+    console.error('research/new error', e);
     res.status(500).json({ error: e.message });
   }
 });

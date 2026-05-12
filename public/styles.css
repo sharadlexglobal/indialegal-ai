@@ -30,6 +30,21 @@ main { padding: 20px; display: flex; flex-direction: column; gap: 16px; max-widt
   padding: 20px; }
 .card h2 { font-size: 14px; font-weight: 500; color: var(--muted); margin: 0 0 14px;
   text-transform: uppercase; letter-spacing: 1px; }
+.card h2 .hint-inline { text-transform: none; letter-spacing: 0; color: var(--muted);
+  font-weight: 400; opacity: 0.7; }
+.card-blurb { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0 0 16px; }
+
+.standalone-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.research-sessions-list { list-style: none; padding: 0; margin: 0; }
+.research-session-row { padding: 12px 0; border-bottom: 1px solid var(--line);
+  display: flex; gap: 12px; align-items: flex-start; }
+.research-session-row:last-child { border-bottom: 0; }
+.research-session-meta { flex: 1; min-width: 0; }
+.research-session-title { color: var(--ink); font-size: 14px; word-wrap: break-word; }
+.research-session-sub { color: var(--muted); font-size: 11px; margin-top: 4px; }
+.research-session-buttons { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.research-continue { background: var(--gold) !important; color: #1a1408 !important; }
+.research-empty { color: var(--muted); font-size: 13px; font-style: italic; padding: 8px 0; }
 
 input[type=text] { width: 100%; padding: 12px 14px; background: #0b0b10; color: var(--ink);
   border: 1px solid var(--line); border-radius: 10px; font-size: 16px; margin-bottom: 12px;
