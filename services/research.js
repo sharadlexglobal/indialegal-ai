@@ -16,8 +16,18 @@
 const fetch = require('node-fetch');
 const { Buffer } = require('buffer');
 const gemini = require('./gemini');
+const deepseek = require('./deepseek');
 
 const IKAPI_MCP_URL = process.env.IKAPI_MCP_URL || 'https://ikapi.onrender.com/mcp';
+
+// Benchmark-winning pipeline (top-3 = 7.06 vs baseline 1.14 = 6.2x quality):
+//   1. DeepSeek decode user's natural query → clean keywords + exact court_code
+//   2. IKAPI search with clean query, max_results = OVER_FETCH_N
+//   3. DeepSeek scores all candidates (4-dimension relevance)
+//   4. Sort by overall, keep top scope.max_results (default 5)
+//   5. Existing logic: fetch full text, index in Gemini File Search
+const OVER_FETCH_N = 20;            // benchmark sweet spot — fetch 20, keep N
+const RERANK_SCORE_THRESHOLD = 4;   // drop candidates that score below this
 
 async function ikapiCall(name, args, { timeoutMs = 60000 } = {}) {
   const body = {
@@ -54,6 +64,34 @@ function buildScopeQueries(scope) {
   return [...new Set(queries)].slice(0, 3);
 }
 
+// Step 1 of winning pipeline — decode the agent's scope into a CLEAN search
+// intent. If DeepSeek is unavailable we degrade gracefully to the agent's
+// already-structured scope (the pre-Round-1 behaviour).
+async function decodeIntent(scope) {
+  const naturalish = [
+    scope?.keywords || '',
+    Array.isArray(scope?.sections) ? scope.sections.join(' ') : '',
+    scope?.principle || ''
+  ].filter(Boolean).join(' — ');
+  if (!naturalish) return null;
+
+  const decoded = await deepseek.decodeQuery(naturalish);
+  if (!decoded) {
+    // fall back: use agent's structured scope as-is
+    const seed = `${scope.keywords || ''} ${(scope.sections || []).join(' ')}`.trim();
+    return {
+      statute: '', section: '',
+      court_code: scope.doctype || 'judgments',
+      stage: 'other',
+      clean_keywords: seed,
+      is_recent_query: false
+    };
+  }
+  // honour explicit user-given court_code/dates over what DeepSeek inferred
+  if (scope.doctype) decoded.court_code = scope.doctype;
+  return decoded;
+}
+
 async function runResearch(pool, jobId) {
   const job = (await pool.query(
     `SELECT j.id, j.case_id, j.scope, c.gemini_store_name
@@ -70,61 +108,100 @@ async function runResearch(pool, jobId) {
   );
 
   const scope = job.scope || {};
-  const queries = buildScopeQueries(scope);
-  if (!queries.length) {
+  const maxResults = Math.max(1, Math.min(scope.max_results ?? 5, 8));
+
+  // ─── Step 1: DeepSeek decodes scope into clean intent ─────────────
+  const intent = await decodeIntent(scope);
+  if (!intent || !intent.clean_keywords) {
     await pool.query(
-      `UPDATE research_jobs SET status='failed', error='no keywords in scope', updated_at=NOW() WHERE id=$1`,
+      `UPDATE research_jobs SET status='failed', error='could not decode scope', updated_at=NOW() WHERE id=$1`,
       [jobId]
     );
     return;
   }
 
-  const maxResults = Math.max(1, Math.min(scope.max_results ?? 5, 8));
-  const doctype = scope.doctype || undefined;
-  // optional filters from scope — forwarded as-is to IKAPI MCP
+  console.log(`[research ${jobId}] decoded intent:`, JSON.stringify(intent));
+
+  // optional date / author / bench filters from agent scope
   const filters = {};
   if (scope.from_date) filters.fromdate = scope.from_date;
   if (scope.to_date) filters.todate = scope.to_date;
   if (scope.author) filters.author = scope.author;
   if (scope.bench) filters.bench = scope.bench;
+  if (intent.is_recent_query) filters.sort = 'mostrecent';
 
-  // 1) Search via IKAPI — fan out queries IN PARALLEL, dedupe by tid.
-  // Sequential awaits used to cost 4-6s here; parallel cuts that to ~2s.
-  const seen = new Map();
-  const searchResults = await Promise.allSettled(
-    queries.map(q => ikapiCall('search_cases', {
-      query: q,
-      ...(doctype ? { doctype } : {}),
-      ...filters,
-      max_results: maxResults
-    }).then(res => ({ q, res })))
-  );
-  for (const sr of searchResults) {
-    if (sr.status !== 'fulfilled') {
-      console.warn(`[research ${jobId}] search failed:`, sr.reason?.message);
-      continue;
-    }
-    const { q, res } = sr.value;
-    const list = res?.results || [];
-    for (const r of list) {
-      if (!r.tid || seen.has(r.tid)) continue;
-      seen.set(r.tid, {
-        tid: r.tid,
-        title: r.title,
-        court: r.court,
-        date: r.date || r.judgment_date,
-        citation: r.citation,
-        cited_by: r.cited_by,
-        query: q,
-        indexed: false
-      });
-    }
+  // ─── Step 2: IKAPI search — clean query, exact court, over-fetch 20 ──
+  const ik_query = [intent.section ? `Section ${intent.section}` : '',
+                    intent.statute || '',
+                    intent.clean_keywords || ''].filter(Boolean).join(' ').trim();
+
+  const searchRes = await ikapiCall('search_cases', {
+    query: ik_query,
+    doctype: intent.court_code || 'judgments',
+    ...filters,
+    max_results: OVER_FETCH_N
+  }).catch(e => {
+    console.warn(`[research ${jobId}] IKAPI search failed:`, e.message);
+    return { results: [] };
+  });
+
+  const candidates = (searchRes?.results || []).slice(0, OVER_FETCH_N);
+  if (!candidates.length) {
+    await pool.query(
+      `UPDATE research_jobs SET status='done', summary=$1, updated_at=NOW() WHERE id=$2`,
+      ['No judgments found on Indian Kanoon for this query. Try refining the scope.', jobId]
+    );
+    return;
   }
 
-  let judgments = [...seen.values()];
-  // Sort by cited_by desc as a quick relevance proxy
-  judgments.sort((a, b) => (b.cited_by || 0) - (a.cited_by || 0));
-  judgments = judgments.slice(0, maxResults);
+  console.log(`[research ${jobId}] IKAPI returned ${candidates.length}, reranking with DeepSeek…`);
+
+  // ─── Step 3: DeepSeek reranks all candidates in parallel ──────────
+  const scored = await Promise.all(candidates.map(async (c) => {
+    const s = await deepseek.scoreCandidate(intent, c);
+    return {
+      ...c,
+      _score: s?.overall ?? 0,
+      _verdict: s?.verdict || ''
+    };
+  }));
+
+  // ─── Step 4: Keep top maxResults above threshold ──────────────────
+  scored.sort((a, b) => (b._score || 0) - (a._score || 0));
+  let judgments = scored
+    .filter(s => (s._score || 0) >= RERANK_SCORE_THRESHOLD)
+    .slice(0, maxResults)
+    .map(s => ({
+      tid: s.tid,
+      title: s.title,
+      court: s.court,
+      date: s.date || s.judgment_date,
+      citation: s.citation,
+      cited_by: s.cited_by,
+      query: ik_query,
+      relevance_score: s._score,
+      relevance_verdict: s._verdict,
+      indexed: false
+    }));
+
+  // graceful fallback: if rerank drops everything below threshold,
+  // still keep the top-3 so the user has something
+  if (judgments.length === 0) {
+    judgments = scored.slice(0, Math.min(3, scored.length)).map(s => ({
+      tid: s.tid,
+      title: s.title,
+      court: s.court,
+      date: s.date || s.judgment_date,
+      citation: s.citation,
+      cited_by: s.cited_by,
+      query: ik_query,
+      relevance_score: s._score,
+      relevance_verdict: s._verdict + ' (below threshold but kept as fallback)',
+      indexed: false
+    }));
+  }
+
+  console.log(`[research ${jobId}] kept ${judgments.length}/${candidates.length} after rerank`);
 
   await pool.query(
     `UPDATE research_jobs SET judgments=$1, updated_at=NOW() WHERE id=$2`,

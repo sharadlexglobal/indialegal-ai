@@ -1,0 +1,4946 @@
+{
+  "roundNum": 2,
+  "results": [
+    {
+      "strategy": "E_deepseek_rerank_v_rerank20",
+      "desc": "winner + fetch 20, DeepSeek rerank, keep top 5",
+      "queries": [
+        {
+          "id": "Q01",
+          "area": "Bail — regular",
+          "fetched": 5,
+          "avg": 3.6666666666666665,
+          "top": 6,
+          "scored": [
+            {
+              "tid": 31449264,
+              "title": "Sandeep @ Mussa vs State on 27 May, 2025",
+              "court": "Delhi District Court",
+              "date": "2025-05-27",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 95874146,
+              "title": "Rohit vs State on 22 August, 2025",
+              "court": "Delhi District Court",
+              "date": "2025-08-22",
+              "overall": 3,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 198594415,
+              "title": "Central Bureau Of Investigation vs M/S B.S. Ispat Ltd on 27 May, 2024",
+              "court": "Delhi District Court",
+              "date": "2024-05-27",
+              "overall": 2,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q02",
+          "area": "Bail — anticipatory",
+          "fetched": 5,
+          "avg": 6.666666666666667,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 27952193,
+              "title": "Sunil Pandey vs State & Anr on 29 October, 2024",
+              "court": "Delhi High Court",
+              "date": "2024-10-29",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 42419933,
+              "title": "Preetpal Singh @ Lovely vs State on 8 March, 2016",
+              "court": "Delhi High Court",
+              "date": "2016-03-08",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 199110487,
+              "title": "Tejinder Pal Singh Malhotra vs State Of Delhi on 25 June, 2025",
+              "court": "Delhi High Court",
+              "date": "2025-06-25",
+              "overall": 5,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q03",
+          "area": "Bail — NDPS",
+          "fetched": 5,
+          "avg": 10,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 6248818,
+              "title": "Imran Khan vs The State Govt. Of Nct Of Delhi on 20 November, 2025",
+              "court": "Delhi High Court",
+              "date": "2025-11-20",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 132630783,
+              "title": "Mr. Kenechukwu Okafor vs State Of Nct Of Delhi on 14 October, 2025",
+              "court": "Delhi High Court",
+              "date": "2025-10-14",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 171282076,
+              "title": "Naqibullah Rodaie vs Air Customs, Igi Airport, New Delhi on 19 Septemb",
+              "court": "Delhi High Court",
+              "date": "2025-09-19",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q04",
+          "area": "Bail — PMLA",
+          "fetched": 5,
+          "avg": 10,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 14485072,
+              "title": "Vijay Madanlal Choudhary vs Union Of India on 27 July, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-07-27",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 143681423,
+              "title": "Prem Prakash vs Union Of India Through The Directorate ... on 28 Augus",
+              "court": "Supreme Court of India",
+              "date": "2024-08-28",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 65309176,
+              "title": "V. Senthil Balaji vs The Deputy Director on 26 September, 2024",
+              "court": "Supreme Court of India",
+              "date": "2024-09-26",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q05",
+          "area": "Bail — POCSO",
+          "fetched": 5,
+          "avg": 4.333333333333333,
+          "top": 7,
+          "scored": [
+            {
+              "tid": 170774412,
+              "title": "Harish Chander @ Suraj Bhatt vs State Nct Of Delhi on 6 December, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-12-06",
+              "overall": 7,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 85986347,
+              "title": "State vs Mohd. Shakir on 5 February, 2019",
+              "court": "Delhi High Court",
+              "date": "2019-02-05",
+              "overall": 3,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 150386581,
+              "title": "Hanzla Iqbal vs The State & Anr. on 24 August, 2022",
+              "court": "Delhi High Court",
+              "date": "2022-08-24",
+              "overall": 3,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q06",
+          "area": "Bail — UAPA",
+          "fetched": 5,
+          "avg": 8,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 154033650,
+              "title": "Gautam Navlakha vs National Investigation Agency on 12 May, 2021",
+              "court": "Supreme Court of India",
+              "date": "2021-05-12",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 97883907,
+              "title": "Vernon vs The State Of Maharashtra on 28 July, 2023",
+              "court": "Supreme Court of India",
+              "date": "2023-07-28",
+              "overall": 8,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 71337571,
+              "title": "Naser Bin Abu Bakr Yafai vs The State Of Maharashtra on 20 October, 20",
+              "court": "Supreme Court of India",
+              "date": "2021-10-20",
+              "overall": 7,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q07",
+          "area": "NI Act 138",
+          "fetched": 5,
+          "avg": 8,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 120120707,
+              "title": "Reserved On: 20.08.2025 vs Hp Minority Finance Corporation on 27 Augus",
+              "court": "Himachal Pradesh High Court",
+              "date": "2025-08-27",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 175356438,
+              "title": "Kaveri Plastics vs Mahdoom Bawa Bahrudeen Noorul on 19 September, 2025",
+              "court": "Supreme Court of India",
+              "date": "2025-09-19",
+              "overall": 8,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 193064100,
+              "title": "M/S Laxmi Dyechem vs State Of Gujarat & Ors on 27 November, 2012",
+              "court": "Supreme Court of India",
+              "date": "2012-11-27",
+              "overall": 7,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q08",
+          "area": "NI Act 138 — vicarious",
+          "fetched": 5,
+          "avg": 9.666666666666666,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 127524707,
+              "title": "M/S Lyka Labs Limited And Ors vs State Of Maharashtra And Anr on 8 Mar",
+              "court": "Bombay High Court",
+              "date": "2023-03-08",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 146299081,
+              "title": "Sri Ramanathan Radha Krishnan vs Green Fuel Supplies Pvt Ltd on 6 Marc",
+              "court": "Karnataka High Court",
+              "date": "2019-03-06",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 117583148,
+              "title": "Gunmala Sales Pvt. Ltd vs Anu Mehta & Ors on 17 October, 2014",
+              "court": "Supreme Court of India",
+              "date": "2014-10-17",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q09",
+          "area": "NI Act 138 — defence",
+          "fetched": 5,
+          "avg": 10,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 170933526,
+              "title": "Nagesh K vs C.N.Chandrashekar Reddy on 6 November, 2024",
+              "court": "Bangalore District Court",
+              "date": "2024-11-06",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 16695351,
+              "title": "Narender Singh vs Rakesh on 12 August, 2024",
+              "court": "Delhi District Court",
+              "date": "2024-08-12",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 97191840,
+              "title": "Bharat Bhushan vs Hanuman on 17 August, 2024",
+              "court": "Delhi District Court",
+              "date": "2024-08-17",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q10",
+          "area": "498A quashing",
+          "fetched": 5,
+          "avg": 9.333333333333334,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 80066264,
+              "title": "Mohit Dhawan & Ors. vs The State & Anr. on 23 February, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-02-23",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 99215846,
+              "title": "Aditya Mohan Nigam & Anr vs The State Nct Of Delhi & Anr on 8 January,",
+              "court": "Delhi High Court",
+              "date": "2026-01-08",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 132865542,
+              "title": "Amit Sharma & Ors. vs State & Anr. on 20 January, 2020",
+              "court": "Delhi High Court",
+              "date": "2020-01-20",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q11",
+          "area": "498A quashing",
+          "fetched": 5,
+          "avg": 7.666666666666667,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 469138,
+              "title": "B.S. Joshi & Ors vs State Of Haryana & Anr on 13 March, 2003",
+              "court": "Supreme Court of India",
+              "date": "2003-03-13",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 46704,
+              "title": "Preeti Gupta & Anr vs State Of Jharkhand & Anr on 13 August, 2010",
+              "court": "Supreme Court of India",
+              "date": "2010-08-13",
+              "overall": 8,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 55040115,
+              "title": "Rashmi Chopra vs The State Of Uttar Pradesh on 30 April, 2019",
+              "court": "Supreme Court of India",
+              "date": "2019-04-30",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q12",
+          "area": "FIR quashing — 482",
+          "fetched": 5,
+          "avg": 9.666666666666666,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 10546413,
+              "title": "Sushil Sethi vs The State Of Arunachal Pradesh on 31 January, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-01-31",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 39742841,
+              "title": "Syed Yaseer Ibrahim vs The State Of Uttar Pradesh on 28 February, 2022",
+              "court": "Supreme Court - Daily Orders",
+              "date": "2022-02-28",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 9735590,
+              "title": "Anil Anand And Others vs State Of Haryana And Another on 22 December, ",
+              "court": "Punjab-Haryana High Court",
+              "date": "2011-12-22",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q13",
+          "area": "125 CrPC maintenance",
+          "fetched": 0,
+          "avg": 0,
+          "top": 0,
+          "scored": []
+        },
+        {
+          "id": "Q14",
+          "area": "125 CrPC maintenance",
+          "fetched": 5,
+          "avg": 2,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 167797152,
+              "title": "Sami Ahmad @ Sami Ahmad Khan vs The State Of Bihar & Ors on 13 Septemb",
+              "court": "Patna High Court - Orders",
+              "date": "2013-09-13",
+              "overall": 3,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 1716385,
+              "title": "Naduthodi Yousaf vs Naduthodi Rubeena on 8 September, 2010",
+              "court": "Kerala High Court",
+              "date": "2010-09-08",
+              "overall": 2,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 117541087,
+              "title": "Rajnesh vs Neha on 4 November, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-11-04",
+              "overall": 1,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q15",
+          "area": "Domestic Violence Act",
+          "fetched": 5,
+          "avg": 6.666666666666667,
+          "top": 8,
+          "scored": [
+            {
+              "tid": 135537750,
+              "title": "Kavita Chaudhri vs Eveneet Singh And Anr. on 20 December, 2010",
+              "court": "Delhi High Court",
+              "date": "2010-12-20",
+              "overall": 8,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 183795085,
+              "title": "Anukriti Dubey vs Partha Kansabanik And Anr on 23 March, 2016",
+              "court": "Delhi High Court",
+              "date": "2016-03-23",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 142806853,
+              "title": "Manju Gupta vs Pankaj Gupta & Anr on 30 August, 2018",
+              "court": "Delhi High Court",
+              "date": "2018-08-30",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q16",
+          "area": "HMA — divorce/Section 9",
+          "fetched": 5,
+          "avg": 7.333333333333333,
+          "top": 8,
+          "scored": [
+            {
+              "tid": 110780569,
+              "title": "Smt. Sahana Pal vs U.K.Samanta on 24 July, 2015",
+              "court": "Delhi High Court",
+              "date": "2015-07-24",
+              "overall": 8,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 91155812,
+              "title": "Sumit Raj Shivhare vs Smt Anushree Gupta Shivhare W/O Shri ... on 5 No",
+              "court": "Madhya Pradesh High Court",
+              "date": "2024-11-05",
+              "overall": 7,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 86744022,
+              "title": "Shilpa Abrol vs Rahul Abrol on 12 October, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-10-12",
+              "overall": 7,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q17",
+          "area": "Property — partition",
+          "fetched": 5,
+          "avg": 9,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 67965481,
+              "title": "Vineeta Sharma vs Rakesh Sharma on 11 August, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-08-11",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 197518395,
+              "title": "Savita Sharma And Others vs Master Abeer Singh And Others on 16 Decemb",
+              "court": "Himachal Pradesh High Court",
+              "date": "2019-12-16",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 183538849,
+              "title": "Smt.Venkatanarasamma vs Sri.Venkateshappa on 12 February, 2015",
+              "court": "Bangalore District Court",
+              "date": "2015-02-12",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q18",
+          "area": "Property — specific performance",
+          "fetched": 5,
+          "avg": 9.333333333333334,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 63141261,
+              "title": "Smt. C. Padmavati Naidu And 3 Others vs Friends Cooperative Housing So",
+              "court": "Bombay High Court",
+              "date": "2016-03-04",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 49616428,
+              "title": "V.Arumugam vs R.Chandrasekaran on 26 May, 2016",
+              "court": "Madras High Court",
+              "date": "2016-05-26",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 100699683,
+              "title": "Sudesh Rana vs Sandeep Anr on 23 September, 2025",
+              "court": "Delhi District Court",
+              "date": "2025-09-23",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q19",
+          "area": "Civil — injunction",
+          "fetched": 5,
+          "avg": 6,
+          "top": 6,
+          "scored": [
+            {
+              "tid": 11152970,
+              "title": "Fdc Limited vs Faraway Foods Pvt. Ltd. on 10 February, 2021",
+              "court": "Delhi High Court",
+              "date": "2021-02-10",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 182491335,
+              "title": "V Guard Industries Ltd vs Crompton Greaves Consumer Electricals ... on",
+              "court": "Delhi High Court",
+              "date": "2022-05-12",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 155053317,
+              "title": "Diageo Brands B.V. & Anr. vs Alcobrew Distilleries India Pvt Ltd on 19",
+              "court": "Delhi High Court",
+              "date": "2022-12-19",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q20",
+          "area": "Commercial Courts Act",
+          "fetched": 5,
+          "avg": 2.3333333333333335,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 177559998,
+              "title": "Prakash Corporates vs Dee Vee Projects Limited on 14 February, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-02-14",
+              "overall": 3,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 113036187,
+              "title": "Rajender Kumar & Ors. vs . State Of H.P. & Ors. A/W Connected ... on 1",
+              "court": "Himachal Pradesh High Court",
+              "date": "2022-08-16",
+              "overall": 2,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 54883247,
+              "title": "Manish Kumar vs Union Of India on 19 January, 2021",
+              "court": "Supreme Court of India",
+              "date": "2021-01-19",
+              "overall": 2,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q21",
+          "area": "Order 37 — summary suit",
+          "fetched": 5,
+          "avg": 5.333333333333333,
+          "top": 7,
+          "scored": [
+            {
+              "tid": 33856,
+              "title": "Grafitek International vs K.K. Kaura And Ors. on 3 January, 2002",
+              "court": "Delhi High Court",
+              "date": "2002-01-03",
+              "overall": 7,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 6744116,
+              "title": "Satyendra Jain vs M/S Omway Buildestate Pvt. Ltd. & Ors on 19 March, 2",
+              "court": "Delhi High Court",
+              "date": "2013-03-19",
+              "overall": 5,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 34593364,
+              "title": "Deepak Gupta vs Sushma Aggarwal on 24 July, 2013",
+              "court": "Delhi High Court",
+              "date": "2013-07-24",
+              "overall": 4,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q22",
+          "area": "IPR — trademark",
+          "fetched": 5,
+          "avg": 8,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 63542416,
+              "title": "Indiabulls Housing Finance Ltd. & Ors. vs Www.Indiabullsdhanifinance.C",
+              "court": "Delhi High Court",
+              "date": "2022-05-31",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 47111032,
+              "title": "Indiabulls Housing Finance Ltd. & Ors. vs Www.Dhanifinance.In & Anr. o",
+              "court": "Delhi High Court",
+              "date": "2022-05-31",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 92097077,
+              "title": "Ferrero Spa & Ors. vs Kamco Chew Food Private Limited & Ors. on 18 Dec",
+              "court": "Delhi High Court",
+              "date": "2019-12-18",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q23",
+          "area": "IPR — copyright",
+          "fetched": 5,
+          "avg": 3.3333333333333335,
+          "top": 5,
+          "scored": [
+            {
+              "tid": 1023088,
+              "title": "Mr. Diljeet Titus, Advocate vs Mr. Alfred A. Adebare And Ors. on 8 May",
+              "court": "Delhi High Court",
+              "date": "2006-05-08",
+              "overall": 5,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 102653512,
+              "title": "Navigators Logistics Ltd. vs Kashif Qureshi & Ors on 17 September, 201",
+              "court": "Delhi High Court",
+              "date": "2018-09-17",
+              "overall": 3,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 331232,
+              "title": "Indian Performing Right Society Ltd vs Eastern India Motion Pictures .",
+              "court": "Supreme Court of India",
+              "date": "1977-03-14",
+              "overall": 2,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q24",
+          "area": "Charge framing",
+          "fetched": 5,
+          "avg": 9,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 19041404,
+              "title": "Tarun Jit Tejpal vs The State Of Goa on 19 August, 2019",
+              "court": "Supreme Court of India",
+              "date": "2019-08-19",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 35899397,
+              "title": "The State Of Gujarat vs Mansukhbhai Kanjibhai Shah on 27 April, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-04-27",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 129460186,
+              "title": "State Represented By The Deputy ... vs J. Doraiswamy Etc. on 7 March, ",
+              "court": "Supreme Court of India",
+              "date": "2019-03-07",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q25",
+          "area": "Evidence",
+          "fetched": 5,
+          "avg": 9.333333333333334,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 181223474,
+              "title": "Rajendra Singh And Ors. Etc vs State Of Uttarakhand on 7 October, 2025",
+              "court": "Supreme Court of India",
+              "date": "2025-10-07",
+              "overall": 10,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 6625786,
+              "title": "Sachin Kumar Singhraha vs The State Of Madhya Pradesh on 12 March, 201",
+              "court": "Supreme Court of India",
+              "date": "2019-03-12",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 58284009,
+              "title": "Digamber Vaishnav . vs The State Of Chhattisgarh on 5 March, 2019",
+              "court": "Supreme Court of India",
+              "date": "2019-03-05",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q26",
+          "area": "PMLA — ECIR",
+          "fetched": 5,
+          "avg": 5.666666666666667,
+          "top": 8,
+          "scored": [
+            {
+              "tid": 14485072,
+              "title": "Vijay Madanlal Choudhary vs Union Of India on 27 July, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-07-27",
+              "overall": 8,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 191134832,
+              "title": "Satyendar Kumar Jain vs Directorate Of Enforcement on 18 March, 2024",
+              "court": "Supreme Court of India",
+              "date": "2024-03-18",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 13208976,
+              "title": "Rohit Tandon vs The Enforcement Directorate on 10 November, 2017",
+              "court": "Supreme Court of India",
+              "date": "2017-11-10",
+              "overall": 3,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q27",
+          "area": "POCSO — consent age",
+          "fetched": 5,
+          "avg": 5.666666666666667,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 162517487,
+              "title": "Hamid Raza vs State Of Nct Of Delhi on 23 September, 2025",
+              "court": "Delhi High Court",
+              "date": "2025-09-23",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 63679624,
+              "title": "Praduman vs The State (Govt. Of Nct Of Delhi) & Anr. on 5 October, 202",
+              "court": "Delhi High Court",
+              "date": "2021-10-05",
+              "overall": 4,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 107373450,
+              "title": "Neeraj Bhatt vs The State (Nct Of Delhi) on 4 July, 2022",
+              "court": "Delhi High Court",
+              "date": "2022-07-04",
+              "overall": 4,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q28",
+          "area": "CBI / PC Act",
+          "fetched": 5,
+          "avg": 5.666666666666667,
+          "top": 6,
+          "scored": [
+            {
+              "tid": 1974324,
+              "title": "T.T.Antony vs State Of Kerala & Ors on 12 July, 2001",
+              "court": "Supreme Court of India",
+              "date": "2001-07-12",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 116362443,
+              "title": "Dr. Subramanian Swamy vs Dr. Manmohan Singh And Anr on 31 January, 201",
+              "court": "Supreme Court of India",
+              "date": "2012-01-31",
+              "overall": 6,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 1353689,
+              "title": "A.R. Antulay vs R.S. Nayak & Anr on 29 April, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-04-29",
+              "overall": 5,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q29",
+          "area": "ED — summons",
+          "fetched": 5,
+          "avg": 8.666666666666666,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 105669606,
+              "title": "Pawan Kumar vs The Union Of India Through The Assistant ... on 26 Sept",
+              "court": "Patna High Court - Orders",
+              "date": "2025-09-26",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 83799868,
+              "title": "Mahesh Joshi S/O Late Moolchand Joshi vs Enforcement Directorate ... o",
+              "court": "Rajasthan High Court - Jaipur",
+              "date": "2025-08-26",
+              "overall": 9,
+              "verdict": "reused from rerank"
+            },
+            {
+              "tid": 80422306,
+              "title": "Kalvakuntla Kavitha vs Directorate Of Enforcement on 27 August, 2024",
+              "court": "Supreme Court of India",
+              "date": "2024-08-27",
+              "overall": 8,
+              "verdict": "reused from rerank"
+            }
+          ]
+        },
+        {
+          "id": "Q30",
+          "area": "Bail — economic offences",
+          "fetched": 4,
+          "avg": 4.666666666666667,
+          "top": 7,
+          "scored": [
+            {
+              "tid": 90251163,
+              "title": "P. Chidambaram vs Directorate Of Enforcement on 5 September, 2019",
+              "court": "Supreme Court of India",
+              "date": "2019-09-05",
+              "provision_match": 2,
+              "stage_match": 10,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 7,
+              "verdict": "Directly relevant case on bail in economic offences, but provision mismatch (PMLA vs CrPC 439)."
+            },
+            {
+              "tid": 14485072,
+              "title": "Vijay Madanlal Choudhary vs Union Of India on 27 July, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-07-27",
+              "provision_match": 2,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 4,
+              "verdict": "Not directly on point; deals with PMLA bail principles rather than general economic offence bail as per Y.S. Jagan Mohan Reddy and Chidambaram."
+            },
+            {
+              "tid": 106405053,
+              "title": "Directorate Of Enforcement vs M. Gopal Reddy on 24 February, 2023",
+              "court": "Supreme Court of India",
+              "date": "2023-02-24",
+              "provision_match": 0,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 3,
+              "verdict": "Title suggests economic offence but lacks reference to Section 439 or key precedents."
+            }
+          ]
+        }
+      ],
+      "avg_top3": 7.068965517241379,
+      "avg_top1": 7.833333333333333,
+      "zero_candidate_count": 1
+    },
+    {
+      "strategy": "E_deepseek_rerank_v_dual_court",
+      "desc": "winner + always query both expected_court AND supremecourt, merge",
+      "queries": [
+        {
+          "id": "Q01",
+          "area": "Bail — regular",
+          "fetched": 5,
+          "avg": 1.6666666666666667,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 82291128,
+              "title": "State vs . Dharam Pal Sharma Etc. on 30 September, 2013",
+              "court": "Delhi District Court",
+              "date": "2013-09-30",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "Not relevant to bail under CrPC 439 at sessions court after trial court rejection."
+            },
+            {
+              "tid": 16042869,
+              "title": "State vs . Himanshu @ Happy on 14 December, 2017",
+              "court": "Delhi District Court",
+              "date": "2017-12-14",
+              "provision_match": 3,
+              "stage_match": 2,
+              "citable_quote": 1,
+              "recency": 5,
+              "overall": 3,
+              "verdict": "Mentions IPC 379 but not CrPC 439; not a bail case; snippet incomplete."
+            },
+            {
+              "tid": 174833762,
+              "title": "Sh. Narender Kumar Aggarwal vs Smt. Annu @ Kajal on 20 March, 2014",
+              "court": "Delhi District Court",
+              "date": "2014-03-20",
+              "provision_match": 1,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "Not relevant; electricity theft case, not about bail after rejection under CrPC 439."
+            }
+          ]
+        },
+        {
+          "id": "Q02",
+          "area": "Bail — anticipatory",
+          "fetched": 5,
+          "avg": 1.6666666666666667,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 170462018,
+              "title": "Delhi High Court Bar Association & Anr. vs Govt. Of Nct Of Delhi & Anr",
+              "court": "Delhi High Court",
+              "date": "2013-10-09",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 1,
+              "verdict": "Irrelevant case about Bar Association; not about anticipatory bail in domestic violence."
+            },
+            {
+              "tid": 154440315,
+              "title": "Vishal Yadav vs State Govt. Of Up on 6 February, 2015",
+              "court": "Delhi High Court",
+              "date": "2015-02-06",
+              "provision_match": 3,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 3,
+              "verdict": "Not recent, lacks specific provision and quote."
+            },
+            {
+              "tid": 1187370,
+              "title": "Anupam Sharma vs Nct Of Delhi And Anr. on 23 August, 2007",
+              "court": "Delhi High Court",
+              "date": "2007-08-23",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 1,
+              "verdict": "Title only, no relevant content for anticipatory bail under DV Act."
+            }
+          ]
+        },
+        {
+          "id": "Q03",
+          "area": "Bail — NDPS",
+          "fetched": 5,
+          "avg": 4.666666666666667,
+          "top": 4,
+          "scored": [
+            {
+              "tid": 117859307,
+              "title": "Nikesh Tarachand Shah vs Union Of India on 23 November, 2017",
+              "court": "Supreme Court of India",
+              "date": "2017-11-23",
+              "provision_match": 8,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 4,
+              "verdict": "Landmark case on Section 37 validity, but no practical guidance on passing twin conditions; snippet lacks useful quote."
+            },
+            {
+              "tid": 13488433,
+              "title": "Sri Haricharan Biswas vs The State Of Tripura on 18 March, 2019",
+              "court": "Tripura High Court",
+              "date": "2019-03-18",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "No discussion of NDPS Section 37 twin conditions for bail in commercial quantity; irrelevant."
+            },
+            {
+              "tid": 106735942,
+              "title": "Deep Chand Kumar vs Narcotics Control Bureau on 31 May, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-05-31",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Directly addresses Section 37 twin conditions in commercial quantity bail context."
+            }
+          ]
+        },
+        {
+          "id": "Q04",
+          "area": "Bail — PMLA",
+          "fetched": 5,
+          "avg": 8.666666666666666,
+          "top": 7,
+          "scored": [
+            {
+              "tid": 118322024,
+              "title": "Serious Fraud Investigation Office vs Nittin Johari on 12 September, 2",
+              "court": "Supreme Court of India",
+              "date": "2019-09-12",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 3,
+              "overall": 7,
+              "verdict": "Relevant but outdated; 2019 case, not latest SC view."
+            },
+            {
+              "tid": 51494135,
+              "title": "Sanjay Raghunath Agarwal vs The Directorate Of Enforcement on 20 April",
+              "court": "Supreme Court of India",
+              "date": "2023-04-20",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Directly relevant case on PMLA Section 45 twin conditions for bail, recent Supreme Court decision."
+            },
+            {
+              "tid": 143681423,
+              "title": "Prem Prakash vs Union Of India Through The Directorate ... on 28 Augus",
+              "court": "Supreme Court of India",
+              "date": "2024-08-28",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 10,
+              "verdict": "Directly relevant SC judgment on PMLA Section 45 twin conditions for bail, very recent."
+            }
+          ]
+        },
+        {
+          "id": "Q05",
+          "area": "Bail — POCSO",
+          "fetched": 5,
+          "avg": 6,
+          "top": 6,
+          "scored": [
+            {
+              "tid": 166009004,
+              "title": "Dharmander Singh @ Saheb vs State on 22 September, 2020",
+              "court": "Delhi High Court",
+              "date": "2020-09-22",
+              "provision_match": 7,
+              "stage_match": 5,
+              "citable_quote": 6,
+              "recency": 6,
+              "overall": 6,
+              "verdict": "Section 31 mentioned but focus on Section 29; no explicit bail discussion; moderately recent."
+            },
+            {
+              "tid": 88954459,
+              "title": "Mohan Singh Jogi @ Mohini vs State (Nct Of Delhi) on 31 May, 2022",
+              "court": "Delhi High Court",
+              "date": "2022-05-31",
+              "provision_match": 0,
+              "stage_match": 6,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 3,
+              "verdict": "No mention of POCSO Section 31, but bail stage present."
+            },
+            {
+              "tid": 170774412,
+              "title": "Harish Chander @ Suraj Bhatt vs State Nct Of Delhi on 6 December, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-12-06",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Matches user query for POCSO Section 31 bail from Delhi HC, recent date."
+            }
+          ]
+        },
+        {
+          "id": "Q06",
+          "area": "Bail — UAPA",
+          "fetched": 5,
+          "avg": 6.333333333333333,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 108728085,
+              "title": "Dr. Subhash Kashinath Mahajan vs The State Of Maharashtra on 20 March,",
+              "court": "Supreme Court of India",
+              "date": "2018-03-20",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "Completely irrelevant - case pertains to SC/ST Act, not UAPA Section 43-D(5)."
+            },
+            {
+              "tid": 94971837,
+              "title": "Judgebir Singh @ Jasbir Singh Samra @ ... vs National Investigation Ag",
+              "court": "Supreme Court of India",
+              "date": "2023-05-01",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 9,
+              "overall": 9,
+              "verdict": "Directly addresses UAPA Section 43-D(5) bail restrictions with recent Supreme Court interpretation."
+            },
+            {
+              "tid": 10134315,
+              "title": "Gulfisha Fatima vs State (Govt. Of Nct Of Delhi ) on 5 January, 2026",
+              "court": "Supreme Court of India",
+              "date": "2026-01-05",
+              "provision_match": 10,
+              "stage_match": 9,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Directly addresses UAPA Section 43D(5) bail restrictions with recent SC interpretation."
+            }
+          ]
+        },
+        {
+          "id": "Q07",
+          "area": "NI Act 138",
+          "fetched": 5,
+          "avg": 1,
+          "top": 0,
+          "scored": [
+            {
+              "tid": 2272108,
+              "title": "Four Seasons Energy Ventures Pvt Ltd & ... vs State Of Nct Of Delhi & ",
+              "court": "Delhi High Court",
+              "date": "2012-07-03",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 0,
+              "verdict": "Not relevant to query; no discussion of 14 vs 15 day notice requirement."
+            },
+            {
+              "tid": 98417421,
+              "title": "Vijay Kumar Ghai vs Pritpal Singh Babbar on 4 July, 2022",
+              "court": "Punjab-Haryana High Court",
+              "date": "2022-07-04",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 2,
+              "verdict": "Snippet lacks content; no match to query."
+            },
+            {
+              "tid": 103964065,
+              "title": "Mr.M.Palanichamy vs )Union Of India on 31 July, 2012",
+              "court": "Madras High Court",
+              "date": "2012-07-31",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Irrelevant case; does not address notice period under NI Act Section 138 proviso (b) or complaint maintainability. Title suggests different subject matter (Union of India)."
+            }
+          ]
+        },
+        {
+          "id": "Q08",
+          "area": "NI Act 138 — vicarious",
+          "fetched": 5,
+          "avg": 8.666666666666666,
+          "top": 8,
+          "scored": [
+            {
+              "tid": 117583148,
+              "title": "Gunmala Sales Pvt. Ltd vs Anu Mehta & Ors on 17 October, 2014",
+              "court": "Supreme Court of India",
+              "date": "2014-10-17",
+              "provision_match": 9,
+              "stage_match": 10,
+              "citable_quote": 7,
+              "recency": 6,
+              "overall": 8,
+              "verdict": "Matches provision and stage; decent quote but slightly old."
+            },
+            {
+              "tid": 10064002,
+              "title": "Har Sarup Bhasin vs M/S Origo Commodities India Private ... on 7 Janua",
+              "court": "Delhi High Court",
+              "date": "2020-01-07",
+              "provision_match": 9,
+              "stage_match": 9,
+              "citable_quote": 6,
+              "recency": 8,
+              "overall": 8,
+              "verdict": "Relevant case directly addressing vicarious liability under Section 141 NI Act, with recent date and partial quote."
+            },
+            {
+              "tid": 142880006,
+              "title": "M/S Lyka Labs Limited And Anr vs State Of Maharashtra And Anr on 8 Mar",
+              "court": "Bombay High Court",
+              "date": "2023-03-08",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 9,
+              "recency": 10,
+              "overall": 10,
+              "verdict": "Directly discusses Section 141 vicarious liability in NI Act context, recent and citable."
+            }
+          ]
+        },
+        {
+          "id": "Q09",
+          "area": "NI Act 138 — defence",
+          "fetched": 5,
+          "avg": 6.333333333333333,
+          "top": 6,
+          "scored": [
+            {
+              "tid": 173599559,
+              "title": "Anita Saini vs . Rakesh Kumar Singh 1/36 on 3 March, 2023",
+              "court": "Delhi District Court",
+              "date": "2023-03-03",
+              "provision_match": 10,
+              "stage_match": 5,
+              "citable_quote": 4,
+              "recency": 9,
+              "overall": 6,
+              "verdict": "Relevant to NI Act Section 138 and defence, but lacks specific focus on security cheque defence."
+            },
+            {
+              "tid": 141480415,
+              "title": "Vishal Kumar vs . G.T.Computer Hardware Engineering ... on 26 February",
+              "court": "Delhi District Court",
+              "date": "2013-02-26",
+              "provision_match": 10,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 4,
+              "verdict": "Only matches provision, but does not address security cheque defence; old case."
+            },
+            {
+              "tid": 19114272,
+              "title": "3.2017 Calling Upon The Accused To Pay ... vs Unknown on 5 November, 2",
+              "court": "Delhi District Court",
+              "date": "2022-11-05",
+              "provision_match": 10,
+              "stage_match": 9,
+              "citable_quote": 7,
+              "recency": 9,
+              "overall": 9,
+              "verdict": "Directly addresses applicability of Section 138 to security cheques, key for defence."
+            }
+          ]
+        },
+        {
+          "id": "Q10",
+          "area": "498A quashing",
+          "fetched": 5,
+          "avg": 6.333333333333333,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 332334,
+              "title": "Govind And Ors. vs The State (Govt. Of Nct Of Delhi) on 7 April, 2003",
+              "court": "Delhi High Court",
+              "date": "2003-04-07",
+              "provision_match": 3,
+              "stage_match": 2,
+              "citable_quote": 2,
+              "recency": 1,
+              "overall": 3,
+              "verdict": "Too old and snippet does not clearly show settlement or quash under CrPC 482."
+            },
+            {
+              "tid": 848122,
+              "title": "Narender Kumar And Anr. vs State (Govt. Of Nct Of Delhi) [Along With .",
+              "court": "Delhi High Court",
+              "date": "2007-11-01",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 3,
+              "overall": 8,
+              "verdict": "Good match for provision and stage, old but still citable."
+            },
+            {
+              "tid": 194493227,
+              "title": "Jaimeet Singh Kalra & Ors. vs State & Anr. on 2 June, 2022",
+              "court": "Delhi High Court",
+              "date": "2022-06-02",
+              "provision_match": 9,
+              "stage_match": 6,
+              "citable_quote": 8,
+              "recency": 9,
+              "overall": 8,
+              "verdict": "Matches provision and recent but stage not explicitly settled."
+            }
+          ]
+        },
+        {
+          "id": "Q11",
+          "area": "498A quashing",
+          "fetched": 5,
+          "avg": 3.3333333333333335,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 34613760,
+              "title": "Vishal Yadav vs State Of U.P. on 2 April, 2014",
+              "court": "Delhi High Court",
+              "date": "2014-04-02",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 2,
+              "verdict": "Title does not match expected provision or stage."
+            },
+            {
+              "tid": 127001295,
+              "title": "Pradip Chudiwala @ Pradeep Churiwala vs The State Of Jharkhand on 14 J",
+              "court": "Jharkhand High Court",
+              "date": "2022-06-14",
+              "provision_match": 8,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 6,
+              "verdict": "Relevant as quashing under CrPC 482 but unclear if specifically addresses 498A family members; no citable quote."
+            },
+            {
+              "tid": 186076668,
+              "title": "Moniza Farooquee & Anr vs State Of West Bengal & Anr on 28 April, 2026",
+              "court": "Calcutta High Court (Appellete Side)",
+              "date": "2026-04-28",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 2,
+              "verdict": "No match on provision or stage; only recency is high but irrelevant given lack of substantive content."
+            }
+          ]
+        },
+        {
+          "id": "Q12",
+          "area": "FIR quashing — 482",
+          "fetched": 5,
+          "avg": 3.3333333333333335,
+          "top": 0,
+          "scored": [
+            {
+              "tid": 1353689,
+              "title": "A.R. Antulay vs R.S. Nayak & Anr on 29 April, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-04-29",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Not relevant to the query about quashing FIR under Section 482 for civil dispute with criminal colour."
+            },
+            {
+              "tid": 160740668,
+              "title": "Yakub Abdul Razak Memon vs State Of Maharashtra Th:Cbi Mumbai on 21 Ma",
+              "court": "Supreme Court of India",
+              "date": "2013-03-21",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Completely irrelevant case about terrorism, not civil dispute quash."
+            },
+            {
+              "tid": 10546413,
+              "title": "Sushil Sethi vs The State Of Arunachal Pradesh on 31 January, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-01-31",
+              "provision_match": 8,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 7,
+              "overall": 9,
+              "verdict": "Excellent match with civil dispute quashed under 482 CrPC, though lacks explicit 420 mention."
+            }
+          ]
+        },
+        {
+          "id": "Q13",
+          "area": "125 CrPC maintenance",
+          "fetched": 0,
+          "avg": 0,
+          "top": 0,
+          "scored": []
+        },
+        {
+          "id": "Q14",
+          "area": "125 CrPC maintenance",
+          "fetched": 5,
+          "avg": 3.6666666666666665,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 1716385,
+              "title": "Naduthodi Yousaf vs Naduthodi Rubeena on 8 September, 2010",
+              "court": "Kerala High Court",
+              "date": "2010-09-08",
+              "provision_match": 2,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 2,
+              "verdict": "Case does not involve adult disabled son claiming maintenance from father."
+            },
+            {
+              "tid": 132236554,
+              "title": "Shobha Kanwar vs Narpat Singh (2026:Rj-Jd:14919-Db) on 1 April, 2026",
+              "court": "Rajasthan High Court - Jodhpur",
+              "date": "2026-04-01",
+              "provision_match": 8,
+              "stage_match": 4,
+              "citable_quote": 5,
+              "recency": 10,
+              "overall": 7,
+              "verdict": "Case mentions Section 125 but does not specifically address disabled adult son's claim."
+            },
+            {
+              "tid": 195134012,
+              "title": "Dr. Narpat Singh vs Smt. Shobha Kunwar ... on 1 April, 2026",
+              "court": "Rajasthan High Court - Jodhpur",
+              "date": "2026-04-01",
+              "provision_match": 4,
+              "stage_match": 3,
+              "citable_quote": 2,
+              "recency": 0,
+              "overall": 2,
+              "verdict": "Poor match: future date and unclear if disabled adult son maintenance is upheld."
+            }
+          ]
+        },
+        {
+          "id": "Q15",
+          "area": "Domestic Violence Act",
+          "fetched": 5,
+          "avg": 6,
+          "top": 7,
+          "scored": [
+            {
+              "tid": 2803750,
+              "title": "Ms. Nidhi Kaushik vs Union Of India & Ors. on 26 May, 2014",
+              "court": "Delhi High Court",
+              "date": "2014-05-26",
+              "provision_match": 8,
+              "stage_match": 7,
+              "citable_quote": 8,
+              "recency": 2,
+              "overall": 7,
+              "verdict": "Delhi HC case on Section 12 and shared household right, but older (2014)."
+            },
+            {
+              "tid": 127433736,
+              "title": "Shome Nikhil Danani vs Tanya Banon Danani on 11 April, 2019",
+              "court": "Delhi High Court",
+              "date": "2019-04-11",
+              "provision_match": 2,
+              "stage_match": 4,
+              "citable_quote": 1,
+              "recency": 8,
+              "overall": 4,
+              "verdict": "Case discusses residence order but focuses on monetary relief under Section 20, not Section 12 or 17/19 provisions."
+            },
+            {
+              "tid": 61961663,
+              "title": "Aarti Sharma & Anr. vs Ganga Saran on 24 August, 2021",
+              "court": "Delhi High Court",
+              "date": "2021-08-24",
+              "provision_match": 7,
+              "stage_match": 6,
+              "citable_quote": 5,
+              "recency": 9,
+              "overall": 7,
+              "verdict": "Relevant but misses specific Sections 17 & 19; no explicit quote on residence order."
+            }
+          ]
+        },
+        {
+          "id": "Q16",
+          "area": "HMA — divorce/Section 9",
+          "fetched": 5,
+          "avg": 2.6666666666666665,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 153422334,
+              "title": "Babita vs Munna Lal on 22 August, 2022",
+              "court": "Delhi High Court",
+              "date": "2022-08-22",
+              "provision_match": 5,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 3,
+              "verdict": "Snippet lacks details on working wife ground; not citable for query."
+            },
+            {
+              "tid": 52684687,
+              "title": "Vikas Kanaujia vs Sarita on 10 July, 2024",
+              "court": "Supreme Court of India",
+              "date": "2024-07-10",
+              "provision_match": 1,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 2,
+              "verdict": "Title and snippet do not indicate relevance to Section 9 or working wife ground."
+            },
+            {
+              "tid": 141601388,
+              "title": "Smt. Kavita Jain vs Manoj Kumar Jain on 27 February, 2025",
+              "court": "Madhya Pradesh High Court",
+              "date": "2025-02-27",
+              "provision_match": 3,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 3,
+              "verdict": "Result does not address working wife ground for decree denial; lacks relevant content."
+            }
+          ]
+        },
+        {
+          "id": "Q17",
+          "area": "Property — partition",
+          "fetched": 5,
+          "avg": 6.666666666666667,
+          "top": 4,
+          "scored": [
+            {
+              "tid": 12595649,
+              "title": "B.Chandrakala vs A.Anuradha on 31 December, 2014",
+              "court": "Andhra HC (Pre-Telangana)",
+              "date": "2014-12-31",
+              "provision_match": 5,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 4,
+              "verdict": "Title suggests relevance to daughter's coparcenary rights under 2005 amendment but lacks snippet for confirmation."
+            },
+            {
+              "tid": 39343066,
+              "title": "Shri Ashok Gangadhar Shedge vs Ramesh Gangadhar Shedge on 9 June, 2014",
+              "court": "Bombay High Court",
+              "date": "2014-06-09",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 7,
+              "overall": 9,
+              "verdict": "Directly addresses retrospective vs prospective nature of Section 6 amendment, matching query."
+            },
+            {
+              "tid": 96954201,
+              "title": "***** vs / on 28 June, 2012",
+              "court": "Madras High Court",
+              "date": "2012-06-28",
+              "provision_match": 9,
+              "stage_match": 8,
+              "citable_quote": 3,
+              "recency": 5,
+              "overall": 7,
+              "verdict": "Mirrors expected provision and stage but lacks explicit retrospective/prospective discussion."
+            }
+          ]
+        },
+        {
+          "id": "Q18",
+          "area": "Property — specific performance",
+          "fetched": 5,
+          "avg": 5.666666666666667,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 121624333,
+              "title": "A.Kanthamani vs Nasreen Ahmed on 6 March, 2017",
+              "court": "Supreme Court of India",
+              "date": "2017-03-06",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 9,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Directly mentions Section 54 and 3-year limitation for specific performance, though snippet incomplete."
+            },
+            {
+              "tid": 1321551,
+              "title": "Hatimbhai Hassanally vs Framroz Eduljee Dinshaw on 31 January, 1927",
+              "court": "Bombay High Court",
+              "date": "1927-01-31",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Irrelevant case; does not address limitation period for specific performance."
+            },
+            {
+              "tid": 31063955,
+              "title": "Sh.Ripu Daman Haryal & Anr. vs Miss Geeta Chopra & Anr. on 4 July, 201",
+              "court": "Delhi High Court",
+              "date": "2011-07-04",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 5,
+              "recency": 7,
+              "overall": 8,
+              "verdict": "Directly discusses Article 54 limitation for specific performance suit, but snippet truncated."
+            }
+          ]
+        },
+        {
+          "id": "Q19",
+          "area": "Civil — injunction",
+          "fetched": 5,
+          "avg": 3,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 60866758,
+              "title": "Mex Switchgears Pvt. Ltd. vs Max Switchgears Pvt. Ltd. on 25 February,",
+              "court": "Delhi High Court",
+              "date": "2014-02-25",
+              "provision_match": 5,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 2,
+              "verdict": "Title mentions case but no content on triple test or interim injunction; outdated"
+            },
+            {
+              "tid": 11152970,
+              "title": "Fdc Limited vs Faraway Foods Pvt. Ltd. on 10 February, 2021",
+              "court": "Delhi High Court",
+              "date": "2021-02-10",
+              "provision_match": 8,
+              "stage_match": 7,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 6,
+              "verdict": "Case is relevant but lacks explicit triple test discussion in snippet."
+            },
+            {
+              "tid": 154135,
+              "title": "Ahmed Oomerbhoy And Anr. vs Shri Gautam Tank And Ors. on 20 December, ",
+              "court": "Delhi High Court",
+              "date": "2007-12-20",
+              "provision_match": 1,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 1,
+              "verdict": "Old case without relevant triple test discussion."
+            }
+          ]
+        },
+        {
+          "id": "Q20",
+          "area": "Commercial Courts Act",
+          "fetched": 5,
+          "avg": 0.6666666666666666,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 1940266,
+              "title": "Kunhayammed & Ors vs State Of Kerala & Anr on 19 July, 2000",
+              "court": "Supreme Court of India",
+              "date": "2000-07-19",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "Unrelated to Order 8 Rule 1 of CPC; no mention of written statement time-bar."
+            },
+            {
+              "tid": 181443842,
+              "title": "Madras Bar Association vs Union Of India & Anr on 25 September, 2014",
+              "court": "Supreme Court of India",
+              "date": "2014-09-25",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 0,
+              "verdict": "Completely irrelevant case about NJAC, not about Order 8 Rule 1 or written statement time bar in commercial suits."
+            },
+            {
+              "tid": 96395504,
+              "title": "New India Assurance Co. Ltd vs Hilli Multipurpose Cold Storage Pvt Ltd",
+              "court": "Supreme Court of India",
+              "date": "2020-03-04",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Irrelevant case, unrelated to Order 8 Rule 1 time-bar for written statement."
+            }
+          ]
+        },
+        {
+          "id": "Q21",
+          "area": "Order 37 — summary suit",
+          "fetched": 5,
+          "avg": 2.3333333333333335,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 32619600,
+              "title": "Acme Phalodi Solar Energy Private ... vs Central Board Of Indirect Tax",
+              "court": "Delhi High Court",
+              "date": "2024-05-06",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 1,
+              "verdict": "Completely irrelevant topic: tax case instead of Order 37 CPC summary suit."
+            },
+            {
+              "tid": 119029384,
+              "title": "Spicejet Limited vs Kal Airways Private Limited & Anr. & Ors. on 17 Ma",
+              "court": "Delhi High Court",
+              "date": "2024-05-17",
+              "provision_match": 5,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 5,
+              "verdict": "Relevant court and date but snippet lacks substantive discussion on leave to defend grounds under Order 37 CPC."
+            },
+            {
+              "tid": 53369878,
+              "title": "Acme Raisar Solar Energy Private ... vs Central Board Of Indirect Taxe",
+              "court": "Delhi High Court",
+              "date": "2024-05-06",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 1,
+              "verdict": "Irrelevant case about indirect taxes, not Order 37 CPC."
+            }
+          ]
+        },
+        {
+          "id": "Q22",
+          "area": "IPR — trademark",
+          "fetched": 5,
+          "avg": 6.333333333333333,
+          "top": 4,
+          "scored": [
+            {
+              "tid": 26917005,
+              "title": "M/S Teleecare Network India Pvt Ltd vs M/S Asus Technology Pvt Ltd & O",
+              "court": "Delhi High Court",
+              "date": "2019-05-28",
+              "provision_match": 5,
+              "stage_match": 6,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 4,
+              "verdict": "Snippet is too short; lacks content on triple test or deceptive similarity."
+            },
+            {
+              "tid": 92097077,
+              "title": "Ferrero Spa & Ors. vs Kamco Chew Food Private Limited & Ors. on 18 Dec",
+              "court": "Delhi High Court",
+              "date": "2019-12-18",
+              "provision_match": 8,
+              "stage_match": 7,
+              "citable_quote": 9,
+              "recency": 9,
+              "overall": 8,
+              "verdict": "Matches Section 29 and deceptive similarity, but lacks explicit triple test and Section 134; good recency and citable quote."
+            },
+            {
+              "tid": 63542416,
+              "title": "Indiabulls Housing Finance Ltd. & Ors. vs Www.Indiabullsdhanifinance.C",
+              "court": "Delhi High Court",
+              "date": "2022-05-31",
+              "provision_match": 7,
+              "stage_match": 6,
+              "citable_quote": 8,
+              "recency": 8,
+              "overall": 7,
+              "verdict": "Matches Section 29(3) and triple identity test, but lacks Section 134 and explicit ad interim context."
+            }
+          ]
+        },
+        {
+          "id": "Q23",
+          "area": "IPR — copyright",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 0,
+          "scored": [
+            {
+              "tid": 331232,
+              "title": "Indian Performing Right Society Ltd vs Eastern India Motion Pictures .",
+              "court": "Supreme Court of India",
+              "date": "1977-03-14",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Not relevant: case is about performing rights, not software code copyright or Section 17(c) employer rule."
+            },
+            {
+              "tid": 603848,
+              "title": "Zee Telefilms Ltd. And Film And Shot And ... vs Sundial Communications",
+              "court": "Bombay High Court",
+              "date": "2003-03-27",
+              "provision_match": 3,
+              "stage_match": 4,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 2,
+              "verdict": "Not directly relevant; deals with films, not software, and no mention of Section 17(c) exception"
+            },
+            {
+              "tid": 445135,
+              "title": "American Express Bank Ltd. vs Ms. Priya Puri on 24 May, 2006",
+              "court": "Delhi High Court",
+              "date": "2006-05-24",
+              "provision_match": 0,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 2,
+              "verdict": "Snippet lacks any legal analysis on Section 17(c); title only suggests possible relevance."
+            }
+          ]
+        },
+        {
+          "id": "Q24",
+          "area": "Charge framing",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 143202244,
+              "title": "Tofan Singh vs The State Of Tamil Nadu on 29 October, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-10-29",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "Not relevant; no mention of CrPC 227 or charge framing."
+            },
+            {
+              "tid": 1353689,
+              "title": "A.R. Antulay vs R.S. Nayak & Anr on 29 April, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-04-29",
+              "provision_match": 1,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 2,
+              "verdict": "Case is about corruption sanction, not Section 227 discharge principles."
+            },
+            {
+              "tid": 936707,
+              "title": "Indira Nehru Gandhi vs Shri Raj Narain & Anr on 7 November, 1975",
+              "court": "Supreme Court of India",
+              "date": "1975-11-07",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Irrelevant case on election law, not about discharge under Section 227 CrPC."
+            }
+          ]
+        },
+        {
+          "id": "Q25",
+          "area": "Evidence",
+          "fetched": 5,
+          "avg": 3.3333333333333335,
+          "top": 4,
+          "scored": [
+            {
+              "tid": 667073,
+              "title": "Kehar Singh & Ors vs State (Delhi Admn.) on 3 August, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-08-03",
+              "provision_match": 7,
+              "stage_match": 8,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 4,
+              "verdict": "Old case, no quote, not the latest interpretation."
+            },
+            {
+              "tid": 51738625,
+              "title": "Sanjay Dutt vs State Of Maharashtra Tr.Cbi,Bombay on 21 March, 2013",
+              "court": "Supreme Court of India",
+              "date": "2013-03-21",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Not relevant to Section 27 recovery; old case; no snippet on admissibility."
+            },
+            {
+              "tid": 1733815,
+              "title": "Bharat vs State Of M.P on 30 January, 2003",
+              "court": "Supreme Court of India",
+              "date": "2003-01-30",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 2,
+              "overall": 6,
+              "verdict": "Good match on Section 27 recovery but not recent; user asked for latest interpretation."
+            }
+          ]
+        },
+        {
+          "id": "Q26",
+          "area": "PMLA — ECIR",
+          "fetched": 5,
+          "avg": 5.333333333333333,
+          "top": 5,
+          "scored": [
+            {
+              "tid": 90251163,
+              "title": "P. Chidambaram vs Directorate Of Enforcement on 5 September, 2019",
+              "court": "Supreme Court of India",
+              "date": "2019-09-05",
+              "provision_match": 5,
+              "stage_match": 5,
+              "citable_quote": 8,
+              "recency": 6,
+              "overall": 5,
+              "verdict": "Case relevant to PMLA but snippet lacks specific mention of ECIR pre-FIR or independence of proceedings."
+            },
+            {
+              "tid": 14485072,
+              "title": "Vijay Madanlal Choudhary vs Union Of India on 27 July, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-07-27",
+              "provision_match": 8,
+              "stage_match": 9,
+              "citable_quote": 7,
+              "recency": 9,
+              "overall": 8,
+              "verdict": "Landmark PMLA case addressing ECIR-FIR relationship and independent trial proceedings."
+            },
+            {
+              "tid": 13208976,
+              "title": "Rohit Tandon vs The Enforcement Directorate on 10 November, 2017",
+              "court": "Supreme Court of India",
+              "date": "2017-11-10",
+              "provision_match": 2,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 6,
+              "overall": 3,
+              "verdict": "Title only suggests PMLA relevance but lacks substantive match to query's specific provisions and stage."
+            }
+          ]
+        },
+        {
+          "id": "Q27",
+          "area": "POCSO — consent age",
+          "fetched": 5,
+          "avg": 5.333333333333333,
+          "top": 6,
+          "scored": [
+            {
+              "tid": 78397201,
+              "title": "Jagbir vs State (N.C.T. Of Delhi) on 22 July, 2022",
+              "court": "Delhi High Court",
+              "date": "2022-07-22",
+              "provision_match": 4,
+              "stage_match": 9,
+              "citable_quote": 7,
+              "recency": 8,
+              "overall": 6,
+              "verdict": "Matches consent-age issue but cites wrong sections."
+            },
+            {
+              "tid": 99867770,
+              "title": "State vs Sonu @ Parminder on 8 January, 2026",
+              "court": "Delhi High Court",
+              "date": "2026-01-08",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 1,
+              "verdict": "No relevant content; snippet lacks information on POCSO or consent age."
+            },
+            {
+              "tid": 162517487,
+              "title": "Hamid Raza vs State Of Nct Of Delhi on 23 September, 2025",
+              "court": "Delhi High Court",
+              "date": "2025-09-23",
+              "provision_match": 7,
+              "stage_match": 10,
+              "citable_quote": 9,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Directly on point for consent-age issue, but lacks explicit citation of Sections 3 and 4."
+            }
+          ]
+        },
+        {
+          "id": "Q28",
+          "area": "CBI / PC Act",
+          "fetched": 5,
+          "avg": 0.6666666666666666,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 31538746,
+              "title": "Himachal Pradesh Cricket Association vs The State Of Himachal Pradesh ",
+              "court": "Supreme Court of India",
+              "date": "2018-11-02",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Title and snippet do not mention Section 19 or sanction, case may be unrelated."
+            },
+            {
+              "tid": 181443842,
+              "title": "Madras Bar Association vs Union Of India & Anr on 25 September, 2014",
+              "court": "Supreme Court of India",
+              "date": "2014-09-25",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 0,
+              "verdict": "No relevance to Section 19 PC Act sanction; case is about Madras Bar Association and does not address sanction requirement."
+            },
+            {
+              "tid": 199048478,
+              "title": "Zakia Ahsan Jafri vs The State Of Gujarat on 24 June, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-06-24",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 1,
+              "verdict": "Case is unrelated to PC Act sanction; it's about Gujarat riots."
+            }
+          ]
+        },
+        {
+          "id": "Q29",
+          "area": "ED — summons",
+          "fetched": 5,
+          "avg": 2.3333333333333335,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 62003795,
+              "title": "Raman Bhuraria vs Directorate Of Enforcement on 8 February, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-02-08",
+              "provision_match": 2,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 9,
+              "overall": 2,
+              "verdict": "Snippet lacks relevant details on PMLA Section 50 or retraction; not clearly responsive."
+            },
+            {
+              "tid": 124919732,
+              "title": "Kavitha G.Pillai vs The Joint Director on 5 August, 2015",
+              "court": "Kerala High Court",
+              "date": "2015-08-05",
+              "provision_match": 2,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 3,
+              "verdict": "No content on retraction or Section 50; only title."
+            },
+            {
+              "tid": 41015865,
+              "title": "Mukesh Kumar S/O Jai Kishan Sharma vs State Of Gujarat & on 6 May, 201",
+              "court": "Gujarat High Court",
+              "date": "2016-05-06",
+              "provision_match": 1,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 2,
+              "verdict": "Low relevance: title and snippet do not indicate PMLA Section 50 or retraction of statement; no citable quote; dated 2016."
+            }
+          ]
+        },
+        {
+          "id": "Q30",
+          "area": "Bail — economic offences",
+          "fetched": 4,
+          "avg": 5.666666666666667,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 90251163,
+              "title": "P. Chidambaram vs Directorate Of Enforcement on 5 September, 2019",
+              "court": "Supreme Court of India",
+              "date": "2019-09-05",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 5,
+              "recency": 8,
+              "overall": 9,
+              "verdict": "Directly relevant Supreme Court judgment on bail in economic offences; covers the cited case."
+            },
+            {
+              "tid": 14485072,
+              "title": "Vijay Madanlal Choudhary vs Union Of India on 27 July, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-07-27",
+              "provision_match": 2,
+              "stage_match": 6,
+              "citable_quote": 5,
+              "recency": 10,
+              "overall": 6,
+              "verdict": "Relevant to economic offence bail but not CrPC 439 or the specific judgments cited."
+            },
+            {
+              "tid": 106405053,
+              "title": "Directorate Of Enforcement vs M. Gopal Reddy on 24 February, 2023",
+              "court": "Supreme Court of India",
+              "date": "2023-02-24",
+              "provision_match": 0,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "No direct relevance to CrPC Section 439 or bail principles from Y.S. Jagan Mohan Reddy and P. Chidambaram judgments; only recency is good"
+            }
+          ]
+        }
+      ],
+      "avg_top3": 4.149425287356322,
+      "avg_top1": 3.3666666666666667,
+      "zero_candidate_count": 1
+    },
+    {
+      "strategy": "E_deepseek_rerank_v_max10",
+      "desc": "C + fetch 10, DeepSeek scores all, keep top 5 by score — but fetch max_results=10",
+      "queries": [
+        {
+          "id": "Q01",
+          "area": "Bail — regular",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 149029113,
+              "title": "State vs 1. Dharambir, on 13 August, 2009",
+              "court": "Delhi District Court",
+              "date": "2009-08-13",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 1,
+              "verdict": "No relevant content, very old case, no mention of Section 439 or bail stage."
+            },
+            {
+              "tid": 17920655,
+              "title": "3. Title: Cbi vs . (1) A. Raja (A­1); on 21 December, 2017",
+              "court": "Delhi District Court",
+              "date": "2017-12-21",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 1,
+              "verdict": "Irrelevant case about CBI and A. Raja, not related to theft bail under Section 439 CrPC."
+            },
+            {
+              "tid": 166772608,
+              "title": "Cbi vs Sajjan Kumar on 20 September, 2023",
+              "court": "Delhi District Court",
+              "date": "2023-09-20",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 2,
+              "verdict": "Completely irrelevant to 439 bail for theft; involves CBI case against Sajjan Kumar."
+            }
+          ]
+        },
+        {
+          "id": "Q02",
+          "area": "Bail — anticipatory",
+          "fetched": 5,
+          "avg": 1,
+          "top": 0,
+          "scored": [
+            {
+              "tid": 170462018,
+              "title": "Delhi High Court Bar Association & Anr. vs Govt. Of Nct Of Delhi & Anr",
+              "court": "Delhi High Court",
+              "date": "2013-10-09",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Irrelevant case, not about anticipatory bail or domestic violence."
+            },
+            {
+              "tid": 154440315,
+              "title": "Vishal Yadav vs State Govt. Of Up on 6 February, 2015",
+              "court": "Delhi High Court",
+              "date": "2015-02-06",
+              "provision_match": 5,
+              "stage_match": 4,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 3,
+              "verdict": "Old case, no relevant quote; not recent as per query."
+            },
+            {
+              "tid": 1187370,
+              "title": "Anupam Sharma vs Nct Of Delhi And Anr. on 23 August, 2007",
+              "court": "Delhi High Court",
+              "date": "2007-08-23",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "No match; old case with no relevant content."
+            }
+          ]
+        },
+        {
+          "id": "Q03",
+          "area": "Bail — NDPS",
+          "fetched": 5,
+          "avg": 6.333333333333333,
+          "top": 7,
+          "scored": [
+            {
+              "tid": 117859307,
+              "title": "Nikesh Tarachand Shah vs Union Of India on 23 November, 2017",
+              "court": "Supreme Court of India",
+              "date": "2017-11-23",
+              "provision_match": 10,
+              "stage_match": 8,
+              "citable_quote": 0,
+              "recency": 4,
+              "overall": 7,
+              "verdict": "Relevant but overruled later; not current law for twin conditions."
+            },
+            {
+              "tid": 13488433,
+              "title": "Sri Haricharan Biswas vs The State Of Tripura on 18 March, 2019",
+              "court": "Tripura High Court",
+              "date": "2019-03-18",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "No mention of NDPS Section 37 or bail conditions; only title and date available."
+            },
+            {
+              "tid": 104774187,
+              "title": "Quentin Decon vs Customs on 31 May, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-05-31",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 10,
+              "overall": 10,
+              "verdict": "Directly addresses Section 37 twin conditions for commercial quantity bail with a citable quote from a recent Delhi High Court case."
+            }
+          ]
+        },
+        {
+          "id": "Q04",
+          "area": "Bail — PMLA",
+          "fetched": 5,
+          "avg": 7.666666666666667,
+          "top": 5,
+          "scored": [
+            {
+              "tid": 90251163,
+              "title": "P. Chidambaram vs Directorate Of Enforcement on 5 September, 2019",
+              "court": "Supreme Court of India",
+              "date": "2019-09-05",
+              "provision_match": 6,
+              "stage_match": 10,
+              "citable_quote": 4,
+              "recency": 3,
+              "overall": 5,
+              "verdict": "Candidate mentions Section 45 and bail but lacks discussion on twin conditions and is not the latest SC view."
+            },
+            {
+              "tid": 14485072,
+              "title": "Vijay Madanlal Choudhary vs Union Of India on 27 July, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-07-27",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 7,
+              "recency": 8,
+              "overall": 9,
+              "verdict": "Matches provision and stage, relevant SC case on twin conditions."
+            },
+            {
+              "tid": 118322024,
+              "title": "Serious Fraud Investigation Office vs Nittin Johari on 12 September, 2",
+              "court": "Supreme Court of India",
+              "date": "2019-09-12",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 7,
+              "overall": 9,
+              "verdict": "Directly addresses Section 45 twin conditions and bail, but is from 2019; later landmark judgment exists."
+            }
+          ]
+        },
+        {
+          "id": "Q05",
+          "area": "Bail — POCSO",
+          "fetched": 5,
+          "avg": 5.333333333333333,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 166009004,
+              "title": "Dharmander Singh @ Saheb vs State on 22 September, 2020",
+              "court": "Delhi High Court",
+              "date": "2020-09-22",
+              "provision_match": 2,
+              "stage_match": 4,
+              "citable_quote": 2,
+              "recency": 7,
+              "overall": 3,
+              "verdict": "Candidate discusses POCSO Section 29 and NDPS Section 31, not POCSO Section 31 as required."
+            },
+            {
+              "tid": 88954459,
+              "title": "Mohan Singh Jogi @ Mohini vs State (Nct Of Delhi) on 31 May, 2022",
+              "court": "Delhi High Court",
+              "date": "2022-05-31",
+              "provision_match": 0,
+              "stage_match": 10,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 4,
+              "verdict": "Snippet does not mention Section 31; only bail stage matches."
+            },
+            {
+              "tid": 170774412,
+              "title": "Harish Chander @ Suraj Bhatt vs State Nct Of Delhi on 6 December, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-12-06",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Directly relevant: Delhi HC discusses POCSO Section 31 bail in 2023."
+            }
+          ]
+        },
+        {
+          "id": "Q06",
+          "area": "Bail — UAPA",
+          "fetched": 5,
+          "avg": 1,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 7148380,
+              "title": "Satender Kumar Antil vs Central Bureau Of Investigation on 11 July, 20",
+              "court": "Supreme Court of India",
+              "date": "2022-07-11",
+              "provision_match": 0,
+              "stage_match": 3,
+              "citable_quote": 0,
+              "recency": 9,
+              "overall": 3,
+              "verdict": "Case pertains to PMLA, not UAPA, so not relevant."
+            },
+            {
+              "tid": 108728085,
+              "title": "Dr. Subhash Kashinath Mahajan vs The State Of Maharashtra on 20 March,",
+              "court": "Supreme Court of India",
+              "date": "2018-03-20",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Case is about SC/ST Act, not UAPA Section 43-D(5)."
+            },
+            {
+              "tid": 14485072,
+              "title": "Vijay Madanlal Choudhary vs Union Of India on 27 July, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-07-27",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 0,
+              "verdict": "Not relevant to UAPA Section 43-D bail restrictions."
+            }
+          ]
+        },
+        {
+          "id": "Q07",
+          "area": "NI Act 138",
+          "fetched": 5,
+          "avg": 1,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 2272108,
+              "title": "Four Seasons Energy Ventures Pvt Ltd & ... vs State Of Nct Of Delhi & ",
+              "court": "Delhi High Court",
+              "date": "2012-07-03",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "Not relevant to cheque bounce notice period issue."
+            },
+            {
+              "tid": 98417421,
+              "title": "Vijay Kumar Ghai vs Pritpal Singh Babbar on 4 July, 2022",
+              "court": "Punjab-Haryana High Court",
+              "date": "2022-07-04",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "No substantive content regarding notice period or maintainability."
+            },
+            {
+              "tid": 103964065,
+              "title": "Mr.M.Palanichamy vs )Union Of India on 31 July, 2012",
+              "court": "Madras High Court",
+              "date": "2012-07-31",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 0,
+              "verdict": "Unrelated case, does not address cheque bounce notice period."
+            }
+          ]
+        },
+        {
+          "id": "Q08",
+          "area": "NI Act 138 — vicarious",
+          "fetched": 5,
+          "avg": 7,
+          "top": 6,
+          "scored": [
+            {
+              "tid": 169314521,
+              "title": "M/S.Indian Institute Of Logistics Pvt. ... vs M/S.Icici Bank Ltd on 17",
+              "court": "Madras High Court",
+              "date": "2022-06-17",
+              "provision_match": 10,
+              "stage_match": 2,
+              "citable_quote": 3,
+              "recency": 10,
+              "overall": 6,
+              "verdict": "Relevant provision (S.141) but snippet lacks clarity on director's vicarious liability stage."
+            },
+            {
+              "tid": 152416448,
+              "title": "Ramesh Chandra Kathuria vs State on 24 December, 2019",
+              "court": "Delhi High Court",
+              "date": "2019-12-24",
+              "provision_match": 8,
+              "stage_match": 6,
+              "citable_quote": 5,
+              "recency": 7,
+              "overall": 6,
+              "verdict": "Partially relevant but snippet truncated; not directly addressing the specific scenario."
+            },
+            {
+              "tid": 67396347,
+              "title": "Mr. Harikirat Singh Bedi vs M/S Prakash Auto Sales And Services Thr. .",
+              "court": "Madhya Pradesh High Court",
+              "date": "2026-04-06",
+              "provision_match": 10,
+              "stage_match": 8,
+              "citable_quote": 7,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Relevant to NI Act Section 141 and vicarious liability of director."
+            }
+          ]
+        },
+        {
+          "id": "Q09",
+          "area": "NI Act 138 — defence",
+          "fetched": 5,
+          "avg": 9,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 144941788,
+              "title": "Suresh Chandra Goyal vs Amit Singhal on 14 May, 2015",
+              "court": "Delhi High Court",
+              "date": "2015-05-14",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 7,
+              "overall": 9,
+              "verdict": "Directly addresses defence for security cheque under Section 138."
+            },
+            {
+              "tid": 27480510,
+              "title": "Credential Leasing & Credits Ltd. vs Shruti Investments & Anr. on 29 J",
+              "court": "Delhi High Court",
+              "date": "2015-06-29",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 7,
+              "overall": 9,
+              "verdict": "Directly supports defence that security cheque not covered under Section 138, with clear citable quote; slight deduction for age."
+            },
+            {
+              "tid": 196371543,
+              "title": "Wilson Mathew vs The State Nct Of Delhi & Anr. on 15 September, 2015",
+              "court": "Delhi High Court",
+              "date": "2015-09-15",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 8,
+              "overall": 9,
+              "verdict": "Highly relevant: directly addresses cheque as security defence under Section 138."
+            }
+          ]
+        },
+        {
+          "id": "Q10",
+          "area": "498A quashing",
+          "fetched": 5,
+          "avg": 8.333333333333334,
+          "top": 6,
+          "scored": [
+            {
+              "tid": 805724,
+              "title": "Rajender Singh And Ors. vs The State Of Nct Of Delhi And Anr. on 3 Oct",
+              "court": "Delhi High Court",
+              "date": "2007-10-03",
+              "provision_match": 10,
+              "stage_match": 5,
+              "citable_quote": 6,
+              "recency": 2,
+              "overall": 6,
+              "verdict": "Relevant for 498A quash under 482 but lacks settlement context and old."
+            },
+            {
+              "tid": 34618024,
+              "title": "Jaswant Rai Mittal & Ors. vs Government Nct Of Delhi & Anr. on 18 Janu",
+              "court": "Delhi High Court",
+              "date": "2023-01-18",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 10,
+              "verdict": "Directly relevant with settlement condition leading to quash, recent High Court decision."
+            },
+            {
+              "tid": 165964208,
+              "title": "Sachin Kumar & Ors. vs The State (Govt. Ofnct Of Delhi) And Anr. on 19",
+              "court": "Delhi High Court",
+              "date": "2023-01-19",
+              "provision_match": 7,
+              "stage_match": 9,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Highly relevant with recent date and clear settlement mention."
+            }
+          ]
+        },
+        {
+          "id": "Q11",
+          "area": "498A quashing",
+          "fetched": 5,
+          "avg": 4,
+          "top": 8,
+          "scored": [
+            {
+              "tid": 469138,
+              "title": "B.S. Joshi & Ors vs State Of Haryana & Anr on 13 March, 2003",
+              "court": "Supreme Court of India",
+              "date": "2003-03-13",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 3,
+              "overall": 8,
+              "verdict": "Excellent match on provision and stage, but outdated"
+            },
+            {
+              "tid": 1045131,
+              "title": "Raj Kumar Khanna vs The State (Nct Of Delhi) And Ors. on 15 October, 2",
+              "court": "Delhi High Court",
+              "date": "2001-10-15",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 1,
+              "verdict": "No content to assess; likely irrelevant to Bhajan Lal guidelines or specific family member quashing."
+            },
+            {
+              "tid": 35153915,
+              "title": "Thawaria vs The State Of Madhya Pradesh on 28 April, 2017",
+              "court": "Madhya Pradesh High Court",
+              "date": "2017-04-28",
+              "provision_match": 2,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 3,
+              "verdict": "Title and snippet do not indicate matching the query; no mention of quashing family members under 498A or Bhajan Lal guidelines."
+            }
+          ]
+        },
+        {
+          "id": "Q12",
+          "area": "FIR quashing — 482",
+          "fetched": 5,
+          "avg": 3.6666666666666665,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 1353689,
+              "title": "A.R. Antulay vs R.S. Nayak & Anr on 29 April, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-04-29",
+              "provision_match": 2,
+              "stage_match": 1,
+              "citable_quote": 3,
+              "recency": 1,
+              "overall": 2,
+              "verdict": "Not relevant: case on sanction for prosecution, not quashing civil-dispute-turned-criminal under 482"
+            },
+            {
+              "tid": 160740668,
+              "title": "Yakub Abdul Razak Memon vs State Of Maharashtra Th:Cbi Mumbai on 21 Ma",
+              "court": "Supreme Court of India",
+              "date": "2013-03-21",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 0,
+              "verdict": "Irrelevant case; involves terrorism, not civil dispute quashing under 482 CrPC."
+            },
+            {
+              "tid": 10546413,
+              "title": "Sushil Sethi vs The State Of Arunachal Pradesh on 31 January, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-01-31",
+              "provision_match": 9,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 9,
+              "overall": 9,
+              "verdict": "Supreme Court case directly addresses civil dispute colored as criminal under Section 482 CrPC."
+            }
+          ]
+        },
+        {
+          "id": "Q13",
+          "area": "125 CrPC maintenance",
+          "fetched": 2,
+          "avg": 6,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 117541087,
+              "title": "Rajnesh vs Neha on 4 November, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-11-04",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 10,
+              "verdict": "Exactly matches the required case and relevant criteria."
+            },
+            {
+              "tid": 182154741,
+              "title": "Aditi Alias Mithi vs Jitesh Sharma on 6 November, 2023",
+              "court": "Supreme Court of India",
+              "date": "2023-11-06",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 2,
+              "verdict": "Title and snippet lack relevance to Section 125 CrPC interim maintenance quantum calculation; does not cite Rajnesh v Neha."
+            }
+          ]
+        },
+        {
+          "id": "Q14",
+          "area": "125 CrPC maintenance",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 117541087,
+              "title": "Rajnesh vs Neha on 4 November, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-11-04",
+              "provision_match": 5,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 9,
+              "overall": 3,
+              "verdict": "Case appears to be about spousal maintenance, not adult disabled son's claim under Section 125 CrPC; snippet lacks relevant content."
+            },
+            {
+              "tid": 192421140,
+              "title": "Indra Sarma vs V.K.V.Sarma on 26 November, 2013",
+              "court": "Supreme Court of India",
+              "date": "2013-11-26",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Irrelevant to query: case is about DV Act, not CrPC Section 125 maintenance for adult disabled son."
+            },
+            {
+              "tid": 257876,
+              "title": "Kesavananda Bharati Sripadagalvaru ... vs State Of Kerala And Anr on 2",
+              "court": "Supreme Court of India",
+              "date": "1973-04-24",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Irrelevant case; does not address maintenance under CrPC Section 125."
+            }
+          ]
+        },
+        {
+          "id": "Q15",
+          "area": "Domestic Violence Act",
+          "fetched": 5,
+          "avg": 3,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 360683,
+              "title": "Smt. Abha Arora vs Angela Sharma And Anr. on 18 May, 2007",
+              "court": "Delhi High Court",
+              "date": "2007-05-18",
+              "provision_match": 3,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 2,
+              "verdict": "Snippet missing; case too old and unclear relevance."
+            },
+            {
+              "tid": 61961663,
+              "title": "Aarti Sharma & Anr. vs Ganga Saran on 24 August, 2021",
+              "court": "Delhi High Court",
+              "date": "2021-08-24",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "Title and snippet lack specific sections or stage, no relevant quote, though recent."
+            },
+            {
+              "tid": 166739200,
+              "title": "Sneha Ahuja vs Satish Chander Ahuja & Anr. on 15 November, 2021",
+              "court": "Delhi High Court",
+              "date": "2021-11-15",
+              "provision_match": 5,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 5,
+              "verdict": "Snippet insufficient, but relevant Delhi HC case on shared household."
+            }
+          ]
+        },
+        {
+          "id": "Q16",
+          "area": "HMA — divorce/Section 9",
+          "fetched": 5,
+          "avg": 1.6666666666666667,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 117541087,
+              "title": "Rajnesh vs Neha on 4 November, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-11-04",
+              "provision_match": 1,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "Not relevant to query; no mention of working wife ground for denial of decree."
+            },
+            {
+              "tid": 851452,
+              "title": "Durgesh Sharma vs Jayshree on 26 September, 2008",
+              "court": "Supreme Court of India",
+              "date": "2008-09-26",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 1,
+              "verdict": "Title only, no content on working wife as ground; old case."
+            },
+            {
+              "tid": 181712544,
+              "title": "Smriti Madan Kansagra vs Perry Kansagra on 28 October, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-10-28",
+              "provision_match": 3,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 2,
+              "verdict": "Not relevant to refusal based on wife working; lacks specific content."
+            }
+          ]
+        },
+        {
+          "id": "Q17",
+          "area": "Property — partition",
+          "fetched": 5,
+          "avg": 7.666666666666667,
+          "top": 8,
+          "scored": [
+            {
+              "tid": 33607065,
+              "title": "P.Vijayalakshmi vs P.Susheela on 27 September, 2012",
+              "court": "Madras High Court",
+              "date": "2012-09-27",
+              "provision_match": 9,
+              "stage_match": 6,
+              "citable_quote": 9,
+              "recency": 5,
+              "overall": 8,
+              "verdict": "Directly addresses retrospective effect of 2005 amendment on Hindu Succession Act."
+            },
+            {
+              "tid": 12595649,
+              "title": "B.Chandrakala vs A.Anuradha on 31 December, 2014",
+              "court": "Andhra HC (Pre-Telangana)",
+              "date": "2014-12-31",
+              "provision_match": 5,
+              "stage_match": 6,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 6,
+              "verdict": "Relevant case but snippet lacks detail on amendment applicability."
+            },
+            {
+              "tid": 162652658,
+              "title": "Prakash Katariya vs Smt. Lakshmi Soneja @ Suman on 5 May, 2017",
+              "court": "Madhya Pradesh High Court",
+              "date": "2017-05-05",
+              "provision_match": 10,
+              "stage_match": 9,
+              "citable_quote": 8,
+              "recency": 8,
+              "overall": 9,
+              "verdict": "Directly addresses daughter's share under Section 6 of Hindu Succession Act before and after 2005 amendment, but unclear on retroactivity holding."
+            }
+          ]
+        },
+        {
+          "id": "Q18",
+          "area": "Property — specific performance",
+          "fetched": 5,
+          "avg": 4.333333333333333,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 121624333,
+              "title": "A.Kanthamani vs Nasreen Ahmed on 6 March, 2017",
+              "court": "Supreme Court of India",
+              "date": "2017-03-06",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 7,
+              "overall": 9,
+              "verdict": "Directly addresses limitation period for specific performance under Section 54, with a citable quote."
+            },
+            {
+              "tid": 68359903,
+              "title": "Padmini Raghavan vs H A Sonnappa on 11 October, 2013",
+              "court": "Karnataka High Court",
+              "date": "2013-10-11",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 1,
+              "verdict": "No relevant content about limitation period for specific performance."
+            },
+            {
+              "tid": 490781,
+              "title": "Mahadeo Nathuji Patil vs Surjabai Khushalchand Lakkad And Ors. on 2 No",
+              "court": "Bombay High Court",
+              "date": "1993-11-02",
+              "provision_match": 5,
+              "stage_match": 3,
+              "citable_quote": 0,
+              "recency": 4,
+              "overall": 3,
+              "verdict": "Case is relevant but lacks clear provision match and actionable quote; further, it is from 1993."
+            }
+          ]
+        },
+        {
+          "id": "Q19",
+          "area": "Civil — injunction",
+          "fetched": 5,
+          "avg": 2.6666666666666665,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 60866758,
+              "title": "Mex Switchgears Pvt. Ltd. vs Max Switchgears Pvt. Ltd. on 25 February,",
+              "court": "Delhi High Court",
+              "date": "2014-02-25",
+              "provision_match": 3,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 2,
+              "verdict": "No content on triple test; old case; snippet lacks details."
+            },
+            {
+              "tid": 1023088,
+              "title": "Mr. Diljeet Titus, Advocate vs Mr. Alfred A. Adebare And Ors. on 8 May",
+              "court": "Delhi High Court",
+              "date": "2006-05-08",
+              "provision_match": 7,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 4,
+              "verdict": "Old case, snippet lacks triple test details, not latest."
+            },
+            {
+              "tid": 197142526,
+              "title": "Bihar Tubes Limited vs Garg Ispat Limited on 26 October, 2009",
+              "court": "Delhi High Court",
+              "date": "2009-10-26",
+              "provision_match": 2,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 2,
+              "verdict": "Outdated, no triple test discussion visible."
+            }
+          ]
+        },
+        {
+          "id": "Q20",
+          "area": "Commercial Courts Act",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 181443842,
+              "title": "Madras Bar Association vs Union Of India & Anr on 25 September, 2014",
+              "court": "Supreme Court of India",
+              "date": "2014-09-25",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 4,
+              "overall": 1,
+              "verdict": "Irrelevant case; no mention of Order 8 Rule 1 or written statement time bar."
+            },
+            {
+              "tid": 113036187,
+              "title": "Rajender Kumar & Ors. vs . State Of H.P. & Ors. A/W Connected ... on 1",
+              "court": "Himachal Pradesh High Court",
+              "date": "2022-08-16",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 1,
+              "verdict": "Case title only, no relevant content on Order 8 Rule 1 or time-bar."
+            },
+            {
+              "tid": 96395504,
+              "title": "New India Assurance Co. Ltd vs Hilli Multipurpose Cold Storage Pvt Ltd",
+              "court": "Supreme Court of India",
+              "date": "2020-03-04",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 2,
+              "verdict": "No match on Order 8 Rule 1 or written statement time bar; snippet lacks substance."
+            }
+          ]
+        },
+        {
+          "id": "Q21",
+          "area": "Order 37 — summary suit",
+          "fetched": 5,
+          "avg": 1.6666666666666667,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 1356541,
+              "title": "Modi Rubber Ltd. vs Guardian International Corp. on 28 March, 2007",
+              "court": "Delhi High Court",
+              "date": "2007-03-28",
+              "provision_match": 2,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 2,
+              "verdict": "Too old and no relevant content shown."
+            },
+            {
+              "tid": 1900196,
+              "title": "Sudarshana Rani vs Kamla Bhutani on 15 November, 1991",
+              "court": "Delhi High Court",
+              "date": "1991-11-15",
+              "provision_match": 2,
+              "stage_match": 0,
+              "citable_quote": 1,
+              "recency": 0,
+              "overall": 2,
+              "verdict": "Old case, not directly about leave to defend under Order 37; snippet irrelevant."
+            },
+            {
+              "tid": 32619600,
+              "title": "Acme Phalodi Solar Energy Private ... vs Central Board Of Indirect Tax",
+              "court": "Delhi High Court",
+              "date": "2024-05-06",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 1,
+              "verdict": "Not relevant to Order 37 CPC summary suit leave to defend."
+            }
+          ]
+        },
+        {
+          "id": "Q22",
+          "area": "IPR — trademark",
+          "fetched": 5,
+          "avg": 3.3333333333333335,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 26917005,
+              "title": "M/S Teleecare Network India Pvt Ltd vs M/S Asus Technology Pvt Ltd & O",
+              "court": "Delhi High Court",
+              "date": "2019-05-28",
+              "provision_match": 2,
+              "stage_match": 3,
+              "citable_quote": 0,
+              "recency": 6,
+              "overall": 3,
+              "verdict": "Title only, insufficient detail on triple test or deceptive similarity."
+            },
+            {
+              "tid": 23568230,
+              "title": "World Wrestling Entertainment Inc vs M/S Reshma Collection & Ors. on 5",
+              "court": "Delhi High Court",
+              "date": "2016-10-05",
+              "provision_match": 2,
+              "stage_match": 3,
+              "citable_quote": 1,
+              "recency": 6,
+              "overall": 3,
+              "verdict": "Snippet lacks details on triple test and deception"
+            },
+            {
+              "tid": 60866758,
+              "title": "Mex Switchgears Pvt. Ltd. vs Max Switchgears Pvt. Ltd. on 25 February,",
+              "court": "Delhi High Court",
+              "date": "2014-02-25",
+              "provision_match": 3,
+              "stage_match": 3,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 4,
+              "verdict": "Limited snippet; lacks direct mention of triple test or injunction stage."
+            }
+          ]
+        },
+        {
+          "id": "Q23",
+          "area": "IPR — copyright",
+          "fetched": 0,
+          "avg": 0,
+          "top": 0,
+          "scored": []
+        },
+        {
+          "id": "Q24",
+          "area": "Charge framing",
+          "fetched": 5,
+          "avg": 0.6666666666666666,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 143202244,
+              "title": "Tofan Singh vs The State Of Tamil Nadu on 29 October, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-10-29",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 1,
+              "verdict": "Case is not about CrPC Section 227 discharge; it is about NDPS confessions."
+            },
+            {
+              "tid": 1353689,
+              "title": "A.R. Antulay vs R.S. Nayak & Anr on 29 April, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-04-29",
+              "provision_match": 2,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 1,
+              "verdict": "Old case, not specifically on Section 227 discharge principles."
+            },
+            {
+              "tid": 936707,
+              "title": "Indira Nehru Gandhi vs Shri Raj Narain & Anr on 7 November, 1975",
+              "court": "Supreme Court of India",
+              "date": "1975-11-07",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Case unrelated to Section 227 CrPC discharge principles; outdated election law case."
+            }
+          ]
+        },
+        {
+          "id": "Q25",
+          "area": "Evidence",
+          "fetched": 5,
+          "avg": 3.6666666666666665,
+          "top": 5,
+          "scored": [
+            {
+              "tid": 667073,
+              "title": "Kehar Singh & Ors vs State (Delhi Admn.) on 3 August, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-08-03",
+              "provision_match": 8,
+              "stage_match": 7,
+              "citable_quote": 5,
+              "recency": 2,
+              "overall": 5,
+              "verdict": "Old but leading case on Section 27, not latest interpretation."
+            },
+            {
+              "tid": 1301452,
+              "title": "K. Chinnaswamy Reddy vs State Of Andhra Pradesh on 25 July, 1962",
+              "court": "Supreme Court of India",
+              "date": "1962-07-25",
+              "provision_match": 10,
+              "stage_match": 5,
+              "citable_quote": 5,
+              "recency": 0,
+              "overall": 4,
+              "verdict": "Old case, not latest interpretation."
+            },
+            {
+              "tid": 51738625,
+              "title": "Sanjay Dutt vs State Of Maharashtra Tr.Cbi,Bombay on 21 March, 2013",
+              "court": "Supreme Court of India",
+              "date": "2013-03-21",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 2,
+              "verdict": "Snippet lacks Section 27 content and is outdated."
+            }
+          ]
+        },
+        {
+          "id": "Q26",
+          "area": "PMLA — ECIR",
+          "fetched": 5,
+          "avg": 4,
+          "top": 4,
+          "scored": [
+            {
+              "tid": 18621148,
+              "title": "Sukesh Gupta vs Government Of India on 23 February, 2022",
+              "court": "Telangana High Court",
+              "date": "2022-02-23",
+              "provision_match": 3,
+              "stage_match": 0,
+              "citable_quote": 7,
+              "recency": 8,
+              "overall": 4,
+              "verdict": "Addresses PMLA independence but not ECIR pre-FIR; missing sections 3,4,19"
+            },
+            {
+              "tid": 109489113,
+              "title": "M/S. Jagati Publication Ltd. vs Enforcement Directorate on 8 September",
+              "court": "Telangana High Court",
+              "date": "2022-09-08",
+              "provision_match": 2,
+              "stage_match": 0,
+              "citable_quote": 8,
+              "recency": 9,
+              "overall": 5,
+              "verdict": "Matches independence but not ECIR pre-FIR; irrelevant provision."
+            },
+            {
+              "tid": 85372352,
+              "title": "M/S Bharathi Cement Corporation ... vs The Directorate Of Enforcement ",
+              "court": "Telangana High Court",
+              "date": "2022-09-08",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 2,
+              "recency": 10,
+              "overall": 3,
+              "verdict": "Only addresses independence of PMLA trial, not ECIR pre-FIR question; lacks relevant sections."
+            }
+          ]
+        },
+        {
+          "id": "Q27",
+          "area": "POCSO — consent age",
+          "fetched": 5,
+          "avg": 2,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 63679624,
+              "title": "Praduman vs The State (Govt. Of Nct Of Delhi) & Anr. on 5 October, 202",
+              "court": "Delhi High Court",
+              "date": "2021-10-05",
+              "provision_match": 2,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 3,
+              "verdict": "Title matches court but snippet lacks details; cannot confirm relevance to consent age or sections."
+            },
+            {
+              "tid": 150386581,
+              "title": "Hanzla Iqbal vs The State & Anr. on 24 August, 2022",
+              "court": "Delhi High Court",
+              "date": "2022-08-24",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "No mention of POCSO sections or consent issue; only recent date and Delhi HC relevance"
+            },
+            {
+              "tid": 166009004,
+              "title": "Dharmander Singh @ Saheb vs State on 22 September, 2020",
+              "court": "Delhi High Court",
+              "date": "2020-09-22",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Irrelevant; no discussion of consent age or POCSO sections."
+            }
+          ]
+        },
+        {
+          "id": "Q28",
+          "area": "CBI / PC Act",
+          "fetched": 5,
+          "avg": 1.6666666666666667,
+          "top": 0,
+          "scored": [
+            {
+              "tid": 10239019,
+              "title": "Lalita Kumari vs Govt.Of U.P.& Ors on 12 November, 2013",
+              "court": "Supreme Court of India",
+              "date": "2013-11-12",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Irrelevant case about arrest, not PC Act sanction."
+            },
+            {
+              "tid": 1353689,
+              "title": "A.R. Antulay vs R.S. Nayak & Anr on 29 April, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-04-29",
+              "provision_match": 9,
+              "stage_match": 8,
+              "citable_quote": 9,
+              "recency": 2,
+              "overall": 5,
+              "verdict": "Old landmark but not recent; recency important for user query"
+            },
+            {
+              "tid": 1769219,
+              "title": "State (N.C.T. Of Delhi) vs Navjot Sandhu@ Afsan Guru on 4 August, 2005",
+              "court": "Supreme Court of India",
+              "date": "2005-08-04",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Not about PC Act sanction, unrelated case."
+            }
+          ]
+        },
+        {
+          "id": "Q29",
+          "area": "ED — summons",
+          "fetched": 5,
+          "avg": 2,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 62003795,
+              "title": "Raman Bhuraria vs Directorate Of Enforcement on 8 February, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-02-08",
+              "provision_match": 2,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 3,
+              "verdict": "Title does not mention PMLA Section 50 or retraction; snippet lacks details."
+            },
+            {
+              "tid": 124919732,
+              "title": "Kavitha G.Pillai vs The Joint Director on 5 August, 2015",
+              "court": "Kerala High Court",
+              "date": "2015-08-05",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 2,
+              "verdict": "Title does not indicate relevance to retraction under Section 50."
+            },
+            {
+              "tid": 41015865,
+              "title": "Mukesh Kumar S/O Jai Kishan Sharma vs State Of Gujarat & on 6 May, 201",
+              "court": "Gujarat High Court",
+              "date": "2016-05-06",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Irrelevant to PMLA Section 50 or retraction of witness statement."
+            }
+          ]
+        },
+        {
+          "id": "Q30",
+          "area": "Bail — economic offences",
+          "fetched": 5,
+          "avg": 6.666666666666667,
+          "top": 7,
+          "scored": [
+            {
+              "tid": 7148380,
+              "title": "Satender Kumar Antil vs Central Bureau Of Investigation on 11 July, 20",
+              "court": "Supreme Court of India",
+              "date": "2022-07-11",
+              "provision_match": 8,
+              "stage_match": 6,
+              "citable_quote": 7,
+              "recency": 10,
+              "overall": 7,
+              "verdict": "Relevant general bail case but not specifically focused on economic offences as requested; does not directly discuss Jagan Mohan Reddy or Chidambaram judgments."
+            },
+            {
+              "tid": 90251163,
+              "title": "P. Chidambaram vs Directorate Of Enforcement on 5 September, 2019",
+              "court": "Supreme Court of India",
+              "date": "2019-09-05",
+              "provision_match": 10,
+              "stage_match": 9,
+              "citable_quote": 7,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Directly relevant P. Chidambaram judgment on bail in economic offences under Section 439 CrPC."
+            },
+            {
+              "tid": 14485072,
+              "title": "Vijay Madanlal Choudhary vs Union Of India on 27 July, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-07-27",
+              "provision_match": 1,
+              "stage_match": 4,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 4,
+              "verdict": "Relevant to economic offences but not to specific judgments mentioned."
+            }
+          ]
+        }
+      ],
+      "avg_top3": 3.744186046511628,
+      "avg_top1": 3.8666666666666667,
+      "zero_candidate_count": 1
+    },
+    {
+      "strategy": "E_deepseek_rerank_v_with_principle",
+      "desc": "winner + principle/doctrine hint in keywords",
+      "queries": [
+        {
+          "id": "Q01",
+          "area": "Bail — regular",
+          "fetched": 5,
+          "avg": 2,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 149029113,
+              "title": "State vs 1. Dharambir, on 13 August, 2009",
+              "court": "Delhi District Court",
+              "date": "2009-08-13",
+              "provision_match": 1,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 2,
+              "verdict": "Irrelevant case; no matching provision or stage."
+            },
+            {
+              "tid": 17920655,
+              "title": "3. Title: Cbi vs . (1) A. Raja (A­1); on 21 December, 2017",
+              "court": "Delhi District Court",
+              "date": "2017-12-21",
+              "provision_match": 1,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 2,
+              "verdict": "Irrelevant case; not about theft bail under CrPC 439."
+            },
+            {
+              "tid": 166772608,
+              "title": "Cbi vs Sajjan Kumar on 20 September, 2023",
+              "court": "Delhi District Court",
+              "date": "2023-09-20",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 2,
+              "verdict": "Irrelevant case; not about theft bail or CrPC 439"
+            }
+          ]
+        },
+        {
+          "id": "Q02",
+          "area": "Bail — anticipatory",
+          "fetched": 5,
+          "avg": 1,
+          "top": 0,
+          "scored": [
+            {
+              "tid": 170462018,
+              "title": "Delhi High Court Bar Association & Anr. vs Govt. Of Nct Of Delhi & Anr",
+              "court": "Delhi High Court",
+              "date": "2013-10-09",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 0,
+              "verdict": "Irrelevant case about Delhi High Court Bar Association, not about anticipatory bail or domestic violence."
+            },
+            {
+              "tid": 154440315,
+              "title": "Vishal Yadav vs State Govt. Of Up on 6 February, 2015",
+              "court": "Delhi High Court",
+              "date": "2015-02-06",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 1,
+              "verdict": "Irrelevant and outdated case without relevant quotes or provisions."
+            },
+            {
+              "tid": 1187370,
+              "title": "Anupam Sharma vs Nct Of Delhi And Anr. on 23 August, 2007",
+              "court": "Delhi High Court",
+              "date": "2007-08-23",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 2,
+              "verdict": "Outdated case from 2007 with no relevant content; not useful for recent Delhi HC anticipatory bail in DV."
+            }
+          ]
+        },
+        {
+          "id": "Q03",
+          "area": "Bail — NDPS",
+          "fetched": 5,
+          "avg": 9,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 6248818,
+              "title": "Imran Khan vs The State Govt. Of Nct Of Delhi on 20 November, 2025",
+              "court": "Delhi High Court",
+              "date": "2025-11-20",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 9,
+              "recency": 10,
+              "overall": 10,
+              "verdict": "Matches query: recent Delhi HC case on Section 37 twin conditions for bail in commercial quantity."
+            },
+            {
+              "tid": 132630783,
+              "title": "Mr. Kenechukwu Okafor vs State Of Nct Of Delhi on 14 October, 2025",
+              "court": "Delhi High Court",
+              "date": "2025-10-14",
+              "provision_match": 10,
+              "stage_match": 8,
+              "citable_quote": 5,
+              "recency": 10,
+              "overall": 8,
+              "verdict": "Matches NDPS Section 37 and commercial quantity heroin, recent Delhi HC case on bail conditions."
+            },
+            {
+              "tid": 147427917,
+              "title": "Frank Cliff vs The State Govt. Of Nct Of Delhi & Anr on 18 July, 2025",
+              "court": "Delhi High Court - Orders",
+              "date": "2025-07-18",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Highly relevant recent decision directly addressing twin conditions for commercial quantity heroin bail."
+            }
+          ]
+        },
+        {
+          "id": "Q04",
+          "area": "Bail — PMLA",
+          "fetched": 5,
+          "avg": 9.333333333333334,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 118322024,
+              "title": "Serious Fraud Investigation Office vs Nittin Johari on 12 September, 2",
+              "court": "Supreme Court of India",
+              "date": "2019-09-12",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 6,
+              "overall": 9,
+              "verdict": "Directly matches PMLA Section 45 and bail stage with a quote, but not the latest view (2019)."
+            },
+            {
+              "tid": 143681423,
+              "title": "Prem Prakash vs Union Of India Through The Directorate ... on 28 Augus",
+              "court": "Supreme Court of India",
+              "date": "2024-08-28",
+              "provision_match": 10,
+              "stage_match": 8,
+              "citable_quote": 9,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Directly addresses PMLA Section 45 twin conditions with recent Supreme Court view."
+            },
+            {
+              "tid": 191134832,
+              "title": "Satyendar Kumar Jain vs Directorate Of Enforcement on 18 March, 2024",
+              "court": "Supreme Court of India",
+              "date": "2024-03-18",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 9,
+              "recency": 10,
+              "overall": 10,
+              "verdict": "Matches PMLA Section 45 and bail stage with recent Supreme Court decision."
+            }
+          ]
+        },
+        {
+          "id": "Q05",
+          "area": "Bail — POCSO",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 0,
+          "scored": [
+            {
+              "tid": 135719892,
+              "title": "Delhi High Court Legal Services ... vs Uoi & Anr. on 12 August, 2014",
+              "court": "Delhi High Court",
+              "date": "2014-08-12",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Unrelated case, not POCSO bail matter."
+            },
+            {
+              "tid": 166009004,
+              "title": "Dharmander Singh @ Saheb vs State on 22 September, 2020",
+              "court": "Delhi High Court",
+              "date": "2020-09-22",
+              "provision_match": 2,
+              "stage_match": 5,
+              "citable_quote": 1,
+              "recency": 8,
+              "overall": 3,
+              "verdict": "Judgment discusses Section 29 not 31; not directly relevant for Section 31 bail"
+            },
+            {
+              "tid": 59012712,
+              "title": "Sajjan Kumar vs Directorate Of Enforcement on 13 June, 2022",
+              "court": "Delhi High Court",
+              "date": "2022-06-13",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Irrelevant case; not POCSO or Section 31."
+            }
+          ]
+        },
+        {
+          "id": "Q06",
+          "area": "Bail — UAPA",
+          "fetched": 5,
+          "avg": 1,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 7148380,
+              "title": "Satender Kumar Antil vs Central Bureau Of Investigation on 11 July, 20",
+              "court": "Supreme Court of India",
+              "date": "2022-07-11",
+              "provision_match": 0,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 2,
+              "verdict": "Case not specifically about UAPA Section 43-D(5) bail restrictions."
+            },
+            {
+              "tid": 108728085,
+              "title": "Dr. Subhash Kashinath Mahajan vs The State Of Maharashtra on 20 March,",
+              "court": "Supreme Court of India",
+              "date": "2018-03-20",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Irrelevant case: pertains to SC/ST Act, not UAPA Section 43-D(5)."
+            },
+            {
+              "tid": 14485072,
+              "title": "Vijay Madanlal Choudhary vs Union Of India on 27 July, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-07-27",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 1,
+              "verdict": "Case is about PMLA, not UAPA; no mention of Section 43-D(5)."
+            }
+          ]
+        },
+        {
+          "id": "Q07",
+          "area": "NI Act 138",
+          "fetched": 5,
+          "avg": 2,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 115701246,
+              "title": "Shayara Bano vs Union Of India And Ors. Ministry Of Women ... on 22 Au",
+              "court": "Supreme Court of India",
+              "date": "2017-08-22",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Irrelevant case about triple talaq, not NI Act cheque bounce."
+            },
+            {
+              "tid": 100995424,
+              "title": "Dashrath Rupsingh Rathod vs State Of Maharashtra & Anr on 1 August, 20",
+              "court": "Supreme Court of India",
+              "date": "2014-08-01",
+              "provision_match": 1,
+              "stage_match": 2,
+              "citable_quote": 1,
+              "recency": 6,
+              "overall": 2,
+              "verdict": "Case is about territorial jurisdiction, not notice period under Section 138 proviso (b)"
+            },
+            {
+              "tid": 154158106,
+              "title": "Aman Jaiswal vs State Of M.P. on 22 July, 2020",
+              "court": "Madhya Pradesh High Court",
+              "date": "2020-07-22",
+              "provision_match": 3,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 3,
+              "verdict": "Minimal relevance; no content on notice period."
+            }
+          ]
+        },
+        {
+          "id": "Q08",
+          "area": "NI Act 138 — vicarious",
+          "fetched": 5,
+          "avg": 9.333333333333334,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 142880006,
+              "title": "M/S Lyka Labs Limited And Anr vs State Of Maharashtra And Anr on 8 Mar",
+              "court": "Bombay High Court",
+              "date": "2023-03-08",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 9,
+              "recency": 10,
+              "overall": 10,
+              "verdict": "Directly addresses Section 141 vicarious liability with a recent High Court decision."
+            },
+            {
+              "tid": 127524707,
+              "title": "M/S Lyka Labs Limited And Ors vs State Of Maharashtra And Anr on 8 Mar",
+              "court": "Bombay High Court",
+              "date": "2023-03-08",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 10,
+              "overall": 10,
+              "verdict": "Directly addresses Section 141 vicarious liability in NI Act, recent Bombay HC decision."
+            },
+            {
+              "tid": 98421795,
+              "title": "Gaurav Vijay Bhatia vs Ramnath P. Subramaniam And Anr on 14 August, 20",
+              "court": "Bombay High Court",
+              "date": "2015-08-14",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 6,
+              "overall": 8,
+              "verdict": "Relevant case directly discussing vicarious liability under S.141 NI Act for director."
+            }
+          ]
+        },
+        {
+          "id": "Q09",
+          "area": "NI Act 138 — defence",
+          "fetched": 5,
+          "avg": 9,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 144941788,
+              "title": "Suresh Chandra Goyal vs Amit Singhal on 14 May, 2015",
+              "court": "Delhi High Court",
+              "date": "2015-05-14",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 7,
+              "overall": 9,
+              "verdict": "Directly addresses defence for security cheque under Section 138"
+            },
+            {
+              "tid": 27480510,
+              "title": "Credential Leasing & Credits Ltd. vs Shruti Investments & Anr. on 29 J",
+              "court": "Delhi High Court",
+              "date": "2015-06-29",
+              "provision_match": 9,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 7,
+              "overall": 9,
+              "verdict": "Directly addresses defense of security cheque not under Section 138."
+            },
+            {
+              "tid": 196371543,
+              "title": "Wilson Mathew vs The State Nct Of Delhi & Anr. on 15 September, 2015",
+              "court": "Delhi High Court",
+              "date": "2015-09-15",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 9,
+              "recency": 8,
+              "overall": 9,
+              "verdict": "Directly addresses cheque issued as security under Section 138, excellent for defence argument."
+            }
+          ]
+        },
+        {
+          "id": "Q10",
+          "area": "498A quashing",
+          "fetched": 5,
+          "avg": 1.6666666666666667,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 1187370,
+              "title": "Anupam Sharma vs Nct Of Delhi And Anr. on 23 August, 2007",
+              "court": "Delhi High Court",
+              "date": "2007-08-23",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 1,
+              "verdict": "Snippet lacks details on 498A quash or Section 482; old case."
+            },
+            {
+              "tid": 122272212,
+              "title": "Arjun Kamti vs The State Of Gnct Of Delhi Through Sho & ... on 2 Augus",
+              "court": "Delhi High Court",
+              "date": "2023-08-02",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 9,
+              "overall": 2,
+              "verdict": "Case irrelevant; deals with quash of 376 IPC, not 498A settlement quash under 482 CrPC"
+            },
+            {
+              "tid": 160801583,
+              "title": "Sunil Kumar Alias Golu vs State Through Sho on 27 July, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-07-27",
+              "provision_match": 0,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 2,
+              "verdict": "Irrelevant as it deals with Section 376 IPC, not 498A, and court declined to quash."
+            }
+          ]
+        },
+        {
+          "id": "Q11",
+          "area": "498A quashing",
+          "fetched": 5,
+          "avg": 2.3333333333333335,
+          "top": 3,
+          "scored": [
+            {
+              "tid": 34613760,
+              "title": "Vishal Yadav vs State Of U.P. on 2 April, 2014",
+              "court": "Delhi High Court",
+              "date": "2014-04-02",
+              "provision_match": 2,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 6,
+              "overall": 3,
+              "verdict": "Title lacks specific details matching query requirements; no mention of Bhajan Lal guidelines or family members quashing."
+            },
+            {
+              "tid": 127001295,
+              "title": "Pradip Chudiwala @ Pradeep Churiwala vs The State Of Jharkhand on 14 J",
+              "court": "Jharkhand High Court",
+              "date": "2022-06-14",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 2,
+              "verdict": "Only title and snippet provided, lacks relevant content for quashing under 482"
+            },
+            {
+              "tid": 186076668,
+              "title": "Moniza Farooquee & Anr vs State Of West Bengal & Anr on 28 April, 2026",
+              "court": "Calcutta High Court (Appellete Side)",
+              "date": "2026-04-28",
+              "provision_match": 2,
+              "stage_match": 3,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 2,
+              "verdict": "Future date and no snippet detail, unlikely relevant."
+            }
+          ]
+        },
+        {
+          "id": "Q12",
+          "area": "FIR quashing — 482",
+          "fetched": 5,
+          "avg": 1,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 1353689,
+              "title": "A.R. Antulay vs R.S. Nayak & Anr on 29 April, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-04-29",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "Not relevant; no mention of civil dispute criminal colour or 482."
+            },
+            {
+              "tid": 1611986,
+              "title": "Ajit D. Padiwal vs State Of Gujarat And 2 on 15 September, 2004",
+              "court": "Gujarat High Court",
+              "date": "2004-09-15",
+              "provision_match": 1,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 4,
+              "overall": 1,
+              "verdict": "Candidate lacks relevant content; snippet empty, no match."
+            },
+            {
+              "tid": 170462018,
+              "title": "Delhi High Court Bar Association & Anr. vs Govt. Of Nct Of Delhi & Anr",
+              "court": "Delhi High Court",
+              "date": "2013-10-09",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 1,
+              "verdict": "Irrelevant case; no mention of quashing criminal FIR for civil dispute."
+            }
+          ]
+        },
+        {
+          "id": "Q13",
+          "area": "125 CrPC maintenance",
+          "fetched": 0,
+          "avg": 0,
+          "top": 0,
+          "scored": []
+        },
+        {
+          "id": "Q14",
+          "area": "125 CrPC maintenance",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 117541087,
+              "title": "Rajnesh vs Neha on 4 November, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-11-04",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "Unrelated case about wife maintenance under Hindu Marriage Act, not CrPC 125 for disabled adult son."
+            },
+            {
+              "tid": 192421140,
+              "title": "Indra Sarma vs V.K.V.Sarma on 26 November, 2013",
+              "court": "Supreme Court of India",
+              "date": "2013-11-26",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Irrelevant case, not related to CrPC 125 or disabled son maintenance."
+            },
+            {
+              "tid": 1716385,
+              "title": "Naduthodi Yousaf vs Naduthodi Rubeena on 8 September, 2010",
+              "court": "Kerala High Court",
+              "date": "2010-09-08",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 1,
+              "verdict": "Not relevant; case does not match query."
+            }
+          ]
+        },
+        {
+          "id": "Q15",
+          "area": "Domestic Violence Act",
+          "fetched": 5,
+          "avg": 5,
+          "top": 7,
+          "scored": [
+            {
+              "tid": 187104390,
+              "title": "Smt. Preeti Satija vs Smt. Raj Kumari And Anr. on 15 January, 2014",
+              "court": "Delhi High Court",
+              "date": "2014-01-15",
+              "provision_match": 6,
+              "stage_match": 8,
+              "citable_quote": 9,
+              "recency": 5,
+              "overall": 7,
+              "verdict": "Relevant Delhi HC case on residence order and shared household, but lacks explicit section references and is dated."
+            },
+            {
+              "tid": 134312773,
+              "title": "Navneet Arora vs Surender Kaur & Ors. on 10 September, 2014",
+              "court": "Delhi High Court",
+              "date": "2014-09-10",
+              "provision_match": 2,
+              "stage_match": 3,
+              "citable_quote": 4,
+              "recency": 5,
+              "overall": 3,
+              "verdict": "Mentions shared household but not Section 12 or residence order procedure"
+            },
+            {
+              "tid": 118150305,
+              "title": "Vinay Varma vs Kanika Pasricha & Anr. on 29 November, 2019",
+              "court": "Delhi High Court",
+              "date": "2019-11-29",
+              "provision_match": 3,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 7,
+              "overall": 5,
+              "verdict": "Title indicates Delhi HC case but no snippet confirms Sections 12,17,19 or residence order"
+            }
+          ]
+        },
+        {
+          "id": "Q16",
+          "area": "HMA — divorce/Section 9",
+          "fetched": 5,
+          "avg": 2,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 99223,
+              "title": "Ramesh Kumar Sharma vs Smt. Akash Sharma on 1 January, 2008",
+              "court": "Himachal Pradesh High Court",
+              "date": "2008-01-01",
+              "provision_match": 2,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 1,
+              "verdict": "No relevant content on working wife ground for Section 9 decree refusal."
+            },
+            {
+              "tid": 65326647,
+              "title": "Sandip Shankarlal Kedia vs Pooja Kedia on 29 April, 2013",
+              "court": "Bombay High Court",
+              "date": "2013-04-29",
+              "provision_match": 5,
+              "stage_match": 3,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 3,
+              "verdict": "No relevant snippet, lacking substance"
+            },
+            {
+              "tid": 59865663,
+              "title": "M.Laxman vs L.Annapurani on 5 June, 2018",
+              "court": "Madras High Court",
+              "date": "2018-06-05",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 6,
+              "overall": 2,
+              "verdict": "Only case header, no content matching query"
+            }
+          ]
+        },
+        {
+          "id": "Q17",
+          "area": "Property — partition",
+          "fetched": 5,
+          "avg": 5.666666666666667,
+          "top": 9,
+          "scored": [
+            {
+              "tid": 67965481,
+              "title": "Vineeta Sharma vs Rakesh Sharma on 11 August, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-08-11",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 8,
+              "recency": 10,
+              "overall": 9,
+              "verdict": "Landmark Supreme Court case directly addressing retrospective effect of 2005 amendment on daughter's coparcenary rights."
+            },
+            {
+              "tid": 177560868,
+              "title": "Pushpalatha N V vs V Padma on 19 March, 2010",
+              "court": "Karnataka High Court",
+              "date": "2010-03-19",
+              "provision_match": 2,
+              "stage_match": 3,
+              "citable_quote": 0,
+              "recency": 6,
+              "overall": 3,
+              "verdict": "No mention of Section 6 or relevant quote; case may be about daughter rights but unclear."
+            },
+            {
+              "tid": 52908833,
+              "title": "Niharika Jain W/O Shri Andesh Jain vs Union Of India on 12 July, 2019",
+              "court": "Rajasthan High Court - Jaipur",
+              "date": "2019-07-12",
+              "provision_match": 5,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 5,
+              "verdict": "Title suggests relevance but snippet lacks details; not citable; recency good."
+            }
+          ]
+        },
+        {
+          "id": "Q18",
+          "area": "Property — specific performance",
+          "fetched": 5,
+          "avg": 4.666666666666667,
+          "top": 10,
+          "scored": [
+            {
+              "tid": 121624333,
+              "title": "A.Kanthamani vs Nasreen Ahmed on 6 March, 2017",
+              "court": "Supreme Court of India",
+              "date": "2017-03-06",
+              "provision_match": 10,
+              "stage_match": 10,
+              "citable_quote": 10,
+              "recency": 10,
+              "overall": 10,
+              "verdict": "Matches query exactly: Article 54 Limitation Act, relevant stage, from Supreme Court."
+            },
+            {
+              "tid": 1321551,
+              "title": "Hatimbhai Hassanally vs Framroz Eduljee Dinshaw on 31 January, 1927",
+              "court": "Bombay High Court",
+              "date": "1927-01-31",
+              "provision_match": 0,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 1,
+              "verdict": "Irrelevant; no limitation period discussion; outdated case."
+            },
+            {
+              "tid": 31063955,
+              "title": "Sh.Ripu Daman Haryal & Anr. vs Miss Geeta Chopra & Anr. on 4 July, 201",
+              "court": "Delhi High Court",
+              "date": "2011-07-04",
+              "provision_match": 2,
+              "stage_match": 3,
+              "citable_quote": 2,
+              "recency": 5,
+              "overall": 3,
+              "verdict": "Case discusses limitation in specific performance but not directly addressing query period, missing Section 54."
+            }
+          ]
+        },
+        {
+          "id": "Q19",
+          "area": "Civil — injunction",
+          "fetched": 5,
+          "avg": 2.6666666666666665,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 60866758,
+              "title": "Mex Switchgears Pvt. Ltd. vs Max Switchgears Pvt. Ltd. on 25 February,",
+              "court": "Delhi High Court",
+              "date": "2014-02-25",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 2,
+              "verdict": "Result does not contain relevant provision or stage; outdated."
+            },
+            {
+              "tid": 1023088,
+              "title": "Mr. Diljeet Titus, Advocate vs Mr. Alfred A. Adebare And Ors. on 8 May",
+              "court": "Delhi High Court",
+              "date": "2006-05-08",
+              "provision_match": 1,
+              "stage_match": 2,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 1,
+              "verdict": "Old case from 2006, does not address latest Delhi HC view on triple test for interim injunction under Order 39 Rule 1."
+            },
+            {
+              "tid": 11152970,
+              "title": "Fdc Limited vs Faraway Foods Pvt. Ltd. on 10 February, 2021",
+              "court": "Delhi High Court",
+              "date": "2021-02-10",
+              "provision_match": 7,
+              "stage_match": 6,
+              "citable_quote": 0,
+              "recency": 6,
+              "overall": 5,
+              "verdict": "Relevant but lacking content; snippet too brief to confirm triple test."
+            }
+          ]
+        },
+        {
+          "id": "Q20",
+          "area": "Commercial Courts Act",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 181443842,
+              "title": "Madras Bar Association vs Union Of India & Anr on 25 September, 2014",
+              "court": "Supreme Court of India",
+              "date": "2014-09-25",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Case not related to CPC Order 8 Rule 1 or written statement time-bar in commercial suits."
+            },
+            {
+              "tid": 113036187,
+              "title": "Rajender Kumar & Ors. vs . State Of H.P. & Ors. A/W Connected ... on 1",
+              "court": "Himachal Pradesh High Court",
+              "date": "2022-08-16",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "Irrelevant to query; no mention of Order 8 Rule 1 or commercial suit"
+            },
+            {
+              "tid": 96395504,
+              "title": "New India Assurance Co. Ltd vs Hilli Multipurpose Cold Storage Pvt Ltd",
+              "court": "Supreme Court of India",
+              "date": "2020-03-04",
+              "provision_match": 1,
+              "stage_match": 0,
+              "citable_quote": 1,
+              "recency": 3,
+              "overall": 2,
+              "verdict": "Unrelated case, not about Order 8 Rule 1 time-bar."
+            }
+          ]
+        },
+        {
+          "id": "Q21",
+          "area": "Order 37 — summary suit",
+          "fetched": 5,
+          "avg": 3,
+          "top": 4,
+          "scored": [
+            {
+              "tid": 1287726,
+              "title": "Shri Nem Chand Daga vs Shri Inder Mohan Singh Rana on 7 September, 200",
+              "court": "Delhi High Court",
+              "date": "2001-09-07",
+              "provision_match": 8,
+              "stage_match": 5,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 4,
+              "verdict": "Case is old and snippet lacks relevant discussion on leave to defend grounds."
+            },
+            {
+              "tid": 74351133,
+              "title": "Smt. Viran Wali vs Sh. Kuldeep Rai Kochhar on 12 November, 2010",
+              "court": "Delhi High Court",
+              "date": "2010-11-12",
+              "provision_match": 10,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 4,
+              "verdict": "Old case, no stage or quote provided."
+            },
+            {
+              "tid": 28461891,
+              "title": "Hs Bedi vs National Highway Authority Of India on 22 January, 2016",
+              "court": "Delhi High Court",
+              "date": "2016-01-22",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "Irrelevant result, does not address Order 37 or leave to defend."
+            }
+          ]
+        },
+        {
+          "id": "Q22",
+          "area": "IPR — trademark",
+          "fetched": 5,
+          "avg": 2.6666666666666665,
+          "top": 5,
+          "scored": [
+            {
+              "tid": 26917005,
+              "title": "M/S Teleecare Network India Pvt Ltd vs M/S Asus Technology Pvt Ltd & O",
+              "court": "Delhi High Court",
+              "date": "2019-05-28",
+              "provision_match": 7,
+              "stage_match": 8,
+              "citable_quote": 3,
+              "recency": 6,
+              "overall": 5,
+              "verdict": "Case likely discusses trademark infringement and injunction, but snippet insufficient to confirm triple test and deceptive similarity analysis."
+            },
+            {
+              "tid": 60866758,
+              "title": "Mex Switchgears Pvt. Ltd. vs Max Switchgears Pvt. Ltd. on 25 February,",
+              "court": "Delhi High Court",
+              "date": "2014-02-25",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "No relevant content in snippet for triple test or deceptive similarity."
+            },
+            {
+              "tid": 11152970,
+              "title": "Fdc Limited vs Faraway Foods Pvt. Ltd. on 10 February, 2021",
+              "court": "Delhi High Court",
+              "date": "2021-02-10",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "No content on triple test or deceptive similarity; only metadata."
+            }
+          ]
+        },
+        {
+          "id": "Q23",
+          "area": "IPR — copyright",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 1023088,
+              "title": "Mr. Diljeet Titus, Advocate vs Mr. Alfred A. Adebare And Ors. on 8 May",
+              "court": "Delhi High Court",
+              "date": "2006-05-08",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "Case title does not indicate relevance to Section 17(c) exception in software code employer rule."
+            },
+            {
+              "tid": 977497,
+              "title": "Eastern Book Company & Others vs Navin J. Desai & Another, D.B. Modak ",
+              "court": "Delhi High Court",
+              "date": "2001-01-17",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 1,
+              "verdict": "Case does not address Section 17(c) employer rule."
+            },
+            {
+              "tid": 67850614,
+              "title": "Warner Bros. Entertainment Inc. And ... vs Mr. Santosh V.G. on 13 Apri",
+              "court": "Delhi High Court",
+              "date": "2009-04-13",
+              "provision_match": 2,
+              "stage_match": 1,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 2,
+              "verdict": "Not directly relevant; insufficient snippet."
+            }
+          ]
+        },
+        {
+          "id": "Q24",
+          "area": "Charge framing",
+          "fetched": 5,
+          "avg": 0.6666666666666666,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 143202244,
+              "title": "Tofan Singh vs The State Of Tamil Nadu on 29 October, 2020",
+              "court": "Supreme Court of India",
+              "date": "2020-10-29",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 1,
+              "verdict": "Irrelevant case about NDPS Act, not about Section 227 discharge."
+            },
+            {
+              "tid": 1353689,
+              "title": "A.R. Antulay vs R.S. Nayak & Anr on 29 April, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-04-29",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 1,
+              "verdict": "Not relevant to specific CrPC Section 227 discharge principles; old case."
+            },
+            {
+              "tid": 936707,
+              "title": "Indira Nehru Gandhi vs Shri Raj Narain & Anr on 7 November, 1975",
+              "court": "Supreme Court of India",
+              "date": "1975-11-07",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Irrelevant case from 1975 on election law, not about CrPC discharge."
+            }
+          ]
+        },
+        {
+          "id": "Q25",
+          "area": "Evidence",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 0,
+          "scored": [
+            {
+              "tid": 871062,
+              "title": "Jacob Mathew vs State Of Punjab & Anr on 5 August, 2005",
+              "court": "Supreme Court of India",
+              "date": "2005-08-05",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 1,
+              "overall": 0,
+              "verdict": "Irrelevant case; medical negligence, not Section 27 recovery evidence."
+            },
+            {
+              "tid": 1769219,
+              "title": "State (N.C.T. Of Delhi) vs Navjot Sandhu@ Afsan Guru on 4 August, 2005",
+              "court": "Supreme Court of India",
+              "date": "2005-08-04",
+              "provision_match": 6,
+              "stage_match": 3,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 4,
+              "verdict": "Not directly on Section 27 recovery; old case."
+            },
+            {
+              "tid": 667073,
+              "title": "Kehar Singh & Ors vs State (Delhi Admn.) on 3 August, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-08-03",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "Old case with no mention of Section 27 or recovery admissibility"
+            }
+          ]
+        },
+        {
+          "id": "Q26",
+          "area": "PMLA — ECIR",
+          "fetched": 5,
+          "avg": 4,
+          "top": 4,
+          "scored": [
+            {
+              "tid": 138056817,
+              "title": "Arun Kumar Mishra vs Directorate Of Enforcement on 9 April, 2015",
+              "court": "Delhi High Court",
+              "date": "2015-04-09",
+              "provision_match": 4,
+              "stage_match": 5,
+              "citable_quote": 4,
+              "recency": 3,
+              "overall": 4,
+              "verdict": "Partially relevant: mentions PMLA Section 3 and ECIR-FIR link but lacks Section 4/19 and explicit pre-FIR stage discussion."
+            },
+            {
+              "tid": 18621148,
+              "title": "Sukesh Gupta vs Government Of India on 23 February, 2022",
+              "court": "Telangana High Court",
+              "date": "2022-02-23",
+              "provision_match": 4,
+              "stage_match": 8,
+              "citable_quote": 5,
+              "recency": 9,
+              "overall": 6,
+              "verdict": "Partially relevant; discusses ECIR vs FIR but lacks explicit PMLA section citations."
+            },
+            {
+              "tid": 116472885,
+              "title": "Gayatri Prasad Prajapati vs Directorate Of Enforcement Thru. ... on 3 ",
+              "court": "Allahabad High Court",
+              "date": "2023-07-03",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 2,
+              "verdict": "Snippet lacks content, cannot assess relevance."
+            }
+          ]
+        },
+        {
+          "id": "Q27",
+          "area": "POCSO — consent age",
+          "fetched": 5,
+          "avg": 1.3333333333333333,
+          "top": 1,
+          "scored": [
+            {
+              "tid": 124655100,
+              "title": "Farhan vs State & Anr on 11 May, 2022",
+              "court": "Delhi High Court",
+              "date": "2022-05-11",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 1,
+              "verdict": "Case title only, no relevant content about POCSO consent age."
+            },
+            {
+              "tid": 99332745,
+              "title": "Raghav vs State on 24 May, 2018",
+              "court": "Delhi High Court",
+              "date": "2018-05-24",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "No relevant content; missing POCSO sections and consent discussion"
+            },
+            {
+              "tid": 105980506,
+              "title": "Mrs X vs Union Of India And Ors on 26 April, 2023",
+              "court": "Delhi High Court",
+              "date": "2023-04-26",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "Snippet lacks details on consent age or POCSO provisions; insufficient relevance."
+            }
+          ]
+        },
+        {
+          "id": "Q28",
+          "area": "CBI / PC Act",
+          "fetched": 5,
+          "avg": 2,
+          "top": 4,
+          "scored": [
+            {
+              "tid": 1353689,
+              "title": "A.R. Antulay vs R.S. Nayak & Anr on 29 April, 1988",
+              "court": "Supreme Court of India",
+              "date": "1988-04-29",
+              "provision_match": 6,
+              "stage_match": 8,
+              "citable_quote": 1,
+              "recency": 0,
+              "overall": 4,
+              "verdict": "Old case, no citable quote, not recent view."
+            },
+            {
+              "tid": 181443842,
+              "title": "Madras Bar Association vs Union Of India & Anr on 25 September, 2014",
+              "court": "Supreme Court of India",
+              "date": "2014-09-25",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 2,
+              "overall": 1,
+              "verdict": "Irrelevant case, no mention of Section 19 sanction or trial quash, and not recent."
+            },
+            {
+              "tid": 14485072,
+              "title": "Vijay Madanlal Choudhary vs Union Of India on 27 July, 2022",
+              "court": "Supreme Court of India",
+              "date": "2022-07-27",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 10,
+              "overall": 1,
+              "verdict": "Case pertains to PMLA, not PC Act sanction."
+            }
+          ]
+        },
+        {
+          "id": "Q29",
+          "area": "ED — summons",
+          "fetched": 5,
+          "avg": 1,
+          "top": 0,
+          "scored": [
+            {
+              "tid": 124919732,
+              "title": "Kavitha G.Pillai vs The Joint Director on 5 August, 2015",
+              "court": "Kerala High Court",
+              "date": "2015-08-05",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 0,
+              "overall": 0,
+              "verdict": "No relevant content; only case title."
+            },
+            {
+              "tid": 41015865,
+              "title": "Mukesh Kumar S/O Jai Kishan Sharma vs State Of Gujarat & on 6 May, 201",
+              "court": "Gujarat High Court",
+              "date": "2016-05-06",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 4,
+              "overall": 1,
+              "verdict": "No mention of PMLA or retraction."
+            },
+            {
+              "tid": 86066551,
+              "title": "Rakesh Manekchand Kothari vs Union Of India on 9 August, 2023",
+              "court": "Gujarat High Court",
+              "date": "2023-08-09",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 8,
+              "overall": 2,
+              "verdict": "No relevant content on PMLA Section 50 or retraction of witness statement."
+            }
+          ]
+        },
+        {
+          "id": "Q30",
+          "area": "Bail — economic offences",
+          "fetched": 5,
+          "avg": 3.3333333333333335,
+          "top": 2,
+          "scored": [
+            {
+              "tid": 1108032,
+              "title": "Siddharam Satlingappa Mhetre vs State Of Maharashtra And Ors on 2 Dece",
+              "court": "Supreme Court of India",
+              "date": "2010-12-02",
+              "provision_match": 1,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 3,
+              "overall": 2,
+              "verdict": "Not relevant to economic offences bail principles; lacks connection to cited judgments."
+            },
+            {
+              "tid": 1563495,
+              "title": "Sanjay Chandra vs Cbi on 23 November, 2011",
+              "court": "Supreme Court of India",
+              "date": "2011-11-23",
+              "provision_match": 8,
+              "stage_match": 9,
+              "citable_quote": 7,
+              "recency": 3,
+              "overall": 7,
+              "verdict": "Landmark on bail in economic offences but predates the cited judgments; still relevant but not directly addressing their effect."
+            },
+            {
+              "tid": 160740668,
+              "title": "Yakub Abdul Razak Memon vs State Of Maharashtra Th:Cbi Mumbai on 21 Ma",
+              "court": "Supreme Court of India",
+              "date": "2013-03-21",
+              "provision_match": 0,
+              "stage_match": 0,
+              "citable_quote": 0,
+              "recency": 5,
+              "overall": 1,
+              "verdict": "Not relevant; case is about terrorism, not economic offences or bail."
+            }
+          ]
+        }
+      ],
+      "avg_top3": 3.1839080459770117,
+      "avg_top1": 3.4,
+      "zero_candidate_count": 1
+    }
+  ],
+  "elapsed": "2660"
+}

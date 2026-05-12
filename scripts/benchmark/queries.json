@@ -1,0 +1,272 @@
+[
+  {
+    "id": "Q01",
+    "area": "Bail — regular",
+    "natural": "Mere client ko 379 IPC theft mein FIR hai, trial court mein bail reject hui, sessions court mein second bail ke chances kya hain Delhi mein?",
+    "expected_statute": "CrPC",
+    "expected_section": "439",
+    "expected_court": "delhi",
+    "expected_stage": "post-trial-court-rejection"
+  },
+  {
+    "id": "Q02",
+    "area": "Bail — anticipatory",
+    "natural": "Domestic violence FIR pe husband ko anticipatory bail mil sakti hai recent Delhi HC ke hisab se?",
+    "expected_statute": "CrPC",
+    "expected_section": "438",
+    "expected_court": "delhi",
+    "expected_stage": "pre-FIR-or-pre-arrest"
+  },
+  {
+    "id": "Q03",
+    "area": "Bail — NDPS",
+    "natural": "100 gram heroin recover hua client se, commercial quantity hai, Section 37 NDPS twin conditions kaise pass karenge?",
+    "expected_statute": "NDPS Act",
+    "expected_section": "37",
+    "expected_court": "supremecourt",
+    "expected_stage": "bail-commercial-quantity"
+  },
+  {
+    "id": "Q04",
+    "area": "Bail — PMLA",
+    "natural": "ED ne PMLA mein arrest kiya hai client ko, Section 45 twin conditions latest SC view kya hai?",
+    "expected_statute": "PMLA",
+    "expected_section": "45",
+    "expected_court": "supremecourt",
+    "expected_stage": "bail-pmla"
+  },
+  {
+    "id": "Q05",
+    "area": "Bail — POCSO",
+    "natural": "POCSO accused ki bail kab milti hai, Section 31 ke under recent Delhi HC judgment chahiye",
+    "expected_statute": "POCSO Act",
+    "expected_section": "31",
+    "expected_court": "delhi",
+    "expected_stage": "bail-pocso"
+  },
+  {
+    "id": "Q06",
+    "area": "Bail — UAPA",
+    "natural": "UAPA Section 43-D(5) ke under bail ke restrictions kya hain, recent SC interpretation",
+    "expected_statute": "UAPA",
+    "expected_section": "43-D",
+    "expected_court": "supremecourt",
+    "expected_stage": "bail-uapa"
+  },
+  {
+    "id": "Q07",
+    "area": "NI Act 138",
+    "natural": "Cheque bounce ke baad complainant ne 14 din mein notice bhej diya, complaint maintainable hai ya 15 din ka strict requirement hai?",
+    "expected_statute": "NI Act",
+    "expected_section": "138 proviso (b)",
+    "expected_court": "supremecourt",
+    "expected_stage": "complaint-maintainability"
+  },
+  {
+    "id": "Q08",
+    "area": "NI Act 138 — vicarious",
+    "natural": "138 NI Act mein company ke against complaint mein director ko notice bheja, director ki vicarious liability Section 141 ke under kab banti hai?",
+    "expected_statute": "NI Act",
+    "expected_section": "141",
+    "expected_court": "supremecourt",
+    "expected_stage": "vicarious-liability"
+  },
+  {
+    "id": "Q09",
+    "area": "NI Act 138 — defence",
+    "natural": "Cheque issued tha security ke roop mein, ab dishonor hua hai, 138 mein defence kya banegi?",
+    "expected_statute": "NI Act",
+    "expected_section": "138",
+    "expected_court": "delhi",
+    "expected_stage": "defence-security-cheque"
+  },
+  {
+    "id": "Q10",
+    "area": "498A quashing",
+    "natural": "498A IPC mein matrimonial dispute settle ho gaya parties mein, ab FIR quash karwana hai Delhi HC se",
+    "expected_statute": "CrPC",
+    "expected_section": "482",
+    "expected_court": "delhi",
+    "expected_stage": "quash-settled-498A"
+  },
+  {
+    "id": "Q11",
+    "area": "498A quashing",
+    "natural": "498A FIR mein husband ke maa-baap aur bhai-behan included hain, unke against FIR quash karwana, Bhajan Lal guidelines ke under",
+    "expected_statute": "CrPC",
+    "expected_section": "482",
+    "expected_court": "supremecourt",
+    "expected_stage": "quash-family-members-498A"
+  },
+  {
+    "id": "Q12",
+    "area": "FIR quashing — 482",
+    "natural": "Civil dispute ko criminal colour de diya, 420 IPC ka FIR criminal nahi banti, 482 CrPC mein quash hogi?",
+    "expected_statute": "CrPC",
+    "expected_section": "482",
+    "expected_court": "supremecourt",
+    "expected_stage": "quash-civil-dispute-as-criminal"
+  },
+  {
+    "id": "Q13",
+    "area": "125 CrPC maintenance",
+    "natural": "Wife ne 125 CrPC mein maintenance file ki, interim maintenance ka quantum kaise calculate hota hai Rajnesh v Neha ke baad?",
+    "expected_statute": "CrPC",
+    "expected_section": "125",
+    "expected_court": "supremecourt",
+    "expected_stage": "interim-maintenance-quantum"
+  },
+  {
+    "id": "Q14",
+    "area": "125 CrPC maintenance",
+    "natural": "Adult son baap se 125 CrPC mein maintenance maang sakta hai agar disabled hai?",
+    "expected_statute": "CrPC",
+    "expected_section": "125",
+    "expected_court": "supremecourt",
+    "expected_stage": "adult-disabled-son-maintenance"
+  },
+  {
+    "id": "Q15",
+    "area": "Domestic Violence Act",
+    "natural": "PWDV Act ke Section 12 ke under residence order kaise milta hai, woman ke right to shared household par Delhi HC view",
+    "expected_statute": "PWDV Act",
+    "expected_section": "12, 17, 19",
+    "expected_court": "delhi",
+    "expected_stage": "residence-order-DV"
+  },
+  {
+    "id": "Q16",
+    "area": "HMA — divorce/Section 9",
+    "natural": "Section 9 HMA restitution conjugal rights ka decree kab nahi milta, wife working hai is ground pe",
+    "expected_statute": "Hindu Marriage Act",
+    "expected_section": "9",
+    "expected_court": "delhi",
+    "expected_stage": "RCR-refusal-working-wife"
+  },
+  {
+    "id": "Q17",
+    "area": "Property — partition",
+    "natural": "Hindu Succession Amendment 2005 ke baad daughter ka partition mein share, retrospective ya prospective?",
+    "expected_statute": "Hindu Succession Act",
+    "expected_section": "6",
+    "expected_court": "supremecourt",
+    "expected_stage": "daughter-coparcener-rights-2005"
+  },
+  {
+    "id": "Q18",
+    "area": "Property — specific performance",
+    "natural": "Specific performance ki suit mein limitation period kya hai, agreement to sell ke date se 3 saal ya date of refusal se?",
+    "expected_statute": "Limitation Act",
+    "expected_section": "54",
+    "expected_court": "supremecourt",
+    "expected_stage": "limitation-specific-performance"
+  },
+  {
+    "id": "Q19",
+    "area": "Civil — injunction",
+    "natural": "Order 39 Rule 1 CPC ke under interim injunction ke triple test — prima facie, balance of convenience, irreparable injury — latest Delhi HC view",
+    "expected_statute": "CPC",
+    "expected_section": "Order 39 Rule 1",
+    "expected_court": "delhi",
+    "expected_stage": "ad-interim-injunction"
+  },
+  {
+    "id": "Q20",
+    "area": "Commercial Courts Act",
+    "natural": "Commercial suit mein Order 8 Rule 1 ke 30 din time-bar mein written statement file nahi kiya, condonation milegi ya deemed admission ho gayi?",
+    "expected_statute": "CPC",
+    "expected_section": "Order 8 Rule 1",
+    "expected_court": "delhi",
+    "expected_stage": "written-statement-time-bar"
+  },
+  {
+    "id": "Q21",
+    "area": "Order 37 — summary suit",
+    "natural": "Summary suit Order 37 CPC mein leave to defend ke grounds kya hain, recent Delhi HC view",
+    "expected_statute": "CPC",
+    "expected_section": "Order 37",
+    "expected_court": "delhi",
+    "expected_stage": "leave-to-defend-summary"
+  },
+  {
+    "id": "Q22",
+    "area": "IPR — trademark",
+    "natural": "Trademark infringement ka suit Delhi HC mein, ad interim injunction ke liye triple test kaise apply hoga, deceptive similarity proof",
+    "expected_statute": "Trade Marks Act",
+    "expected_section": "29, 134",
+    "expected_court": "delhi",
+    "expected_stage": "TM-infringement-injunction"
+  },
+  {
+    "id": "Q23",
+    "area": "IPR — copyright",
+    "natural": "Software code copyright dispute mein Section 17(c) employer authorship default rule kab apply nahi hota?",
+    "expected_statute": "Copyright Act",
+    "expected_section": "17",
+    "expected_court": "delhi",
+    "expected_stage": "copyright-employer-rule"
+  },
+  {
+    "id": "Q24",
+    "area": "Charge framing",
+    "natural": "Charge framing stage pe Section 227 CrPC discharge ke principles, evidence appreciation ki extent recent SC view",
+    "expected_statute": "CrPC",
+    "expected_section": "227, 228",
+    "expected_court": "supremecourt",
+    "expected_stage": "discharge-charge-framing"
+  },
+  {
+    "id": "Q25",
+    "area": "Evidence",
+    "natural": "Indian Evidence Act Section 27 ke under recovery ki statement admissibility, latest SC interpretation",
+    "expected_statute": "Indian Evidence Act",
+    "expected_section": "27",
+    "expected_court": "supremecourt",
+    "expected_stage": "recovery-evidence"
+  },
+  {
+    "id": "Q26",
+    "area": "PMLA — ECIR",
+    "natural": "ECIR FIR se pehle register ho sakta hai kya, PMLA proceedings independent hai criminal trial se?",
+    "expected_statute": "PMLA",
+    "expected_section": "3, 4, 19",
+    "expected_court": "supremecourt",
+    "expected_stage": "ECIR-pre-FIR-question"
+  },
+  {
+    "id": "Q27",
+    "area": "POCSO — consent age",
+    "natural": "POCSO ke under consent age 18 hai, lekin 17 saal ki ladki ne consent diya tha — latest Delhi HC view on consensual relationship",
+    "expected_statute": "POCSO Act",
+    "expected_section": "3, 4",
+    "expected_court": "delhi",
+    "expected_stage": "consent-age-POCSO"
+  },
+  {
+    "id": "Q28",
+    "area": "CBI / PC Act",
+    "natural": "Sanction under Section 19 PC Act trial pe quash hogi agar prior sanction nahi mili thi, recent SC view",
+    "expected_statute": "Prevention of Corruption Act",
+    "expected_section": "19",
+    "expected_court": "supremecourt",
+    "expected_stage": "PC-Act-sanction"
+  },
+  {
+    "id": "Q29",
+    "area": "ED — summons",
+    "natural": "ED ne PMLA Section 50 mein summons bheja, witness ka statement retraction kab valid hai?",
+    "expected_statute": "PMLA",
+    "expected_section": "50",
+    "expected_court": "supremecourt",
+    "expected_stage": "ED-summons-retraction"
+  },
+  {
+    "id": "Q30",
+    "area": "Bail — economic offences",
+    "natural": "Economic offences mein bail ke principles, Y.S. Jagan Mohan Reddy aur P. Chidambaram judgments ka effect",
+    "expected_statute": "CrPC",
+    "expected_section": "439",
+    "expected_court": "supremecourt",
+    "expected_stage": "economic-offence-bail-principles"
+  }
+]

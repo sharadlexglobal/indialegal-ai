@@ -1,0 +1,190 @@
+{
+  "timestamp": "2026-05-12T07:34:55.889Z",
+  "strategy": "E_deepseek_rerank_v_rerank20_v_rerank20",
+  "desc": "winner + fetch 20, DeepSeek rerank, keep top 5",
+  "avg_top3": 7.057471264367816,
+  "avg_top1": 7.6,
+  "zero_candidate_count": 1,
+  "per_query_summary": [
+    {
+      "id": "Q01",
+      "area": "Bail — regular",
+      "avg": 3.3333333333333335,
+      "top": 4
+    },
+    {
+      "id": "Q02",
+      "area": "Bail — anticipatory",
+      "avg": 6.666666666666667,
+      "top": 8
+    },
+    {
+      "id": "Q03",
+      "area": "Bail — NDPS",
+      "avg": 9.666666666666666,
+      "top": 10
+    },
+    {
+      "id": "Q04",
+      "area": "Bail — PMLA",
+      "avg": 10,
+      "top": 10
+    },
+    {
+      "id": "Q05",
+      "area": "Bail — POCSO",
+      "avg": 9.333333333333334,
+      "top": 10
+    },
+    {
+      "id": "Q06",
+      "area": "Bail — UAPA",
+      "avg": 0,
+      "top": 0
+    },
+    {
+      "id": "Q07",
+      "area": "NI Act 138",
+      "avg": 2.3333333333333335,
+      "top": 3
+    },
+    {
+      "id": "Q08",
+      "area": "NI Act 138 — vicarious",
+      "avg": 9.333333333333334,
+      "top": 10
+    },
+    {
+      "id": "Q09",
+      "area": "NI Act 138 — defence",
+      "avg": 10,
+      "top": 10
+    },
+    {
+      "id": "Q10",
+      "area": "498A quashing",
+      "avg": 9.333333333333334,
+      "top": 10
+    },
+    {
+      "id": "Q11",
+      "area": "498A quashing",
+      "avg": 8.333333333333334,
+      "top": 9
+    },
+    {
+      "id": "Q12",
+      "area": "FIR quashing — 482",
+      "avg": 9,
+      "top": 9
+    },
+    {
+      "id": "Q13",
+      "area": "125 CrPC maintenance",
+      "avg": 1,
+      "top": 1
+    },
+    {
+      "id": "Q14",
+      "area": "125 CrPC maintenance",
+      "avg": 8,
+      "top": 10
+    },
+    {
+      "id": "Q15",
+      "area": "Domestic Violence Act",
+      "avg": 9,
+      "top": 9
+    },
+    {
+      "id": "Q16",
+      "area": "HMA — divorce/Section 9",
+      "avg": 5.333333333333333,
+      "top": 6
+    },
+    {
+      "id": "Q17",
+      "area": "Property — partition",
+      "avg": 10,
+      "top": 10
+    },
+    {
+      "id": "Q18",
+      "area": "Property — specific performance",
+      "avg": 9,
+      "top": 9
+    },
+    {
+      "id": "Q19",
+      "area": "Civil — injunction",
+      "avg": 5,
+      "top": 5
+    },
+    {
+      "id": "Q20",
+      "area": "Commercial Courts Act",
+      "avg": 7.333333333333333,
+      "top": 9
+    },
+    {
+      "id": "Q21",
+      "area": "Order 37 — summary suit",
+      "avg": 6.666666666666667,
+      "top": 7
+    },
+    {
+      "id": "Q22",
+      "area": "IPR — trademark",
+      "avg": 6.333333333333333,
+      "top": 7
+    },
+    {
+      "id": "Q23",
+      "area": "IPR — copyright",
+      "avg": 2,
+      "top": 2
+    },
+    {
+      "id": "Q24",
+      "area": "Charge framing",
+      "avg": 5,
+      "top": 9
+    },
+    {
+      "id": "Q25",
+      "area": "Evidence",
+      "avg": 9,
+      "top": 9
+    },
+    {
+      "id": "Q26",
+      "area": "PMLA — ECIR",
+      "avg": 7,
+      "top": 10
+    },
+    {
+      "id": "Q27",
+      "area": "POCSO — consent age",
+      "avg": 7,
+      "top": 9
+    },
+    {
+      "id": "Q28",
+      "area": "CBI / PC Act",
+      "avg": 9,
+      "top": 10
+    },
+    {
+      "id": "Q29",
+      "area": "ED — summons",
+      "avg": 3.6666666666666665,
+      "top": 6
+    },
+    {
+      "id": "Q30",
+      "area": "Bail — economic offences",
+      "avg": 7,
+      "top": 7
+    }
+  ]
+}
