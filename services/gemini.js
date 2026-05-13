@@ -296,7 +296,11 @@ async function searchForRealtime(storeName, userQuery, ocrMarkdown = null, pageM
       const score = chunkScore[i] || ctx.relevanceScore || 0;
       if (page != null) pagesSeen.add(page);
       if (!text || text.length < 20) return;
-      if (score < threshold) return;
+      // For text/plain research judgments (no PDF pages), Gemini doesn't
+      // attach pageNumber. The score threshold for THOSE chunks must be
+      // relaxed — the original 0.35 was tuned for PDF case-file lookups.
+      const effThreshold = (page == null) ? Math.min(0.10, threshold) : threshold;
+      if (score < effThreshold) return;
       const key = text.slice(0, 200);
       if (!seen.has(key) || seen.get(key).score < score) {
         seen.set(key, { page, score, text });
@@ -308,9 +312,11 @@ async function searchForRealtime(storeName, userQuery, ocrMarkdown = null, pageM
       const pages = chunks
         .map(c => (c.retrievedContext || c.retrieved_context || {}).pageNumber)
         .filter(p => p != null);
-      // If Gemini didn't ground ANY page, it's almost certainly speculating —
-      // don't accept the synthesis.
-      if (pages.length > 0) {
+      // Accept synthesis if Gemini grounded ANY chunks (page or no page).
+      // Research-indexed text files (no PDF pages) used to fail here because
+      // the strict page-presence check rejected them — even though Gemini
+      // had clearly retrieved + reasoned from real indexed content.
+      if (chunks.length > 0) {
         synthesisChunks.push({ text: answerText, pages });
       }
     }
