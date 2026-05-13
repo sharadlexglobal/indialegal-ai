@@ -44,21 +44,11 @@ IKAPI_MCP_URL = os.environ.get("IKAPI_MCP_URL", "https://ikapi.onrender.com/mcp"
 HTTP_TIMEOUT = httpx.Timeout(30.0, connect=5.0)
 IKAPI_TIMEOUT = httpx.Timeout(60.0, connect=5.0)
 
-# Minimum text chunk (chars) Sarvam Bulbul TTS must receive in its FIRST
-# synthesis call. The whole point: Sarvam's per-call prosody warm-up
-# causes voice/accent drift when LiveKit feeds it tiny sentence-by-sentence
-# chunks. Accumulate ~10 lines (≈ 400 chars) before flushing, then stream
-# normally — the user wants the OPENING to be a clean consistent voice;
-# minor drift later is acceptable.
-TTS_INITIAL_BUFFER_CHARS = int(os.environ.get("TTS_INITIAL_BUFFER_CHARS", "400"))
-
-
-async def _buffered_text_stream(
-    text: AsyncIterable[str], threshold: int
-) -> AsyncIterable[str]:
-    """Hold LLM text until ~`threshold` chars accumulate, then emit one
-    big first chunk so Sarvam TTS does ONE warmed-up synthesis. After
-    that, stream chunks through normally."""
+# Hold LLM text until ~10 lines (400 chars) accumulate before sending
+# the first chunk to Sarvam Bulbul TTS. Sarvam warms up prosody per call,
+# so tiny sentence-by-sentence chunks make the voice/accent drift mid-
+# response. One big first chunk = one warmed-up synthesis = stable voice.
+async def _buffered_text_stream(text: AsyncIterable[str]) -> AsyncIterable[str]:
     buf = ""
     flushed = False
     async for chunk in text:
@@ -68,11 +58,10 @@ async def _buffered_text_stream(
             yield chunk
             continue
         buf += chunk
-        if len(buf) >= threshold:
+        if len(buf) >= 400:
             yield buf
             buf = ""
             flushed = True
-    # End-of-stream: if we never hit threshold, send whatever we have.
     if buf:
         yield buf
 
@@ -401,7 +390,7 @@ class _BufferedTTSMixin:
         text: AsyncIterable[str],
         model_settings: ModelSettings,
     ) -> AsyncIterable[rtc.AudioFrame]:
-        buffered = _buffered_text_stream(text, TTS_INITIAL_BUFFER_CHARS)
+        buffered = _buffered_text_stream(text)
         async for frame in Agent.default.tts_node(self, buffered, model_settings):
             yield frame
 
