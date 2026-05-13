@@ -433,11 +433,50 @@ button.icon.recording {
   margin-top: 4px;
   color: #333;
 }
-.judgment-card .jc-summary {
-  font-size: 14px;
+/* SCC-style headnote: one line under the title — gist at a glance */
+.judgment-card .jc-headnote {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--ink);
   margin-top: 6px;
+  margin-bottom: 4px;
+  padding-left: 2px;
+}
+.judgment-card.inapplicable .jc-headnote {
+  color: var(--muted);
+}
+
+/* Collapsed lens-summary (DeepSeek's 2-3 sentence longer paraphrase) */
+.judgment-card .jc-expand {
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.judgment-card .jc-expand summary {
+  cursor: pointer;
+  user-select: none;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 0;
+}
+.judgment-card .jc-expand summary:hover { color: var(--ink); }
+.judgment-card .jc-expand summary::marker,
+.judgment-card .jc-expand summary::-webkit-details-marker { display: none; }
+.judgment-card .jc-expand summary::before { content: "+ "; }
+.judgment-card .jc-expand[open] summary::before { content: "− "; }
+.judgment-card .jc-expand .jc-summary {
+  font-family: var(--serif);
+  font-size: 14px;
   line-height: 1.5;
+  font-style: normal;
   color: #333;
+  margin-top: 6px;
+  padding-left: 2px;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 /* Verbatim paragraphs from the judgment — THE trust mechanism */

@@ -729,13 +729,21 @@ function finalizeJudgmentCard(card, d) {
   // Remove old verdict bits if present (re-runs)
   card.classList.remove('pending', 'applicable', 'tangential', 'inapplicable');
   card.classList.add((d.verdict || 'INAPPLICABLE').toLowerCase());
-  $$('.jc-verdict, .jc-reason, .jc-summary, .jc-quotes', card).forEach(n => n.remove());
+  $$('.jc-verdict, .jc-reason, .jc-summary, .jc-quotes, .jc-headnote, .jc-expand', card)
+    .forEach(n => n.remove());
+
+  // ─── Headnote-first layout (SCC style) ───
+  // Title is already in the card. Right under: verdict badge + the
+  // ONE-LINE headnote (what makes this case relevant) so the advocate
+  // gets the gist at a glance.
   card.appendChild(el('div', { class: 'jc-verdict' },
     `${d.verdict}  ·  ${d.confidence != null ? d.confidence + '/10' : ''}`));
-  if (d.reason) card.appendChild(el('div', { class: 'jc-reason' }, d.reason));
+  if (d.reason) {
+    // The verdict reason IS the headnote — 1 line, italic, weighty.
+    card.appendChild(el('div', { class: 'jc-headnote' }, d.reason));
+  }
 
-  // Verbatim quotes — THE trust criterion. Show before the summary so
-  // the advocate sees the court's own words first.
+  // Verbatim quotes — court's own words, the proof.
   const quotes = Array.isArray(d.relevant_quotes) ? d.relevant_quotes : [];
   if (quotes.length) {
     const qWrap = el('div', { class: 'jc-quotes' });
@@ -751,7 +759,15 @@ function finalizeJudgmentCard(card, d) {
     if (qWrap.childNodes.length) card.appendChild(qWrap);
   }
 
-  if (d.summary) card.appendChild(el('div', { class: 'jc-summary' }, d.summary));
+  // DeepSeek's longer lens-summary goes under an expandable toggle so
+  // the card stays scannable. Don't show by default; click "+ summary".
+  if (d.summary) {
+    const sumWrap = el('details', { class: 'jc-expand' },
+      el('summary', {}, 'summary'),
+      el('div', { class: 'jc-summary' }, d.summary)
+    );
+    card.appendChild(sumWrap);
+  }
 
   // After a verdict lands, re-sort siblings so APPLICABLE rises to top.
   const block = card.closest('.research-block');
