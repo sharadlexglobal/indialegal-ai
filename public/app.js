@@ -285,13 +285,58 @@ async function loadMessages(caseId) {
     const r = await fetch(`/api/cases/${caseId}/messages`);
     const msgs = await r.json();
     for (const m of (msgs || [])) renderMessage(m);
+    if (!msgs?.length) renderEmptyHint();
     scrollThread();
   } catch (e) {
     console.warn('load messages failed', e);
+    renderEmptyHint();
   }
 }
 
+// Empty-state hint — shows example questions so the user knows the
+// thread accepts text input (not just voice). Different copy for
+// document Q&A vs research mode.
+function renderEmptyHint() {
+  if (!state.activeCase) return;
+  const isResearch = state.activeCase.kind === 'standalone_research';
+  const examples = isResearch
+    ? [
+        'Section 482 CrPC pe top 5 SC judgments lao aur index karo',
+        'PMLA Section 19 written grounds — last 2 saal ke landmark cases',
+        '498A quash for matrimonial — SC ke top 5 dhundh kar verify karo'
+      ]
+    : [
+        'judge kaun hai',
+        'kis section mein hai',
+        'FIR mein main allegation kya hai',
+        'next hearing kab hai',
+        'is case file ka one-line summary'
+      ];
+  const hint = el('div', { class: 'empty-hint' },
+    el('p', { class: 'eh-line' },
+      isResearch
+        ? 'Type below to start research, or press ⌘M to talk.'
+        : 'Type below, or press ⌘M to talk.'),
+    el('p', { class: 'eh-sub' }, 'Try:'),
+    el('ul', { class: 'eh-list' },
+      ...examples.map(ex =>
+        el('li', { class: 'eh-item',
+          onclick: () => {
+            const input = $('#composer-input');
+            input.value = ex; input.focus();
+            input.dispatchEvent(new Event('input'));
+          }
+        }, ex))
+    )
+  );
+  state.threadEl.appendChild(hint);
+}
+
 function renderMessage(m) {
+  // Once the user starts a conversation, drop the empty-state hint.
+  const hint = state.threadEl?.querySelector('.empty-hint');
+  if (hint) hint.remove();
+
   const node = el('div', { class: `msg ${m.role}` },
     el('div', { class: 'msg-head' },
       el('span', { class: 'msg-role' }, m.role === 'user' ? 'You' : 'Agent'),
@@ -414,6 +459,18 @@ function handleChatEvent(ev, bodyEl, sourceTag) {
     const line = toolLine({ name: ev.data.name, args: ev.data.args });
     bodyEl.appendChild(line);
     scrollThread();
+  } else if (ev.event === 'tool_result') {
+    // If the agent JUST kicked off legal research, attach the live
+    // SSE timeline inline so the user sees verdicts streaming.
+    if (ev.data?.name === 'execute_legal_research' && ev.data?.result?.jobId) {
+      attachResearchBlock(ev.data.result.jobId, /* focus */ true);
+      // refresh the right-panel research list silently
+      if (state.activeCase) loadContext(state.activeCase.id, state.activeCase.kind);
+    }
+  } else if (ev.event === 'research_started') {
+    // Backend pre-announces the job before the LLM's final text arrives —
+    // gives the timeline a head start.
+    if (ev.data?.jobId) attachResearchBlock(ev.data.jobId, /* focus */ false);
   } else if (ev.event === 'final') {
     sourceTag.textContent = 'text';
     bodyEl.insertAdjacentHTML('beforeend', md(ev.data.text));

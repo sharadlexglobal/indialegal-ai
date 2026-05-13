@@ -303,6 +303,48 @@ button.icon.recording {
 .msg.user .msg-body { font-style: italic; color: #333; }
 .msg.assistant .msg-body { color: var(--ink); }
 
+/* Empty-state hint shown in a brand-new thread */
+.empty-hint {
+  margin-top: 40px;
+  max-width: 620px;
+  color: var(--muted);
+}
+.empty-hint .eh-line {
+  font-size: 16px;
+  font-style: italic;
+  margin-bottom: 18px;
+  color: var(--muted);
+}
+.empty-hint .eh-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 8px;
+}
+.empty-hint .eh-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+.empty-hint .eh-item {
+  font-size: 15px;
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--rule);
+  cursor: pointer;
+  color: var(--ink);
+  font-style: italic;
+}
+.empty-hint .eh-item:hover {
+  color: #000;
+}
+.empty-hint .eh-item::before {
+  content: "→  ";
+  color: var(--faint);
+  font-style: normal;
+}
+
 /* Tool-call inline lines */
 .tool-line {
   font-family: var(--mono);
