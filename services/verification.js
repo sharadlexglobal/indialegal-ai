@@ -113,10 +113,18 @@ copy the actual paragraph from the judgment VERBATIM into relevant_quotes.
   • Quote 1-4 paragraphs that ARE the holding/principle/operative passage.
   • Copy EXACTLY — same words, punctuation, line breaks. NEVER paraphrase
     inside a quote. Devanagari to Latin transliteration is forbidden.
-  • For each quote, identify its paragraph number IF the judgment numbers
-    its paragraphs (look for "13.", "Para 13", "44.", etc at the start of
-    the passage). If the passage has no number (e.g. unnumbered intro,
-    operative order), leave "para" as empty string.
+  • For each quote, identify its paragraph number from the judgment
+    text. The paragraph number is the number that appears IMMEDIATELY
+    BEFORE the quoted passage in the judgment, on its own line as
+    "N." or "(N)" — that is the paragraph the passage lives in.
+    ▸ DO NOT use the number that appears INSIDE the passage as a
+      citation or enumeration (e.g. "57. (1) That..." has BOTH "57"
+      as the paragraph number AND "(1)" as the sub-clause label — the
+      paragraph is 57, not 1).
+    ▸ If you cannot CONFIRM the paragraph number by looking backwards
+      to the preceding line, leave "para" as empty string. NEVER guess.
+    ▸ Server has a deterministic locator that will fix or fill the
+      para number — but you should still output your best honest reading.
   • Prefer paragraphs that contain the actual ratio (holding, rule of
     law) — not procedural recitals, not pleadings, not facts unless
     facts are central to the principle.

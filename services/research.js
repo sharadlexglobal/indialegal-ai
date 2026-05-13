@@ -26,6 +26,77 @@ const gemini = require('./gemini');
 const verification = require('./verification');
 const bus = require('./eventBus');
 
+// ─── Verbatim-quote integrity validator ─────────────────────────────
+//
+// Agent 2 returns paragraph numbers along with verbatim quotes. Audit
+// showed DeepSeek is correct on text (47/47 exact or near-exact match)
+// but occasionally hallucinates the para number (4/40 wrong in audit).
+// E.g. quoting Vijaysinh Chandubha Jadeja's famous para 57 but labelling
+// it para 17. This breaks user trust the moment they look up the cite.
+//
+// Defense: after Agent 2 returns, for every quote, LOCATE the quote in
+// the actual judgment text and read off the nearest preceding paragraph
+// marker. Override DeepSeek's label only when our deterministic locator
+// produces a different number.
+
+function locateParaForQuote(quoteText, source) {
+  if (!quoteText || !source) return null;
+  const trimmed = String(quoteText).trim();
+  const head = trimmed.slice(0, 40);
+  if (head.length < 20) return null;
+  const probe = head
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\s+/g, '\\s+');
+  let m;
+  try { m = source.match(new RegExp(probe, 'i')); } catch { return null; }
+  if (!m || m.index == null) return null;
+
+  // CASE A — the quote ITSELF starts with a para marker (e.g. "57.").
+  // If the match landed at a position where the preceding char is a
+  // newline (i.e. the quote IS the start of paragraph 57), trust the
+  // quote's own leading number.
+  const selfMarker = trimmed.match(/^\(?(\d+(?:\.\d+)?)\)?[.)]\s/);
+  if (selfMarker) {
+    const numAt = m.index;
+    if (numAt === 0 || /[\r\n]/.test(source[numAt - 1] || '\n')) {
+      return selfMarker[1];
+    }
+  }
+
+  // CASE B — the quote is in the BODY of a paragraph. Look backwards
+  // ~2500 chars for the nearest paragraph marker.
+  const start = Math.max(0, m.index - 2500);
+  const window = source.slice(start, m.index);
+  const re = /(^|\n)\s*(?:Para(?:graph)?\s+)?\(?(\d+(?:\.\d+)?)\)?[.)]\s/gi;
+  const markers = [];
+  let last;
+  while ((last = re.exec(window)) !== null) {
+    markers.push({ num: last[2] });
+  }
+  if (!markers.length) return null;
+  return markers[markers.length - 1].num;
+}
+
+function normalizeParaClaim(s) {
+  // Strip spaces, "Para ", trailing punctuation. Keep digits + optional dot.
+  return String(s || '')
+    .replace(/(^|\s)para(graph)?\s+/i, '')
+    .replace(/[^\d.]/g, '')
+    .replace(/^\.+|\.+$/g, '');
+}
+
+function verifyOrFindPara(quoteText, source, deepseekClaim) {
+  const located = locateParaForQuote(quoteText, source);
+  const claim = normalizeParaClaim(deepseekClaim);
+  if (!located && !claim) return '';
+  if (!located && claim) return claim;         // locator failed; trust DS
+  if (located && !claim) return located;       // DS empty; we filled it
+  if (located === claim) return claim;         // agreement
+  // Disagreement — locator is deterministic, prefer it.
+  console.warn(`[verify-para] override: deepseek=${claim} -> locator=${located} | "${quoteText.slice(0, 60)}..."`);
+  return located;
+}
+
 const IKAPI_MCP_URL = process.env.IKAPI_MCP_URL || 'https://ikapi.onrender.com/mcp';
 const OVER_FETCH_N = 10;        // 10 candidates -> full text -> verify each
 
@@ -264,9 +335,15 @@ async function runResearch(pool, jobId) {
       // Normalize quotes — Agent 2 may sometimes return strings (older
       // format) or objects. Coerce to [{para, text}] uniformly so the UI
       // doesn't have to guess.
+      // ALSO: verify each para number against the source. If DeepSeek
+      // hallucinates a number (audit showed 10% rate), the deterministic
+      // locator overrides it. See verifyOrFindPara() above.
       j.relevant_quotes = (v.relevant_quotes || []).map(q => {
-        if (typeof q === 'string') return { para: '', text: q };
-        return { para: String(q.para || '').trim(), text: String(q.text || '').trim() };
+        const raw = typeof q === 'string'
+          ? { para: '', text: q }
+          : { para: String(q.para || '').trim(), text: String(q.text || '').trim() };
+        const verified = verifyOrFindPara(raw.text, text, raw.para);
+        return { para: verified, text: raw.text };
       }).filter(q => q.text && q.text.length >= 20);
 
       emit('verdict', {
@@ -374,4 +451,42 @@ async function runResearch(pool, jobId) {
   });
 }
 
-module.exports = { runResearch };
+// Backfill — re-run the para-locator validator across all already-saved
+// research jobs and rewrite their judgments[].relevant_quotes[].para
+// where the locator confidently overrides. Called by the admin endpoint
+// /api/admin/revalidate-paras.
+async function revalidateAllParas(pool) {
+  const r = await pool.query(
+    `SELECT id, judgments FROM research_jobs
+      WHERE status='done' AND judgments IS NOT NULL`
+  );
+  let touchedJobs = 0;
+  let touchedQuotes = 0;
+  for (const row of r.rows) {
+    const judgments = row.judgments;
+    if (!Array.isArray(judgments)) continue;
+    let changed = false;
+    for (const j of judgments) {
+      const fullText = j.full_text;
+      if (!fullText || !Array.isArray(j.relevant_quotes)) continue;
+      for (const q of j.relevant_quotes) {
+        const verified = verifyOrFindPara(q.text, fullText, q.para);
+        if (verified !== (q.para || '')) {
+          q.para = verified;
+          touchedQuotes++;
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      await pool.query(
+        `UPDATE research_jobs SET judgments=$1, updated_at=NOW() WHERE id=$2`,
+        [JSON.stringify(judgments), row.id]
+      );
+      touchedJobs++;
+    }
+  }
+  return { jobs_touched: touchedJobs, quotes_corrected: touchedQuotes };
+}
+
+module.exports = { runResearch, revalidateAllParas, verifyOrFindPara, locateParaForQuote };

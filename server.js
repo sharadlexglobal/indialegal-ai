@@ -359,6 +359,19 @@ app.get('/api/cases/:id/research/:jobId', async (req, res) => {
   res.json(r.rows[0]);
 });
 
+// Admin: re-run the deterministic para-locator across all saved jobs and
+// rewrite hallucinated DeepSeek para numbers. Used after deploying the
+// locator fix to clean up historical data.
+app.post('/api/admin/revalidate-paras', async (req, res) => {
+  try {
+    const out = await research.revalidateAllParas(pool);
+    res.json(out);
+  } catch (e) {
+    console.error('revalidate-paras error', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/cases/:id/research', async (req, res) => {
   const r = await pool.query(
     `SELECT id, plan, scope, status, summary, created_at,
