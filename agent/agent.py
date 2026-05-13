@@ -457,11 +457,15 @@ class LegalAgent(_BufferedTTSMixin, Agent):
     def __init__(self, case_id: str, case_title: str, page_count: int | None):
         super().__init__(
             instructions=build_system_prompt(case_title, page_count),
-            tools=[
-                make_lookup_tool(case_id),       # 1st-tier: instant case-sheet
-                make_search_tool(case_id),       # 2nd-tier: Gemini File Search
-                search_indian_kanoon,            # 3rd-tier: external law
-            ],
+            tools=(
+                # Same toolkit as research agent so the user can kick off
+                # legal research from a document-mode session too
+                # (e.g. "is case ke liye 482 quash ke 5 judgments index kar do").
+                [make_lookup_tool(case_id),       # tier 1 — atomic facts
+                 make_search_tool(case_id),       # tier 2 — case-file + indexed
+                 search_indian_kanoon]            # tier 4 — narrow named-case
+                + make_research_tools(case_id)    # tier 3+5 — execute + status
+            ),
         )
 
 
