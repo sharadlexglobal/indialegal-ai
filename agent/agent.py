@@ -16,14 +16,16 @@ import json
 import logging
 import os
 import re
+from typing import AsyncIterable
 
 import httpx
 from dotenv import load_dotenv
-from livekit import agents
+from livekit import agents, rtc
 from livekit.agents import (
     Agent,
     AgentSession,
     JobContext,
+    ModelSettings,
     RunContext,
     WorkerOptions,
     cli,
@@ -41,6 +43,38 @@ NODE_URL = os.environ.get("NODE_URL", "https://indialegal-ai.onrender.com")
 IKAPI_MCP_URL = os.environ.get("IKAPI_MCP_URL", "https://ikapi.onrender.com/mcp")
 HTTP_TIMEOUT = httpx.Timeout(30.0, connect=5.0)
 IKAPI_TIMEOUT = httpx.Timeout(60.0, connect=5.0)
+
+# Minimum text chunk (chars) Sarvam Bulbul TTS must receive in its FIRST
+# synthesis call. The whole point: Sarvam's per-call prosody warm-up
+# causes voice/accent drift when LiveKit feeds it tiny sentence-by-sentence
+# chunks. Accumulate ~10 lines (≈ 400 chars) before flushing, then stream
+# normally — the user wants the OPENING to be a clean consistent voice;
+# minor drift later is acceptable.
+TTS_INITIAL_BUFFER_CHARS = int(os.environ.get("TTS_INITIAL_BUFFER_CHARS", "400"))
+
+
+async def _buffered_text_stream(
+    text: AsyncIterable[str], threshold: int
+) -> AsyncIterable[str]:
+    """Hold LLM text until ~`threshold` chars accumulate, then emit one
+    big first chunk so Sarvam TTS does ONE warmed-up synthesis. After
+    that, stream chunks through normally."""
+    buf = ""
+    flushed = False
+    async for chunk in text:
+        if not chunk:
+            continue
+        if flushed:
+            yield chunk
+            continue
+        buf += chunk
+        if len(buf) >= threshold:
+            yield buf
+            buf = ""
+            flushed = True
+    # End-of-stream: if we never hit threshold, send whatever we have.
+    if buf:
+        yield buf
 
 
 def parse_room(room_name: str) -> tuple[str, str | None]:
@@ -355,7 +389,24 @@ def make_search_tool(case_id: str):
     return search_case_file
 
 
-class LegalAgent(Agent):
+class _BufferedTTSMixin:
+    """Buffer the first ~TTS_INITIAL_BUFFER_CHARS of every LLM response
+    before handing to TTS, so Sarvam Bulbul's first synthesis call has
+    enough text to lock in a stable voice/accent. Without this, LiveKit
+    streams text sentence-by-sentence and each Sarvam call warms up
+    independently — causing the audible accent shift mid-response."""
+
+    async def tts_node(
+        self,
+        text: AsyncIterable[str],
+        model_settings: ModelSettings,
+    ) -> AsyncIterable[rtc.AudioFrame]:
+        buffered = _buffered_text_stream(text, TTS_INITIAL_BUFFER_CHARS)
+        async for frame in Agent.default.tts_node(self, buffered, model_settings):
+            yield frame
+
+
+class LegalAgent(_BufferedTTSMixin, Agent):
     def __init__(self, case_id: str, case_title: str, page_count: int | None):
         super().__init__(
             instructions=build_system_prompt(case_title, page_count),
@@ -367,7 +418,7 @@ class LegalAgent(Agent):
         )
 
 
-class LegalResearchAgent(Agent):
+class LegalResearchAgent(_BufferedTTSMixin, Agent):
     """Multi-turn research scoper. Different prompt (RESEARCH_RULES),
     different tools. Includes the case-sheet lookup so the agent can
     quickly check facts about the uploaded PDF during scoping
