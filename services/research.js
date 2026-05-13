@@ -85,67 +85,28 @@ function normalizeParaClaim(s) {
     .replace(/^\.+|\.+$/g, '');
 }
 
-// Independently verify a claimed paragraph number against the source —
-// does the claim appear as a line marker (`<N>.` or `<N>)` or `Para <N>`)
-// within ~5000 chars BEFORE the quote location? If yes, the claim is
-// supported. If no, the claim is suspect.
-function claimAppearsNearQuote(claim, quoteText, source) {
-  if (!claim || !quoteText || !source) return false;
-  const trimmed = String(quoteText).trim();
-  const head = trimmed.slice(0, 40);
-  if (head.length < 20) return false;
-  const probe = head
-    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    .replace(/\s+/g, '\\s+');
-  let m;
-  try { m = source.match(new RegExp(probe, 'i')); } catch { return false; }
-  if (!m || m.index == null) return false;
-
-  // Self-marker case: if the quote begins with "<claim>." on a line, the
-  // claim is on the quote's first line — supported.
-  const selfMarker = trimmed.match(/^\(?(\d+(?:\.\d+)?)\)?[.)]\s/);
-  if (selfMarker && normalizeParaClaim(selfMarker[1]) === normalizeParaClaim(claim)) {
-    const numAt = m.index;
-    if (numAt === 0 || /[\r\n]/.test(source[numAt - 1] || '\n')) return true;
-  }
-
-  // Scan up to 5000 chars before the quote position for the claim as a
-  // paragraph marker.
-  const start = Math.max(0, m.index - 5000);
-  const window = source.slice(start, m.index + 50);
-  const esc = String(claim).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const patterns = [
-    new RegExp(`(^|\\n)\\s*${esc}[.)]\\s`, 'm'),
-    new RegExp(`\\bPara(?:graph)?\\s+${esc}\\b`, 'i')
-  ];
-  return patterns.some(p => p.test(window));
-}
-
+// Single source of truth: the deterministic locator. If DS agrees, keep
+// the claim. If DS disagrees, trust the locator. If the locator can't
+// decide (no marker in scope), drop the para to empty — honest blank
+// beats misleading number. The locator already handles both "self
+// marker" (quote starts with its own N. on a line) and "scan back to
+// nearest preceding marker" cases.
 function verifyOrFindPara(quoteText, source, deepseekClaim) {
   const claim = normalizeParaClaim(deepseekClaim);
-
-  if (!claim) {
-    // No DS claim — try the locator
-    const found = locateParaForQuote(quoteText, source);
-    return found || '';
-  }
-
-  // DS claims something — VERIFY it appears near the quote in source.
-  if (claimAppearsNearQuote(claim, quoteText, source)) {
-    return claim;   // genuine
-  }
-
-  // Claim NOT verified — try the deterministic locator
   const located = locateParaForQuote(quoteText, source);
-  if (located && claimAppearsNearQuote(located, quoteText, source)) {
-    console.warn(`[verify-para] override: ds=${claim} -> ${located} | "${String(quoteText).slice(0, 60)}..."`);
-    return located;
-  }
 
-  // Neither claim nor locator supportable. Drop. Honest empty beats
-  // misleading number.
-  console.warn(`[verify-para] drop: ds=${claim} unsupported | "${String(quoteText).slice(0, 60)}..."`);
-  return '';
+  if (!located && !claim) return '';
+  if (!located && claim) {
+    // Cannot independently verify — DROP. Empty para is honest.
+    console.warn(`[verify-para] drop: ds=${claim} no locator support | "${String(quoteText).slice(0, 60)}..."`);
+    return '';
+  }
+  if (located && !claim) return located;
+  if (located === claim) return claim;
+
+  // Disagreement — trust the deterministic locator.
+  console.warn(`[verify-para] override: ds=${claim} -> ${located} | "${String(quoteText).slice(0, 60)}..."`);
+  return located;
 }
 
 const IKAPI_MCP_URL = process.env.IKAPI_MCP_URL || 'https://ikapi.onrender.com/mcp';
