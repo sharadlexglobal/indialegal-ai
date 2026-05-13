@@ -104,33 +104,34 @@ Report ONLY what the judgment says about THIS specific question. Do not summariz
 IMPORTANT — recognise FOUNDATIONAL principle matches:
 A landmark case that establishes the legal foundation for the soul-question's subject (e.g. Balbir Singh on Section 50 NDPS compliance) IS engaging with the soul-question even if the specific factual scenario the user described differs in minor details. Read for the PRINCIPLE the judgment lays down, not just the exact factual match.
 
-═══ EXTRACT VERBATIM PARAGRAPHS — THIS IS CRITICAL ═══
+═══ IDENTIFY RELEVANT PARAGRAPHS — CRITICAL ═══
 
-The Indian advocate WILL NOT trust your summary unless they can see the
-court's own words. So for every meaningfully relevant point you mention,
-copy the actual paragraph from the judgment VERBATIM into relevant_quotes.
+Your PRIMARY job for relevant_quotes is to IDENTIFY which paragraphs of
+the judgment carry the holding / ratio / operative law on the soul-
+question. Server-side code will then lift those exact paragraphs from
+the judgment by paragraph number — so the advocate sees the COURT'S
+OWN WORDS, not your rendition.
 
-  • Quote 1-4 paragraphs that ARE the holding/principle/operative passage.
-  • Copy EXACTLY — same words, punctuation, line breaks. NEVER paraphrase
-    inside a quote. Devanagari to Latin transliteration is forbidden.
-  • For each quote, identify its paragraph number from the judgment
-    text. The paragraph number is the number that appears IMMEDIATELY
-    BEFORE the quoted passage in the judgment, on its own line as
-    "N." or "(N)" — that is the paragraph the passage lives in.
-    ▸ DO NOT use the number that appears INSIDE the passage as a
-      citation or enumeration (e.g. "57. (1) That..." has BOTH "57"
-      as the paragraph number AND "(1)" as the sub-clause label — the
-      paragraph is 57, not 1).
-    ▸ If you cannot CONFIRM the paragraph number by looking backwards
-      to the preceding line, leave "para" as empty string. NEVER guess.
-    ▸ Server has a deterministic locator that will fix or fill the
-      para number — but you should still output your best honest reading.
-  • Prefer paragraphs that contain the actual ratio (holding, rule of
-    law) — not procedural recitals, not pleadings, not facts unless
-    facts are central to the principle.
-  • A single judgment can have multiple quoteworthy paragraphs — give
-    up to 4 if they each add a distinct point. One is enough if it
-    captures the holding.
+For each relevant_quotes entry:
+  • "para": the paragraph number as it appears in the judgment text.
+    The paragraph number is the "N." that appears at the start of a
+    line just BEFORE the substantive passage you're flagging.
+    ▸ Do NOT confuse a sub-clause marker like "(1)" or "(a)" inside a
+      paragraph with the paragraph number. The paragraph number is
+      the "N." on its OWN line.
+    ▸ Do NOT use a citation number like "[7]" or "(2024) 3 SCC 1".
+    ▸ If you cannot confidently identify "N." on its own line just
+      before the passage, leave "para" as empty string. Do not guess.
+
+  • "text": copy 1-2 verbatim sentences from that paragraph as a HINT
+    for the server-side locator (helps it disambiguate when a paragraph
+    number is shared across sections). The server will REPLACE this
+    text with the actual paragraph it lifts. So keep your hint short
+    (60-200 chars). Verbatim only — never paraphrase.
+
+  • Pick 1-4 paragraphs per judgment. Each must add a distinct point —
+    holding, applicable test, ratio, operative direction. Skip:
+    procedural recitals, pleadings, facts (unless facts ARE the ratio).
 
 SOUL_QUESTION:
 ${soulQuestion}

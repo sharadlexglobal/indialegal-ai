@@ -112,6 +112,50 @@ function verifyOrFindPara(quoteText, source, deepseekClaim) {
   return located;
 }
 
+// Given a paragraph number, lift the WHOLE paragraph from the source
+// verbatim — start at the "N." marker, end at the next numbered marker
+// or a sane cap. Eliminates any paraphrase risk from Agent 2: the text
+// the user sees IS the court's own text, copy-pasted by deterministic
+// code, never re-typed by an LLM.
+function extractParaFromSource(paraNum, source) {
+  if (!paraNum || !source) return null;
+  const num = String(paraNum).replace(/[^\d.]/g, '').replace(/^\.+|\.+$/g, '');
+  if (!num) return null;
+  const escaped = num.replace(/\./g, '\\.');
+
+  // Find "<num>." at line start (allow optional leading whitespace).
+  // Two attempts: standard "N." marker, and "Para N." / "Paragraph N." form.
+  const patterns = [
+    new RegExp(`(?:^|\\n)[ \\t]*${escaped}\\.\\s`),
+    new RegExp(`(?:^|\\n)[ \\t]*Para(?:graph)?\\s+${escaped}\\.\\s`, 'i')
+  ];
+  let m = null;
+  for (const p of patterns) {
+    m = source.match(p);
+    if (m && m.index != null) break;
+  }
+  if (!m) return null;
+
+  const contentStart = m.index + m[0].length;
+  const tail = source.slice(contentStart);
+
+  // End at next paragraph marker — any "\n<digits>." pattern. We pick
+  // the FIRST one we see; this avoids grabbing multiple paragraphs.
+  const endMatch = tail.match(/\n[ \t]*\d+(?:\.\d+)?\.\s/);
+  let extracted = (endMatch ? tail.slice(0, endMatch.index) : tail.slice(0, 6000)).trim();
+
+  // Hard cap to keep DB writes and UI rendering sane. Try to end at a
+  // sentence boundary; append " […]" if we truncated.
+  const MAX = 3500;
+  if (extracted.length > MAX) {
+    const cap = extracted.slice(0, MAX);
+    const lastEnd = Math.max(cap.lastIndexOf('. '), cap.lastIndexOf('.\n'));
+    if (lastEnd > MAX * 0.7) extracted = cap.slice(0, lastEnd + 1) + ' […]';
+    else extracted = cap + ' […]';
+  }
+  return extracted;
+}
+
 const IKAPI_MCP_URL = process.env.IKAPI_MCP_URL || 'https://ikapi.onrender.com/mcp';
 const OVER_FETCH_N = 10;        // 10 candidates -> full text -> verify each
 
@@ -347,18 +391,29 @@ async function runResearch(pool, jobId) {
       j.agent2_addresses = v.addresses;
       j.agent2_summary = v.summary;
       j.for_or_against_user = v.for_or_against_user;
-      // Normalize quotes — Agent 2 may sometimes return strings (older
-      // format) or objects. Coerce to [{para, text}] uniformly so the UI
-      // doesn't have to guess.
-      // ALSO: verify each para number against the source. If DeepSeek
-      // hallucinates a number (audit showed 10% rate), the deterministic
-      // locator overrides it. See verifyOrFindPara() above.
+      // Two-stage trust pipeline:
+      //   Stage A — verifyOrFindPara: confirm DeepSeek's para number
+      //             via deterministic locator; correct or drop it.
+      //   Stage B — extractParaFromSource: if we have a verified para,
+      //             COPY the actual paragraph text from the judgment.
+      //             This eliminates any paraphrase risk: text shown is
+      //             100% verbatim, lifted by code, never re-written.
+      // Fallback: when para is unverifiable, keep Agent 2's quote
+      // (already validated 47/47 by audit to be substring-of-source).
       j.relevant_quotes = (v.relevant_quotes || []).map(q => {
         const raw = typeof q === 'string'
           ? { para: '', text: q }
           : { para: String(q.para || '').trim(), text: String(q.text || '').trim() };
-        const verified = verifyOrFindPara(raw.text, text, raw.para);
-        return { para: verified, text: raw.text };
+        const verifiedPara = verifyOrFindPara(raw.text, text, raw.para);
+        if (verifiedPara) {
+          const extracted = extractParaFromSource(verifiedPara, text);
+          if (extracted && extracted.length >= 40) {
+            return { para: verifiedPara, text: extracted };
+          }
+        }
+        // Could not locate the paragraph by number — keep DS's verbatim
+        // quote (the audit step earlier already gave us trust in that).
+        return { para: verifiedPara, text: raw.text };
       }).filter(q => q.text && q.text.length >= 20);
 
       emit('verdict', {
@@ -477,6 +532,7 @@ async function revalidateAllParas(pool) {
   );
   let touchedJobs = 0;
   let touchedQuotes = 0;
+  let textsExtracted = 0;
   for (const row of r.rows) {
     const judgments = row.judgments;
     if (!Array.isArray(judgments)) continue;
@@ -491,6 +547,17 @@ async function revalidateAllParas(pool) {
           touchedQuotes++;
           changed = true;
         }
+        // Replace DS's quote text with the code-extracted paragraph
+        // wherever we can lift it deterministically. This is the
+        // "DeepSeek IDs the para, code copies the paragraph" model.
+        if (verified) {
+          const extracted = extractParaFromSource(verified, fullText);
+          if (extracted && extracted.length >= 40 && extracted !== q.text) {
+            q.text = extracted;
+            textsExtracted++;
+            changed = true;
+          }
+        }
       }
     }
     if (changed) {
@@ -501,7 +568,11 @@ async function revalidateAllParas(pool) {
       touchedJobs++;
     }
   }
-  return { jobs_touched: touchedJobs, quotes_corrected: touchedQuotes };
+  return {
+    jobs_touched: touchedJobs,
+    quotes_corrected: touchedQuotes,
+    texts_extracted: textsExtracted
+  };
 }
 
 module.exports = { runResearch, revalidateAllParas, verifyOrFindPara, locateParaForQuote };
