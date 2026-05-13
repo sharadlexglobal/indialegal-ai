@@ -106,12 +106,31 @@ async function runResearch(pool, jobId) {
   if (scope.bench) filters.bench = scope.bench;
   if (intent.is_recent_query) filters.sort = 'mostrecent';
 
-  const tryDoctypes = [intent.court_code, 'highcourts', 'judgments']
-    .filter((v, i, a) => v && a.indexOf(v) === i);
+  // Recall-aware multi-doctype fetch (post-audit fixes):
+  //
+  // Fix A: broaden when narrow doctype returns < 3 (not only on 0)
+  // Fix B: if user named a specific HC AND mentioned a landmark case
+  //        by name (capitalised proper noun), ALWAYS also query SC
+  //        in parallel — landmarks live in SC, advocate often wants both
+  //        the SC ratio + a HC application
+  //
+  // Merge by tid (dedupe), preserve insertion order so user's preferred
+  // doctype's results come first.
 
-  let candidates = [];
-  let usedDoctype = intent.court_code;
-  for (const dt of tryDoctypes) {
+  const intended = intent.court_code || 'judgments';
+  const isSpecificHC = !['supremecourt', 'highcourts', 'tribunals', 'judgments'].includes(intended);
+  const namedCaseRe = /\b[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}\b/;
+  const hasNamedCase = namedCaseRe.test(intent.ikapi_search_keywords || '')
+                     || namedCaseRe.test(scope.keywords || '');
+
+  // Plan parallel-fetch doctypes
+  const initialPlan = [intended];
+  if (isSpecificHC && hasNamedCase) initialPlan.push('supremecourt');
+
+  const fetched = new Map();   // tid -> result
+  const usedDoctypes = new Set();
+
+  async function fetchOne(dt) {
     try {
       const r = await ikapiCall('search_cases', {
         query: intent.ikapi_search_keywords,
@@ -119,19 +138,34 @@ async function runResearch(pool, jobId) {
         ...filters,
         max_results: OVER_FETCH_N
       });
-      const got = (r?.results || []).slice(0, OVER_FETCH_N);
-      if (got.length) {
-        candidates = got;
-        usedDoctype = dt;
-        if (dt !== intent.court_code) {
-          console.log(`[research ${jobId}] doctype fallback ${intent.court_code} -> ${dt}`);
-        }
-        break;
+      usedDoctypes.add(dt);
+      for (const r2 of (r?.results || [])) {
+        if (!r2.tid || fetched.has(r2.tid)) continue;
+        fetched.set(r2.tid, r2);
       }
+      return true;
     } catch (e) {
       console.warn(`[research ${jobId}] IKAPI doctype=${dt} error: ${e.message}`);
+      return false;
     }
   }
+
+  // Round 1: parallel fetch from intended (+ SC if landmark named)
+  await Promise.allSettled(initialPlan.map(fetchOne));
+  console.log(`[research ${jobId}] round 1: ${fetched.size} unique candidates from doctypes [${[...usedDoctypes].join(',')}]`);
+
+  // Round 2: if total < 3, broaden to next tier (sequential — only if needed)
+  if (fetched.size < 3) {
+    const broader = ['highcourts', 'judgments'].filter(d => !usedDoctypes.has(d));
+    for (const dt of broader) {
+      if (fetched.size >= 5) break;
+      await fetchOne(dt);
+      console.log(`[research ${jobId}] round 2 broaden to ${dt}: ${fetched.size} total`);
+    }
+  }
+
+  let candidates = [...fetched.values()].slice(0, OVER_FETCH_N);
+  const usedDoctype = [...usedDoctypes].join('+');
 
   if (!candidates.length) {
     await pool.query(
