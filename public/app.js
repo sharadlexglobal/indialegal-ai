@@ -581,6 +581,10 @@ async function attachResearchBlock(jobId, focus = false) {
     }
     if (job.status === 'done' && job.summary) {
       block.appendChild(el('div', { class: 'rb-stage' }, `done · ${job.summary.slice(0, 200)}`));
+      // Already-done research → auto-render the headnote digest from
+      // the saved judgments. The advocate sees the consolidated SCC
+      // list without scrolling each card.
+      renderDigestFromJudgments(block, job.judgments);
       return; // no SSE needed
     }
   } catch {}
@@ -668,6 +672,8 @@ function bindResearchSSE(es, block, jobId) {
   es.addEventListener('done', (e) => {
     const d = JSON.parse(e.data);
     stage(`done in ${(d.elapsed_ms/1000).toFixed(1)}s · ${d.summary || ''}`);
+    // Render the headnote digest from the live cards we accumulated.
+    renderDigestFromCards(block);
     es.close();
     state.researchStreams.delete(jobId);
     scrollThread();
@@ -679,6 +685,54 @@ function bindResearchSSE(es, block, jobId) {
     state.researchStreams.delete(jobId);
   });
   es.onerror = () => { /* SSE will auto-reconnect; nothing to do here */ };
+}
+
+// SCC-headnote digest — one consolidated list of every indexed judgment's
+// headnote, in maroon, rendered automatically when research completes.
+// Sources data from the cards already rendered in the block (the SSE path)
+// OR from the saved judgments array (historical snapshot path).
+function renderDigestFromCards(block) {
+  if (!block || block.querySelector('.rb-digest')) return;
+  const cards = $$('.judgment-card.applicable, .judgment-card.tangential', block);
+  if (!cards.length) return;
+  const items = cards.map(c => ({
+    title: c.querySelector('.jc-title')?.textContent?.trim() || '',
+    meta:  c.querySelector('.jc-meta')?.textContent?.trim() || '',
+    headnote: c.querySelector('.jc-headnote')?.textContent?.trim() || '',
+    verdict: ['applicable','tangential'].find(v => c.classList.contains(v)) || ''
+  })).filter(it => it.title && it.headnote);
+  if (!items.length) return;
+  appendDigest(block, items);
+}
+
+function renderDigestFromJudgments(block, judgments) {
+  if (!block || block.querySelector('.rb-digest')) return;
+  const items = (judgments || [])
+    .filter(j => j.verdict === 'APPLICABLE' || j.verdict === 'TANGENTIAL')
+    .map(j => ({
+      title: j.title || `tid ${j.tid}`,
+      meta: [j.court, j.date && fmtDate(j.date)].filter(Boolean).join('  ·  '),
+      headnote: j.verdict_reason || j.agent2_summary?.split('. ')[0] || '',
+      verdict: (j.verdict || '').toLowerCase()
+    }))
+    .filter(it => it.title && it.headnote);
+  if (!items.length) return;
+  appendDigest(block, items);
+}
+
+function appendDigest(block, items) {
+  const wrap = el('div', { class: 'rb-digest' },
+    el('div', { class: 'rb-digest-head' },
+      `Indexed judgments · headnotes  (${items.length})`)
+  );
+  for (const it of items) {
+    wrap.appendChild(el('div', { class: `rb-digest-item ${it.verdict}` },
+      el('div', { class: 'rb-digest-title' }, it.title),
+      it.meta ? el('div', { class: 'jc-meta' }, it.meta) : null,
+      el('div', { class: 'rb-digest-headnote' }, it.headnote)
+    ));
+  }
+  block.appendChild(wrap);
 }
 
 function renderJudgmentCard(parent, j) {

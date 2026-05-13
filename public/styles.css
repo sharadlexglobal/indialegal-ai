@@ -12,6 +12,10 @@
   --faint: #aaaaaa;
   --rule: #cccccc;
   --rule-strong: #000000;
+  /* The ONE accent — SCC-headnote maroon. Used sparingly:
+     judgment headnote text + auto-digest entries only. */
+  --maroon: #7a1d2b;
+  --maroon-soft: #9c3344;
 
   --serif: "EB Garamond", "Source Serif Pro", Georgia, serif;
   --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -433,19 +437,21 @@ button.icon.recording {
   margin-top: 4px;
   color: #333;
 }
-/* SCC-style headnote: one line under the title — gist at a glance */
+/* SCC-style headnote: one line under the title — gist at a glance.
+   Maroon is the only accent in the whole interface — restrained,
+   reserved for the headnote because that's what the advocate scans. */
 .judgment-card .jc-headnote {
   font-family: var(--serif);
   font-size: 15px;
   line-height: 1.45;
   font-style: italic;
-  color: var(--ink);
+  color: var(--maroon);
   margin-top: 6px;
   margin-bottom: 4px;
   padding-left: 2px;
 }
 .judgment-card.inapplicable .jc-headnote {
-  color: var(--muted);
+  color: var(--muted);   /* not maroon when not applicable */
 }
 
 /* Collapsed lens-summary (DeepSeek's 2-3 sentence longer paraphrase) */
@@ -504,6 +510,42 @@ button.icon.recording {
 .jc-quote .jc-quote-text {
   white-space: pre-wrap;     /* preserve line breaks the way the judgment had them */
   font-style: normal;
+}
+
+/* ───── Auto-digest: SCC-headnote list of every indexed judgment,
+   rendered automatically when research completes. ───── */
+.rb-digest {
+  margin: 24px 0 4px;
+  padding: 18px 0 4px;
+  border-top: 1px solid var(--rule);
+}
+.rb-digest .rb-digest-head {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.rb-digest-item {
+  margin-bottom: 16px;
+  padding-left: 14px;
+  border-left: 2px solid var(--maroon);
+}
+.rb-digest-item .rb-digest-title {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.rb-digest-item .rb-digest-headnote {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--maroon);
+  margin-top: 4px;
 }
 
 /* Composer */
