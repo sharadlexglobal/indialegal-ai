@@ -148,16 +148,27 @@ app.get('/api/cases', async (req, res) => {
   // Optional ?kind=document|standalone_research to filter
   const kind = (req.query.kind || '').toString();
   const where = kind === 'document' || kind === 'standalone_research'
-    ? `WHERE kind = $1` : '';
+    ? `WHERE c.kind = $1` : '';
   const params = kind === 'document' || kind === 'standalone_research'
     ? [kind] : [];
+  // Aggregate: for research sessions show total APPLICABLE+TANGENTIAL
+  // judgments across all its done jobs. For document cases, this number
+  // is also useful (indexed-research judgments attached to the file).
   const r = await pool.query(
-    `SELECT id, title, filename, kind, status, page_count, token_estimate,
-            facts_status,
-            gemini_store_name IS NOT NULL AS has_store,
-            facts IS NOT NULL AS has_facts,
-            created_at
-       FROM cases ${where} ORDER BY created_at DESC LIMIT 50`,
+    `SELECT c.id, c.title, c.filename, c.kind, c.status, c.page_count,
+            c.token_estimate, c.facts_status,
+            c.gemini_store_name IS NOT NULL AS has_store,
+            c.facts IS NOT NULL AS has_facts,
+            c.created_at,
+            COALESCE((
+              SELECT SUM(jsonb_array_length(COALESCE(j.judgments, '[]'::jsonb)))
+                FROM research_jobs j
+               WHERE j.case_id = c.id AND j.status = 'done'
+            ), 0) AS judgment_count,
+            COALESCE((
+              SELECT COUNT(*) FROM research_jobs j WHERE j.case_id = c.id
+            ), 0) AS research_count
+       FROM cases c ${where} ORDER BY c.created_at DESC LIMIT 50`,
     params
   );
   res.json(r.rows);
@@ -350,7 +361,7 @@ app.get('/api/cases/:id/research/:jobId', async (req, res) => {
 
 app.get('/api/cases/:id/research', async (req, res) => {
   const r = await pool.query(
-    `SELECT id, plan, status, summary, created_at,
+    `SELECT id, plan, scope, status, summary, created_at,
             jsonb_array_length(COALESCE(judgments, '[]'::jsonb)) AS judgment_count
        FROM research_jobs WHERE case_id=$1 ORDER BY created_at DESC LIMIT 20`,
     [req.params.id]

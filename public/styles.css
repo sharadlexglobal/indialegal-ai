@@ -398,6 +398,33 @@ button.icon.recording {
   color: #333;
 }
 
+/* Verbatim paragraphs from the judgment — THE trust mechanism */
+.jc-quotes { margin-top: 12px; }
+.jc-quote {
+  position: relative;
+  margin: 10px 0 10px 24px;
+  padding: 6px 0 6px 18px;
+  border-left: 2px solid var(--ink);
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.jc-quote .jc-para-no {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-right: 10px;
+  display: inline-block;
+  vertical-align: baseline;
+  font-style: normal;
+}
+.jc-quote .jc-quote-text {
+  white-space: pre-wrap;     /* preserve line breaks the way the judgment had them */
+  font-style: normal;
+}
+
 /* Composer */
 .composer {
   border-top: 1px solid var(--rule);

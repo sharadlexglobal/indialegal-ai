@@ -98,9 +98,16 @@ async function loadList() {
       return;
     }
     for (const c of items) {
-      const meta = kind === 'document'
-        ? (c.page_count ? `${c.page_count} pages` : c.status || '—')
-        : `${c.judgment_count || 0} judgments`;
+      let meta;
+      if (kind === 'document') {
+        meta = c.page_count ? `${c.page_count} pages` : (c.status || '—');
+      } else {
+        const j = Number(c.judgment_count || 0);
+        const r = Number(c.research_count || 0);
+        meta = r === 0
+          ? 'no research yet'
+          : `${r} session${r > 1 ? 's' : ''}  ·  ${j} judgment${j === 1 ? '' : 's'}`;
+      }
       const row = el('div', { class: 'row',
         onclick: () => openWorkspace(c) },
         el('div', { class: 'row-title' }, c.title || 'Untitled'),
@@ -256,10 +263,13 @@ async function loadContext(caseId, kind) {
       rEl.appendChild(el('div', { class: 'ctx-research-item empty' }, 'None yet.'));
     } else {
       for (const j of jobs) {
+        const label =
+          j.plan
+          || (j.scope && (j.scope.keywords || j.scope.principle))
+          || `Research #${j.id}`;
         const item = el('div', { class: 'ctx-research-item',
           onclick: () => attachResearchBlock(j.id, /* reload */ true) },
-          el('div', { class: 'ctx-research-title' },
-            (j.plan || 'untitled').slice(0, 60)),
+          el('div', { class: 'ctx-research-title' }, String(label).slice(0, 80)),
           el('div', { class: 'ctx-research-meta' },
             `${j.status}  ·  ${j.judgment_count || 0} judgments  ·  ${fmtDate(j.created_at)}`)
         );
@@ -581,7 +591,7 @@ function bindResearchSSE(es, block, jobId) {
   es.addEventListener('verdict', (e) => {
     const d = JSON.parse(e.data);
     const card = ensureCard(d.tid, d.title, d.court, d.date);
-    finalizeJudgmentCard(card, d);
+    finalizeJudgmentCard(card, d);   // d already includes relevant_quotes
     scrollThread();
   });
   es.addEventListener('indexing_start', (e) => {
@@ -617,7 +627,11 @@ function bindResearchSSE(es, block, jobId) {
 function renderJudgmentCard(parent, j) {
   const verdict = (j.verdict || 'pending').toLowerCase();
   const card = el('div', { class: `judgment-card ${verdict}`,
-    onclick: () => card.classList.toggle('expanded') },
+    onclick: (e) => {
+      // Don't toggle on text-selection of quotes / summary
+      if (window.getSelection?.()?.toString()) return;
+      card.classList.toggle('expanded');
+    } },
     el('div', { class: 'jc-title' }, j.title || `tid ${j.tid}`),
     el('div', { class: 'jc-meta' },
       [j.court, j.date && fmtDate(j.date)].filter(Boolean).join('  ·  ') || '—')
@@ -625,7 +639,8 @@ function renderJudgmentCard(parent, j) {
   card.dataset.tid = String(j.tid || '');
   if (j.verdict && j.verdict !== 'pending') finalizeJudgmentCard(card, {
     verdict: j.verdict, reason: j.verdict_reason, confidence: j.verdict_confidence,
-    summary: j.agent2_summary
+    summary: j.agent2_summary,
+    relevant_quotes: j.relevant_quotes
   });
   parent.appendChild(card);
   return card;
@@ -639,10 +654,28 @@ function finalizeJudgmentCard(card, d) {
   // Remove old verdict bits if present (re-runs)
   card.classList.remove('pending', 'applicable', 'tangential', 'inapplicable');
   card.classList.add((d.verdict || 'INAPPLICABLE').toLowerCase());
-  $$('.jc-verdict, .jc-reason, .jc-summary', card).forEach(n => n.remove());
+  $$('.jc-verdict, .jc-reason, .jc-summary, .jc-quotes', card).forEach(n => n.remove());
   card.appendChild(el('div', { class: 'jc-verdict' },
     `${d.verdict}  ·  ${d.confidence != null ? d.confidence + '/10' : ''}`));
   if (d.reason) card.appendChild(el('div', { class: 'jc-reason' }, d.reason));
+
+  // Verbatim quotes — THE trust criterion. Show before the summary so
+  // the advocate sees the court's own words first.
+  const quotes = Array.isArray(d.relevant_quotes) ? d.relevant_quotes : [];
+  if (quotes.length) {
+    const qWrap = el('div', { class: 'jc-quotes' });
+    for (const q of quotes) {
+      if (!q || !q.text || q.text.length < 20) continue;
+      const block = el('blockquote', { class: 'jc-quote' });
+      if (q.para) {
+        block.appendChild(el('span', { class: 'jc-para-no' }, `¶ ${q.para}`));
+      }
+      block.appendChild(el('span', { class: 'jc-quote-text' }, q.text));
+      qWrap.appendChild(block);
+    }
+    if (qWrap.childNodes.length) card.appendChild(qWrap);
+  }
+
   if (d.summary) card.appendChild(el('div', { class: 'jc-summary' }, d.summary));
 }
 

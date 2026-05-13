@@ -104,6 +104,26 @@ Report ONLY what the judgment says about THIS specific question. Do not summariz
 IMPORTANT — recognise FOUNDATIONAL principle matches:
 A landmark case that establishes the legal foundation for the soul-question's subject (e.g. Balbir Singh on Section 50 NDPS compliance) IS engaging with the soul-question even if the specific factual scenario the user described differs in minor details. Read for the PRINCIPLE the judgment lays down, not just the exact factual match.
 
+═══ EXTRACT VERBATIM PARAGRAPHS — THIS IS CRITICAL ═══
+
+The Indian advocate WILL NOT trust your summary unless they can see the
+court's own words. So for every meaningfully relevant point you mention,
+copy the actual paragraph from the judgment VERBATIM into relevant_quotes.
+
+  • Quote 1-4 paragraphs that ARE the holding/principle/operative passage.
+  • Copy EXACTLY — same words, punctuation, line breaks. NEVER paraphrase
+    inside a quote. Devanagari to Latin transliteration is forbidden.
+  • For each quote, identify its paragraph number IF the judgment numbers
+    its paragraphs (look for "13.", "Para 13", "44.", etc at the start of
+    the passage). If the passage has no number (e.g. unnumbered intro,
+    operative order), leave "para" as empty string.
+  • Prefer paragraphs that contain the actual ratio (holding, rule of
+    law) — not procedural recitals, not pleadings, not facts unless
+    facts are central to the principle.
+  • A single judgment can have multiple quoteworthy paragraphs — give
+    up to 4 if they each add a distinct point. One is enough if it
+    captures the holding.
+
 SOUL_QUESTION:
 ${soulQuestion}
 
@@ -115,16 +135,20 @@ Output strict JSON:
   "discusses_same_provision": true|false,
   "addresses_soul_question": "directly" | "on principle" | "tangentially" | "not at all",
   "court_holding": "<1-2 sentences ON THIS QUESTION or principle>",
-  "relevant_quotes": ["<verbatim quote>", ...],
+  "relevant_quotes": [
+    { "para": "<paragraph number, e.g. '13' or '44' or '' if unnumbered>",
+      "text": "<VERBATIM passage from the judgment, copied EXACTLY>" }
+  ],
   "for_or_against_user": "supports user's position" | "against user's position" | "neutral" | "not applicable",
   "summary_for_user": "<2-3 sentences from the angle of soul-question only>"
 }
 
 Rules:
-- Quote verbatim — never paraphrase quotes
+- Quote verbatim — never paraphrase quotes. Copy as-is from the judgment.
 - If addresses_soul_question is "not at all", relevant_quotes must be []
 - "on principle" means the judgment is a foundational/landmark authority on the SAME legal principle even if user's specific factual variant differs
-- summary_for_user must NEVER include positions the judgment did not actually take`
+- summary_for_user must NEVER include positions the judgment did not actually take
+- relevant_quotes[].text must each be at least 40 characters; do not truncate mid-sentence; copy the full paragraph or a self-contained portion`
   }], { label: 'read' });
 }
 

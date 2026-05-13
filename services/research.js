@@ -261,6 +261,13 @@ async function runResearch(pool, jobId) {
       j.agent2_addresses = v.addresses;
       j.agent2_summary = v.summary;
       j.for_or_against_user = v.for_or_against_user;
+      // Normalize quotes — Agent 2 may sometimes return strings (older
+      // format) or objects. Coerce to [{para, text}] uniformly so the UI
+      // doesn't have to guess.
+      j.relevant_quotes = (v.relevant_quotes || []).map(q => {
+        if (typeof q === 'string') return { para: '', text: q };
+        return { para: String(q.para || '').trim(), text: String(q.text || '').trim() };
+      }).filter(q => q.text && q.text.length >= 20);
 
       emit('verdict', {
         tid: j.tid,
@@ -273,7 +280,8 @@ async function runResearch(pool, jobId) {
         addresses: j.agent2_addresses,
         for_or_against_user: j.for_or_against_user,
         summary: j.agent2_summary,
-        advocate_use: j.advocate_use
+        advocate_use: j.advocate_use,
+        relevant_quotes: j.relevant_quotes
       });
     } catch (e) {
       console.warn(`[research ${jobId}] verify ${j.tid} failed:`, e.message);
