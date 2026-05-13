@@ -650,6 +650,24 @@ function appendStage(card, text) {
   card.appendChild(el('div', { class: 'jc-stage' }, text));
 }
 
+// Verdict-based card ordering. Lower number = sorts higher in the
+// timeline. APPLICABLE first, then TANGENTIAL, then everything else.
+const VERDICT_RANK = { applicable: 0, tangential: 1, pending: 2, inapplicable: 3 };
+
+function reorderCards(parent) {
+  // Re-sort all judgment cards within `parent` (a research-block).
+  // Stable-ish sort: same-verdict cards preserve insertion order.
+  const cards = Array.from(parent.querySelectorAll('.judgment-card'));
+  cards.forEach((c, i) => { c.dataset._idx = String(i); });
+  cards.sort((a, b) => {
+    const ra = VERDICT_RANK[[...a.classList].find(c => VERDICT_RANK[c] != null)] ?? 99;
+    const rb = VERDICT_RANK[[...b.classList].find(c => VERDICT_RANK[c] != null)] ?? 99;
+    if (ra !== rb) return ra - rb;
+    return Number(a.dataset._idx) - Number(b.dataset._idx);
+  });
+  for (const c of cards) parent.appendChild(c);
+}
+
 function finalizeJudgmentCard(card, d) {
   // Remove old verdict bits if present (re-runs)
   card.classList.remove('pending', 'applicable', 'tangential', 'inapplicable');
@@ -677,6 +695,10 @@ function finalizeJudgmentCard(card, d) {
   }
 
   if (d.summary) card.appendChild(el('div', { class: 'jc-summary' }, d.summary));
+
+  // After a verdict lands, re-sort siblings so APPLICABLE rises to top.
+  const block = card.closest('.research-block');
+  if (block) reorderCards(block);
 }
 
 // ─────────────────── boot ───────────────────

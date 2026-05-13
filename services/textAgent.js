@@ -267,9 +267,17 @@ async function toolSearchIndianKanoon(_pool, _caseId, args) {
     const text = j.result?.content?.[0]?.text || '';
     let payload;
     try { payload = JSON.parse(text); } catch { return { results: [], raw: text.slice(0, 400) }; }
+    // Strip IK's <b>highlight</b> HTML + collapse whitespace before
+    // feeding to the LLM — keeps context clean.
+    const strip = (s) => String(s || '')
+      .replace(/<\/?b>/g, '')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
     const results = (payload.results || []).slice(0, 5).map(x => ({
-      title: x.title, court: x.court, date: x.date || x.judgment_date,
-      citation: x.citation, snippet: (x.snippet || '').slice(0, 400)
+      title: strip(x.title), court: strip(x.court),
+      date: x.date || x.judgment_date,
+      citation: x.citation, snippet: strip(x.snippet).slice(0, 400)
     }));
     return { results };
   } catch (e) {
