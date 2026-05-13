@@ -24,6 +24,7 @@ const fetch = require('node-fetch');
 const { Buffer } = require('buffer');
 const gemini = require('./gemini');
 const verification = require('./verification');
+const bus = require('./eventBus');
 
 const IKAPI_MCP_URL = process.env.IKAPI_MCP_URL || 'https://ikapi.onrender.com/mcp';
 const OVER_FETCH_N = 10;        // 10 candidates -> full text -> verify each
@@ -49,6 +50,10 @@ async function ikapiCall(name, args, { timeoutMs = 180000 } = {}) {
 }
 
 async function runResearch(pool, jobId) {
+  const topic = `research:${jobId}`;
+  const emit = (event, data = {}) => bus.emit(topic, event, data);
+  const t0 = Date.now();
+
   const job = (await pool.query(
     `SELECT j.id, j.case_id, j.scope, c.gemini_store_name
        FROM research_jobs j JOIN cases c ON c.id = j.case_id
@@ -62,6 +67,7 @@ async function runResearch(pool, jobId) {
     `UPDATE research_jobs SET status='running', updated_at=NOW() WHERE id=$1`,
     [jobId]
   );
+  emit('started', { jobId, scope: job.scope });
 
   const scope = job.scope || {};
   const maxResults = Math.max(1, Math.min(scope.max_results ?? 5, 8));
@@ -81,8 +87,10 @@ async function runResearch(pool, jobId) {
     return;
   }
 
+  emit('soul_extracting', {});
   const intent = await verification.extractSoul(naturalish);
   if (!intent || !intent.ikapi_search_keywords) {
+    emit('failed', { reason: 'Agent 1 (soul extract) failed' });
     await pool.query(
       `UPDATE research_jobs SET status='failed', error='Agent 1 (soul extract) failed', updated_at=NOW() WHERE id=$1`,
       [jobId]
@@ -97,6 +105,13 @@ async function runResearch(pool, jobId) {
     keywords: intent.ikapi_search_keywords,
     court: intent.court_code
   }));
+  emit('soul_extracted', {
+    soul_question: intent.soul_question,
+    keywords: intent.ikapi_search_keywords,
+    court_code: intent.court_code,
+    legal_area: intent.legal_area,
+    exact_provision: intent.exact_provision
+  });
 
   // ── Step 2 — IKAPI search with doctype fallback ──
   const filters = {};
@@ -150,15 +165,18 @@ async function runResearch(pool, jobId) {
     }
   }
 
+  emit('ikapi_search_start', { doctypes: initialPlan });
   // Round 1: parallel fetch from intended (+ SC if landmark named)
   await Promise.allSettled(initialPlan.map(fetchOne));
   console.log(`[research ${jobId}] round 1: ${fetched.size} unique candidates from doctypes [${[...usedDoctypes].join(',')}]`);
+  emit('ikapi_round1_done', { count: fetched.size, doctypes: [...usedDoctypes] });
 
   // Round 2: if total < 3, broaden to next tier (sequential — only if needed)
   if (fetched.size < 3) {
     const broader = ['highcourts', 'judgments'].filter(d => !usedDoctypes.has(d));
     for (const dt of broader) {
       if (fetched.size >= 5) break;
+      emit('ikapi_broaden', { doctype: dt });
       await fetchOne(dt);
       console.log(`[research ${jobId}] round 2 broaden to ${dt}: ${fetched.size} total`);
     }
@@ -168,6 +186,8 @@ async function runResearch(pool, jobId) {
   const usedDoctype = [...usedDoctypes].join('+');
 
   if (!candidates.length) {
+    emit('no_results', {});
+    emit('done', { summary: 'Indian Kanoon par koi judgment nahi mila.', elapsed_ms: Date.now() - t0 });
     await pool.query(
       `UPDATE research_jobs SET status='done', summary=$1, updated_at=NOW() WHERE id=$2`,
       ['Indian Kanoon par is sawaal ke liye koi judgment nahi mila. Scope thoda widen karke try kar sakte hain.', jobId]
@@ -176,6 +196,13 @@ async function runResearch(pool, jobId) {
   }
 
   console.log(`[research ${jobId}] IKAPI returned ${candidates.length} (doctype=${usedDoctype}), verifying each…`);
+  emit('candidates', {
+    count: candidates.length,
+    doctypes: [...usedDoctypes],
+    candidates: candidates.map(c => ({
+      tid: c.tid, title: c.title, court: c.court, date: c.date || c.judgment_date
+    }))
+  });
 
   // ── Step 3 — 3-agent verification per candidate (parallel) ──
   // Initialize all judgments with metadata; full text + verdict populated as we go.
@@ -207,17 +234,23 @@ async function runResearch(pool, jobId) {
 
   await Promise.allSettled(judgments.map(async (j) => {
     try {
+      emit('fetch_text', { tid: j.tid, title: j.title });
       const doc = await ikapiCall('get_case_document', { tid: j.tid });
       const text = (doc?.text || doc?.body || doc?.raw || '').toString();
       if (!text || text.length < 500) {
         j.verdict = 'INAPPLICABLE';
         j.verdict_reason = 'judgment text too short';
+        emit('verdict', {
+          tid: j.tid, title: j.title, verdict: j.verdict,
+          reason: j.verdict_reason, confidence: 10
+        });
         return;
       }
 
       // SAVE full text in DB (P1 fix — persistent recovery if Gemini fails)
       j.full_text = text;
       j.text_length = text.length;
+      emit('agent2_start', { tid: j.tid, title: j.title, text_length: text.length });
 
       // 3-agent verification
       const v = await verification.verifyCandidate(intent.soul_question, j, text);
@@ -228,10 +261,28 @@ async function runResearch(pool, jobId) {
       j.agent2_addresses = v.addresses;
       j.agent2_summary = v.summary;
       j.for_or_against_user = v.for_or_against_user;
+
+      emit('verdict', {
+        tid: j.tid,
+        title: j.title,
+        court: j.court,
+        date: j.date,
+        verdict: j.verdict,
+        confidence: j.verdict_confidence,
+        reason: j.verdict_reason,
+        addresses: j.agent2_addresses,
+        for_or_against_user: j.for_or_against_user,
+        summary: j.agent2_summary,
+        advocate_use: j.advocate_use
+      });
     } catch (e) {
       console.warn(`[research ${jobId}] verify ${j.tid} failed:`, e.message);
       j.verdict = 'INAPPLICABLE';
       j.verdict_reason = `verification error: ${String(e.message || e).slice(0, 120)}`;
+      emit('verdict', {
+        tid: j.tid, title: j.title, verdict: j.verdict,
+        reason: j.verdict_reason, confidence: 0
+      });
     } finally {
       checkpoint();
     }
@@ -250,11 +301,18 @@ async function runResearch(pool, jobId) {
     toIndex = [...applicable, ...tangential].slice(0, maxResults);
   }
   console.log(`[research ${jobId}] verdicts: ${applicable.length} APPLICABLE, ${tangential.length} TANGENTIAL, ${judgments.length - applicable.length - tangential.length} INAPPLICABLE. Indexing ${toIndex.length}.`);
+  emit('verdicts_complete', {
+    applicable: applicable.length,
+    tangential: tangential.length,
+    inapplicable: judgments.length - applicable.length - tangential.length,
+    to_index: toIndex.length
+  });
 
   // ── Step 5 — Index selected judgments in Gemini File Search ──
   await Promise.allSettled(toIndex.map(async (j) => {
     if (!j.full_text) return;
     try {
+      emit('indexing_start', { tid: j.tid, title: j.title });
       const filename = `judgment-${j.tid}-${(j.title || 'untitled').slice(0, 60).replace(/[^\w-]+/g, '_')}.txt`;
       const enriched =
         `Title: ${j.title || 'Untitled'}\n` +
@@ -272,9 +330,11 @@ async function runResearch(pool, jobId) {
       const { documentName } = await gemini.pollIndexingComplete(operationName);
       j.indexed = true;
       j.gemini_document = documentName;
+      emit('indexed', { tid: j.tid, title: j.title });
     } catch (e) {
       console.warn(`[research ${jobId}] index ${j.tid} failed:`, e.message);
       j.index_error = String(e.message || e).slice(0, 200);
+      emit('index_failed', { tid: j.tid, title: j.title, error: j.index_error });
     } finally {
       checkpoint();
     }
@@ -296,6 +356,14 @@ async function runResearch(pool, jobId) {
     [summary, jobId]
   );
   console.log(`[research ${jobId}] done. ${summary}`);
+  emit('done', {
+    summary,
+    applicable: applicable.length,
+    tangential: tangential.length,
+    inapplicable: judgments.length - applicable.length - tangential.length,
+    indexed: indexedCount,
+    elapsed_ms: Date.now() - t0
+  });
 }
 
 module.exports = { runResearch };

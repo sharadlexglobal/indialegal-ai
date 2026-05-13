@@ -60,6 +60,22 @@ CREATE TABLE IF NOT EXISTS research_jobs (
 );
 CREATE INDEX IF NOT EXISTS research_jobs_case_idx ON research_jobs (case_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS research_jobs_status_idx ON research_jobs (status);
+
+-- Unified conversation log. Voice and text BOTH append rows here.
+-- Frontend renders the whole thread by case_id in chronological order.
+--   role: 'user' | 'assistant' | 'tool'
+--   content: plain spoken/typed text
+--   meta:    { source: 'voice'|'text', tool?: {...}, research_job_id?: N }
+CREATE TABLE IF NOT EXISTS conversation_messages (
+  id          BIGSERIAL PRIMARY KEY,
+  case_id     BIGINT NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL,
+  content     TEXT NOT NULL,
+  meta        JSONB,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS conv_msgs_case_idx
+  ON conversation_messages (case_id, created_at);
 `;
 
 (async () => {

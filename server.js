@@ -9,6 +9,8 @@ const datalab = require('./services/datalab');
 const openai = require('./services/openai');
 const gemini = require('./services/gemini');
 const research = require('./services/research');
+const bus = require('./services/eventBus');
+const textAgent = require('./services/textAgent');
 const {
   buildRealtimeSystemPrompt,
   FORBIDDEN_PHRASES,
@@ -426,6 +428,146 @@ app.post('/api/cases/:id/verify', async (req, res) => {
   } catch (e) {
     console.error('verify error', e);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// SSE helpers
+// ─────────────────────────────────────────────────────────────────────
+
+function openSSE(req, res) {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'   // disable proxy buffering (nginx/render)
+  });
+  res.flushHeaders?.();
+  // Keep-alive ping every 25s so proxies don't drop the connection
+  const ping = setInterval(() => res.write(`: ping\n\n`), 25_000);
+  req.on('close', () => clearInterval(ping));
+  return {
+    send(event, data) {
+      res.write(`event: ${event}\n`);
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    },
+    end() { clearInterval(ping); res.end(); }
+  };
+}
+
+// Live SSE stream for a research job. Streams the full event sequence
+// (with replay for late subscribers) and closes after 'done' or 'failed'.
+app.get('/api/cases/:id/research/:jobId/stream', (req, res) => {
+  const topic = `research:${req.params.jobId}`;
+  const sse = openSSE(req, res);
+  let closed = false;
+  const cleanup = bus.subscribe(topic, (entry) => {
+    if (closed) return;
+    sse.send(entry.event, entry.data);
+    if (entry.event === 'done' || entry.event === 'failed') {
+      closed = true;
+      setTimeout(() => { cleanup(); sse.end(); }, 50);
+    }
+  });
+  req.on('close', () => { closed = true; cleanup(); });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Conversation log + text chat
+// ─────────────────────────────────────────────────────────────────────
+
+// Get the full thread for a case (voice + text combined).
+app.get('/api/cases/:id/messages', async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT id, role, content, meta, created_at
+         FROM conversation_messages
+        WHERE case_id=$1
+        ORDER BY created_at ASC, id ASC
+        LIMIT 500`,
+      [req.params.id]
+    );
+    res.json(r.rows);
+  } catch (e) {
+    console.error('messages list error', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Public append endpoint — used by the frontend when LiveKit's
+// TranscriptionReceived fires (so voice turns land in the same log).
+app.post('/api/cases/:id/messages', async (req, res) => {
+  try {
+    const role = String(req.body?.role || '').trim();
+    const content = String(req.body?.content || '').trim();
+    const meta = req.body?.meta || null;
+    if (!['user', 'assistant', 'tool'].includes(role)) {
+      return res.status(400).json({ error: 'invalid role' });
+    }
+    if (!content) return res.status(400).json({ error: 'content required' });
+    const row = await appendMessage(req.params.id, role, content, meta);
+    res.json(row);
+  } catch (e) {
+    console.error('append message error', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Append a message (used by voice agent post-turn AND by text endpoint).
+async function appendMessage(caseId, role, content, meta = null) {
+  const r = await pool.query(
+    `INSERT INTO conversation_messages (case_id, role, content, meta)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, role, content, meta, created_at`,
+    [caseId, role, content, meta]
+  );
+  return r.rows[0];
+}
+
+// Text agent — streaming SSE response.
+//   POST /api/cases/:id/chat   body: { message: "..." }
+// Streams events: user_saved, tool_call, tool_result, final, saved, done
+app.post('/api/cases/:id/chat', async (req, res) => {
+  const caseId = req.params.id;
+  const message = String(req.body?.message || '').trim();
+  if (!message) return res.status(400).json({ error: 'message required' });
+
+  const turnId = `${Date.now().toString(36)}`;
+  const topic = `chat:${caseId}:${turnId}`;
+  const sse = openSSE(req, res);
+  const emit = (event, data) => {
+    bus.emit(topic, event, data);
+    sse.send(event, data);
+  };
+
+  try {
+    // Persist user turn
+    const userMsg = await appendMessage(caseId, 'user', message, { source: 'text' });
+    emit('user_saved', userMsg);
+
+    // Load recent history (last 20 turns) for multi-turn coherence
+    const hr = await pool.query(
+      `SELECT role, content FROM conversation_messages
+        WHERE case_id=$1 AND role IN ('user','assistant')
+        ORDER BY created_at DESC, id DESC LIMIT 20`,
+      [caseId]
+    );
+    const history = hr.rows.reverse().slice(0, -1);   // drop the user msg we just inserted
+
+    const { text, tool_calls } = await textAgent.runTurn({
+      pool, caseId, userText: message, history, emit
+    });
+
+    const assistantMsg = await appendMessage(
+      caseId, 'assistant', text, { source: 'text', tool_calls }
+    );
+    emit('saved', assistantMsg);
+    emit('done', { ok: true });
+  } catch (e) {
+    console.error('chat error', e);
+    emit('failed', { error: e.message });
+  } finally {
+    sse.end();
   }
 });
 

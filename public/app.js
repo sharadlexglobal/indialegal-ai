@@ -1,357 +1,650 @@
-const $ = (s) => document.querySelector(s);
-const fmt = (d) => new Date(d).toLocaleString();
+/* ─────────────────────────────────────────────────────────────────
+   INDIALEGAL.AI — frontend
+   Two screens:
+     1) list       — research sessions + uploaded cases
+     2) workspace  — unified thread (text + voice), context panel
+   No frameworks. Vanilla JS + DOM.
+   ───────────────────────────────────────────────────────────────── */
 
-let activeCase = null;
-let room = null;
+const $  = (s, root = document) => root.querySelector(s);
+const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
 
-// ---------- Upload ----------
-$('#file').addEventListener('change', (e) => {
-  const f = e.target.files[0];
-  $('#file-label').textContent = f ? f.name : 'Tap to choose PDF';
+const state = {
+  activeCase: null,           // {id, title, kind, page_count, status}
+  liveRoom: null,             // LiveKit Room
+  researchStreams: new Map(), // jobId -> EventSource
+  researchBlocks: new Map(),  // jobId -> DOM node in thread
+  threadEl: null,
+};
+
+// ─────────────────── time + html helpers ───────────────────
+const fmtTime = (iso) => {
+  const d = new Date(iso || Date.now());
+  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+};
+const fmtDate = (iso) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])
+);
+// Lightweight markdown — only **bold**, *italic*, `code`, lists, paragraphs.
+function md(text) {
+  if (!text) return '';
+  const lines = String(text).split('\n');
+  const out = [];
+  let inList = false;
+  for (const raw of lines) {
+    const line = raw.replace(/[&<>"]/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])
+    );
+    const inline = (s) => s
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>');
+    if (/^\s*[-•]\s+/.test(line)) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push(`<li>${inline(line.replace(/^\s*[-•]\s+/, ''))}</li>`);
+    } else if (!line.trim()) {
+      if (inList) { out.push('</ul>'); inList = false; }
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(`<p>${inline(line)}</p>`);
+    }
+  }
+  if (inList) out.push('</ul>');
+  return out.join('');
+}
+function el(tag, props = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') n.className = v;
+    else if (k === 'html') n.innerHTML = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  for (const k of kids) {
+    if (k == null) continue;
+    n.appendChild(typeof k === 'string' ? document.createTextNode(k) : k);
+  }
+  return n;
+}
+
+// ─────────────────── routing ───────────────────
+const screens = { list: $('#screen-list'), workspace: $('#screen-workspace') };
+function go(name) {
+  Object.values(screens).forEach(s => s.classList.add('hidden'));
+  screens[name].classList.remove('hidden');
+}
+
+// ─────────────────── list screen ───────────────────
+async function loadList() {
+  const [casesR, researchR] = await Promise.all([
+    fetch('/api/cases?kind=document').then(r => r.json()),
+    fetch('/api/cases?kind=standalone_research').then(r => r.json()),
+  ]);
+
+  const cases = Array.isArray(casesR) ? casesR : [];
+  const research = Array.isArray(researchR) ? researchR : [];
+
+  const renderRows = (host, items, kind) => {
+    host.innerHTML = '';
+    if (!items.length) {
+      host.appendChild(el('div', { class: 'row empty' },
+        kind === 'document' ? 'No cases uploaded yet.' : 'No research sessions yet.'
+      ));
+      return;
+    }
+    for (const c of items) {
+      const meta = kind === 'document'
+        ? (c.page_count ? `${c.page_count} pages` : c.status || '—')
+        : `${c.judgment_count || 0} judgments`;
+      const row = el('div', { class: 'row',
+        onclick: () => openWorkspace(c) },
+        el('div', { class: 'row-title' }, c.title || 'Untitled'),
+        el('div', { class: 'row-meta' }, meta),
+        el('div', { class: 'row-meta' }, fmtDate(c.created_at))
+      );
+      host.appendChild(row);
+    }
+  };
+  renderRows($('#cases-list'), cases, 'document');
+  renderRows($('#research-list'), research, 'standalone_research');
+}
+
+// ─────────────────── sheets ───────────────────
+function showSheet(id) { $('#' + id).classList.remove('hidden'); }
+function hideSheet(id) { $('#' + id).classList.add('hidden'); }
+$$('[data-close-sheet]').forEach(b => b.addEventListener('click', () => {
+  b.closest('.sheet').classList.add('hidden');
+}));
+
+$('#new-upload').addEventListener('click', () => showSheet('upload-sheet'));
+$('#new-research').addEventListener('click', () => showSheet('research-sheet'));
+
+$('#research-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = $('#research-title').value.trim() || `Research — ${new Date().toLocaleString()}`;
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const r = await fetch('/api/research/new', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'failed');
+    hideSheet('research-sheet');
+    $('#research-title').value = '';
+    await loadList();
+    openWorkspace({ id: j.id, title: j.title, kind: 'standalone_research', status: 'ready' });
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Begin';
+  }
 });
 
 $('#upload-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const file = $('#file').files[0];
+  const file = $('#upload-file').files[0];
   if (!file) return;
-  const title = $('#title').value || file.name.replace(/\.pdf$/i, '');
+  const title = $('#upload-title').value.trim() || file.name;
   const fd = new FormData();
   fd.append('pdf', file);
   fd.append('title', title);
-
-  $('#upload-btn').disabled = true;
-  $('#upload-status').textContent = 'Uploading…';
-  $('#upload-status').className = 'status';
+  const status = $('#upload-status');
+  status.textContent = 'Uploading…';
+  status.className = 'row-meta';
   try {
-    const res = await fetch('/api/cases', { method: 'POST', body: fd });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'upload failed');
-    $('#upload-status').textContent = 'Uploaded. Processing in background…';
-    $('#upload-status').className = 'status ok';
-    $('#file').value = ''; $('#file-label').textContent = 'Tap to choose PDF'; $('#title').value = '';
-    loadCases();
+    const r = await fetch('/api/cases', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'upload failed');
+    status.textContent = 'Processing in background…';
+    status.className = 'row-meta ok';
+    setTimeout(() => {
+      hideSheet('upload-sheet');
+      $('#upload-form').reset();
+      status.textContent = '';
+      loadList();
+    }, 600);
   } catch (err) {
-    $('#upload-status').textContent = err.message;
-    $('#upload-status').className = 'status err';
-  } finally {
-    $('#upload-btn').disabled = false;
+    status.textContent = err.message;
+    status.className = 'row-meta err';
   }
 });
 
-// ---------- Cases ----------
-const STATUS_LABELS = {
-  processing:  { label: 'Queued',                  hint: 'Just uploaded — getting started…',         cls: 'pending',  spin: true  },
-  ocr_running: { label: 'Reading PDF',             hint: 'Datalab is OCR-ing the document (≈30-90s)', cls: 'pending',  spin: true  },
-  ocr_done:    { label: 'OCR done, preparing AI',  hint: 'Sending to AI memory…',                     cls: 'pending',  spin: true  },
-  indexing:    { label: 'Indexing in AI memory',   hint: 'Embedding for fast lookup (≈30-90s)',       cls: 'pending',  spin: true  },
-  ready:       { label: 'Ready to speak',          hint: 'Tap Speak to start a voice session',        cls: 'ready',    spin: false },
-  failed:      { label: 'Failed',                  hint: 'Something went wrong — see error',          cls: 'failed',   spin: false }
-};
+// ─────────────────── workspace ───────────────────
+async function openWorkspace(c) {
+  state.activeCase = c;
+  state.threadEl = $('#thread');
+  $('#ws-title').textContent = c.title || 'Untitled';
+  $('#ws-meta').textContent = c.kind === 'document'
+    ? `${c.page_count || '—'} pages`
+    : 'research session';
 
-let casePollMs = 5000;
+  state.threadEl.innerHTML = '';
+  state.researchBlocks.clear();
+  // close any active SSE
+  for (const s of state.researchStreams.values()) s.close();
+  state.researchStreams.clear();
 
-async function loadCases() {
-  try {
-    const res = await fetch('/api/cases?kind=document');
-    const list = await res.json();
-    const ul = $('#cases-list');
-    ul.innerHTML = '';
-    if (!list.length) {
-      ul.innerHTML = '<li style="color:var(--muted);">No cases yet. Upload one above.</li>';
-      casePollMs = 5000;
-      return;
-    }
-    let anyInFlight = false;
-    for (const c of list) {
-      const sx = STATUS_LABELS[c.status] || { label: c.status, hint: '', cls: 'pending', spin: false };
-      if (sx.spin) anyInFlight = true;
-      const ready = c.status === 'ready' && c.has_store;
-      const spinner = sx.spin ? '<span class="spin"></span>' : '';
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <div class="case-title">
-          <div>${escapeHtml(c.title)}</div>
-          <div class="case-meta">${c.page_count ? c.page_count + ' pages · ' : ''}${fmt(c.created_at)}</div>
-          <div class="case-hint">${spinner}${escapeHtml(sx.hint)}</div>
-        </div>
-        <span class="badge ${sx.cls}">${sx.label}</span>
-        <div class="case-buttons">
-          <button class="case-action case-speak" ${ready ? '' : 'disabled'} data-id="${c.id}" data-title="${escapeHtml(c.title)}">Speak</button>
-          <button class="case-action case-research" ${ready ? '' : 'disabled'} data-id="${c.id}" data-title="${escapeHtml(c.title)}">Research</button>
-        </div>
-      `;
-      ul.appendChild(li);
-    }
-    ul.querySelectorAll('.case-speak').forEach(btn => {
-      btn.addEventListener('click', () => openVoiceFor(btn.dataset.id, btn.dataset.title, 'case'));
-    });
-    ul.querySelectorAll('.case-research').forEach(btn => {
-      btn.addEventListener('click', () => openVoiceFor(btn.dataset.id, btn.dataset.title, 'research'));
-    });
-    // Faster polling while any case is in-flight so the user sees prompt transitions.
-    casePollMs = anyInFlight ? 2500 : 6000;
-  } catch (e) { console.error(e); }
+  go('workspace');
+
+  // Load context (facts + research jobs) + conversation history in parallel
+  await Promise.all([
+    loadContext(c.id, c.kind),
+    loadMessages(c.id),
+  ]);
+
+  // Auto-focus composer
+  $('#composer-input').focus();
 }
-function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-(function scheduleNextPoll() {
-  setTimeout(async () => { await loadCases(); scheduleNextPoll(); }, casePollMs);
-})();
-loadCases();
-
-// ---------- Standalone Research sessions ----------
-async function loadResearchSessions() {
-  try {
-    const res = await fetch('/api/cases?kind=standalone_research');
-    const list = await res.json();
-    const ul = $('#research-list');
-    ul.innerHTML = '';
-    if (!list.length) {
-      ul.innerHTML = '<li class="research-empty">No past research sessions yet.</li>';
-      return;
-    }
-    for (const c of list) {
-      const ready = c.status === 'ready' && c.has_store;
-      const li = document.createElement('li');
-      li.className = 'research-session-row';
-      li.innerHTML = `
-        <div class="research-session-meta">
-          <div class="research-session-title">${escapeHtml(c.title)}</div>
-          <div class="research-session-sub">${fmt(c.created_at)} · ${escapeHtml(c.status)}</div>
-        </div>
-        <div class="research-session-buttons">
-          <button class="case-action research-continue" ${ready ? '' : 'disabled'} data-id="${c.id}" data-title="${escapeHtml(c.title)}">Continue research</button>
-          <button class="case-action case-speak" ${ready ? '' : 'disabled'} data-id="${c.id}" data-title="${escapeHtml(c.title)}">Speak</button>
-        </div>
-      `;
-      ul.appendChild(li);
-    }
-    ul.querySelectorAll('.research-continue').forEach(btn => {
-      btn.addEventListener('click', () => openVoiceFor(btn.dataset.id, btn.dataset.title, 'research'));
-    });
-    ul.querySelectorAll('.case-speak').forEach(btn => {
-      btn.addEventListener('click', () => openVoiceFor(btn.dataset.id, btn.dataset.title, 'case'));
-    });
-  } catch (e) { console.error(e); }
-}
-setInterval(loadResearchSessions, 6000);
-loadResearchSessions();
-
-$('#standalone-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const titleInput = $('#standalone-title');
-  const title = (titleInput.value || '').trim();
-  const btn = $('#start-standalone');
-  btn.disabled = true;
-  $('#standalone-status').textContent = 'Creating research session…';
-  $('#standalone-status').className = 'status';
-  try {
-    const res = await fetch('/api/research/new', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'create failed');
-    $('#standalone-status').textContent = 'Opening voice session…';
-    $('#standalone-status').className = 'status ok';
-    titleInput.value = '';
-    openVoiceFor(data.id, data.title, 'research');
-    loadResearchSessions();
-  } catch (err) {
-    $('#standalone-status').textContent = err.message;
-    $('#standalone-status').className = 'status err';
-  } finally {
-    btn.disabled = false;
-  }
+$('#back-to-list').addEventListener('click', () => {
+  // Tear down active resources
+  for (const s of state.researchStreams.values()) s.close();
+  state.researchStreams.clear();
+  if (state.liveRoom) { try { state.liveRoom.disconnect(); } catch {} state.liveRoom = null; }
+  state.activeCase = null;
+  go('list');
+  loadList();
 });
 
-// ---------- Voice session ----------
-function openVoiceFor(id, title, mode = 'case') {
-  activeCase = { id, title, mode };
-  $('#voice-card').classList.remove('hidden');
-  $('#voice-card-title').textContent = mode === 'research' ? '3. Legal Research session' : '3. Voice session';
-  $('#voice-case').textContent = (mode === 'research' ? 'Research on: ' : 'Case: ') + title;
-  $('#voice-status').textContent = '';
-  $('#turn-log').innerHTML = '';
-  $('#start-voice').classList.remove('hidden');
-  $('#stop-voice').classList.add('hidden');
-  if (mode === 'research') {
-    $('#facts-panel').classList.add('hidden');
-    $('#research-panel').classList.remove('hidden');
-    loadResearchPanel(id);
+async function loadContext(caseId, kind) {
+  // Facts (only meaningful for uploaded docs)
+  const factsEl = $('#ctx-facts');
+  factsEl.innerHTML = '';
+  if (kind === 'document') {
+    try {
+      const r = await fetch(`/api/cases/${caseId}/facts`);
+      const { facts, facts_status } = await r.json();
+      const f = facts || {};
+      const order = ['case_title','case_number','court','judge','petitioner','respondent','sections','filing_date','next_hearing_date','one_line_summary'];
+      const labels = {
+        case_title: 'Title', case_number: 'Case no.', court: 'Court', judge: 'Judge',
+        petitioner: 'Petitioner', respondent: 'Respondent', sections: 'Sections',
+        filing_date: 'Filed', next_hearing_date: 'Next hearing',
+        one_line_summary: 'Summary'
+      };
+      let any = false;
+      for (const k of order) {
+        const v = f[k];
+        if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue;
+        any = true;
+        factsEl.appendChild(el('dt', {}, labels[k] || k));
+        factsEl.appendChild(el('dd', {}, Array.isArray(v) ? v.join(', ') : String(v)));
+      }
+      if (!any) factsEl.appendChild(el('dd', { class: 'row empty' },
+        facts_status === 'done' ? 'No facts extracted.' : 'Extracting…'));
+    } catch {
+      factsEl.appendChild(el('dd', { class: 'row empty' }, '—'));
+    }
   } else {
-    $('#research-panel').classList.add('hidden');
-    loadFactsPanel(id);
+    factsEl.appendChild(el('dd', { class: 'row empty' }, 'Research-only session.'));
   }
-  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-}
 
-async function loadResearchPanel(caseId) {
+  // Research list
+  const rEl = $('#ctx-research');
+  rEl.innerHTML = '';
   try {
     const r = await fetch(`/api/cases/${caseId}/research`);
     const jobs = await r.json();
-    const box = $('#research-list');
-    if (!jobs.length) {
-      box.innerHTML = '<div class="research-empty">No research jobs yet. Start a conversation to begin.</div>';
-      return;
+    if (!jobs?.length) {
+      rEl.appendChild(el('div', { class: 'ctx-research-item empty' }, 'None yet.'));
+    } else {
+      for (const j of jobs) {
+        const item = el('div', { class: 'ctx-research-item',
+          onclick: () => attachResearchBlock(j.id, /* reload */ true) },
+          el('div', { class: 'ctx-research-title' },
+            (j.plan || 'untitled').slice(0, 60)),
+          el('div', { class: 'ctx-research-meta' },
+            `${j.status}  ·  ${j.judgment_count || 0} judgments  ·  ${fmtDate(j.created_at)}`)
+        );
+        rEl.appendChild(item);
+      }
     }
-    const RUNNING = jobs.some(j => j.status === 'running' || j.status === 'confirmed' || j.status === 'scoping');
-    box.innerHTML = jobs.map(j => {
-      const cls = j.status === 'done' ? 'done' : j.status === 'failed' ? 'failed' : 'running';
-      const spinner = (j.status === 'running' || j.status === 'confirmed') ? '<span class="spin"></span>' : '';
-      const summary = j.summary || j.plan || `Status: ${j.status}`;
-      return `<div class="research-row ${cls}">
-        ${spinner}<div class="r-text">
-          <div class="r-title">${escapeHtml(j.plan || 'Research job')}</div>
-          <div class="r-meta">${j.judgment_count || 0} judgments · ${escapeHtml(j.status)} · ${fmt(j.created_at)}</div>
-          ${j.status === 'done' ? `<div class="r-summary">${escapeHtml(summary)}</div>` : ''}
-        </div>
-      </div>`;
-    }).join('');
-    if (RUNNING) setTimeout(() => loadResearchPanel(caseId), 5000);
-  } catch (e) { console.error(e); }
+  } catch {}
 }
 
-const FACT_LABELS = [
-  ['document_type', 'Type'],
-  ['case_title', 'Title'],
-  ['case_number', 'Case No.'],
-  ['court', 'Court'],
-  ['judge', 'Judge'],
-  ['filing_date', 'Filed'],
-  ['fir_number', 'FIR No.'],
-  ['fir_date', 'FIR Date'],
-  ['police_station', 'P.S.'],
-  ['petitioner', 'Petitioner'],
-  ['respondent', 'Respondent'],
-  ['advocate_for_petitioner', 'Counsel (P)'],
-  ['advocate_for_respondent', 'Counsel (R)'],
-  ['sections', 'Sections'],
-  ['prayer', 'Prayer'],
-  ['next_hearing_date', 'Next Hearing'],
-  ['one_line_summary', 'Summary']
-];
-
-async function loadFactsPanel(caseId) {
-  const panel = $('#facts-panel');
-  panel.classList.remove('hidden');
-  panel.innerHTML = '<div class="facts-pending"><span class="spin"></span>Loading case facts…</div>';
+async function loadMessages(caseId) {
+  state.threadEl.innerHTML = '';
   try {
-    const r = await fetch(`/api/cases/${caseId}/facts`);
-    const d = await r.json();
-    if (d.facts_status === 'extracting' || !d.facts) {
-      panel.innerHTML = `<div class="facts-pending"><span class="spin"></span>${
-        d.facts_status === 'failed' ? 'Fact extraction failed — voice still works.' :
-        'Extracting structured facts from the document…'
-      }</div>`;
-      // poll until ready
-      if (d.facts_status === 'extracting') setTimeout(() => loadFactsPanel(caseId), 4000);
-      return;
-    }
-    const fmtVal = (v) => {
-      if (v == null || v === '') return null;
-      if (Array.isArray(v)) return v.filter(Boolean).join(', ') || null;
-      return String(v).trim() || null;
-    };
-    const rows = FACT_LABELS
-      .map(([k, label]) => ({ label, val: fmtVal(d.facts[k]) }))
-      .filter(x => x.val != null);
-    if (!rows.length) {
-      panel.innerHTML = '<div class="facts-pending">No structured facts found in this document.</div>';
-      return;
-    }
-    panel.innerHTML = `<h3>Case facts</h3>
-      <div class="facts-grid">${rows.map(r =>
-        `<div class="k">${escapeHtml(r.label)}</div><div class="v">${escapeHtml(r.val)}</div>`
-      ).join('')}</div>`;
+    const r = await fetch(`/api/cases/${caseId}/messages`);
+    const msgs = await r.json();
+    for (const m of (msgs || [])) renderMessage(m);
+    scrollThread();
   } catch (e) {
-    panel.innerHTML = '<div class="facts-pending">Could not load facts.</div>';
+    console.warn('load messages failed', e);
   }
 }
 
-$('#start-voice').addEventListener('click', async () => {
-  if (!activeCase) return;
-  setStatus(activeCase.mode === 'research' ? 'Opening research session…' : 'Loading case…');
-  try {
-    const endpoint = activeCase.mode === 'research' ? 'research-room' : 'voice-room';
-    const tokRes = await fetch(`/api/cases/${activeCase.id}/${endpoint}`, { method: 'POST' });
-    const tok = await tokRes.json();
-    if (!tokRes.ok) throw new Error(tok.error || 'token failed');
+function renderMessage(m) {
+  const node = el('div', { class: `msg ${m.role}` },
+    el('div', { class: 'msg-head' },
+      el('span', { class: 'msg-role' }, m.role === 'user' ? 'You' : 'Agent'),
+      m.meta?.source ? el('span', { class: 'msg-source' }, m.meta.source) : null,
+      el('span', { class: 'msg-time' }, fmtTime(m.created_at))
+    ),
+    el('div', { class: 'msg-body', html: md(m.content) })
+  );
 
-    setStatus('Requesting microphone…');
-    setStatus('Connecting to room…');
-    room = new LivekitClient.Room({
-      adaptiveStream: true,
-      dynacast: true,
-      audioCaptureDefaults: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
-    });
+  // Inline tool-call lines for assistant messages
+  if (m.role === 'assistant' && Array.isArray(m.meta?.tool_calls)) {
+    const body = node.querySelector('.msg-body');
+    for (const tc of m.meta.tool_calls) {
+      body.insertBefore(toolLine(tc), body.firstChild);
+    }
+  }
 
-    // Agent audio — auto-attach when the Python agent publishes its TTS track.
-    room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, _pub, participant) => {
-      if (track.kind === 'audio') {
-        track.attach($('#ai-audio'));
-        setStatus(`Connected to ${participant.identity}. Speak now.`, 'ok');
-      }
-    });
+  state.threadEl.appendChild(node);
+  return node;
+}
 
-    // Live transcription events from Sarvam STT + agent TTS.
-    room.on(LivekitClient.RoomEvent.TranscriptionReceived, (segments, participant) => {
-      const text = segments.map(s => s.text).join(' ').trim();
-      if (!text) return;
-      const isAgent = participant && participant.identity && participant.identity.startsWith('agent-');
-      pushTurn(isAgent ? 'assistant' : 'user', text);
-    });
+function toolLine(tc) {
+  let label = tc.name;
+  if (tc.name === 'lookup_case_fact') label = `lookup · ${tc.args?.field || ''}`;
+  else if (tc.name === 'search_case_file') label = `search case file · "${(tc.args?.query || '').slice(0, 50)}"`;
+  else if (tc.name === 'search_indian_kanoon') label = `Indian Kanoon · "${(tc.args?.query || '').slice(0, 50)}"`;
+  const isErr = tc.result?.error;
+  return el('div', { class: `tool-line${isErr ? ' error' : ''}` }, label);
+}
 
-    room.on(LivekitClient.RoomEvent.Disconnected, () => {
-      setStatus('Session ended.');
-    });
+function scrollThread() {
+  state.threadEl.scrollTop = state.threadEl.scrollHeight;
+}
 
-    await room.connect(tok.url, tok.token);
-    await room.localParticipant.setMicrophoneEnabled(true);
-
-    $('#start-voice').classList.add('hidden');
-    $('#stop-voice').classList.remove('hidden');
-  } catch (e) {
-    console.error(e); setStatus(e.message, 'err'); cleanup();
+// ─────────────────── composer ───────────────────
+const input = $('#composer-input');
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+});
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    $('#composer').requestSubmit();
   }
 });
 
-$('#stop-voice').addEventListener('click', () => {
-  cleanup(); setStatus('Session ended.');
-  $('#start-voice').classList.remove('hidden'); $('#stop-voice').classList.add('hidden');
+$('#composer').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = input.value.trim();
+  if (!msg || !state.activeCase) return;
+  input.value = ''; input.style.height = 'auto';
+
+  // optimistic user bubble
+  const userNode = renderMessage({
+    role: 'user', content: msg,
+    meta: { source: 'text' }, created_at: new Date().toISOString()
+  });
+  scrollThread();
+
+  // pending assistant bubble (we'll fill it in as SSE events arrive)
+  const pending = el('div', { class: 'msg assistant' },
+    el('div', { class: 'msg-head' },
+      el('span', { class: 'msg-role' }, 'Agent'),
+      el('span', { class: 'msg-source' }, 'thinking'),
+      el('span', { class: 'msg-time' }, fmtTime())
+    ),
+    el('div', { class: 'msg-body' })
+  );
+  state.threadEl.appendChild(pending);
+  scrollThread();
+  const body = pending.querySelector('.msg-body');
+  const sourceTag = pending.querySelector('.msg-source');
+
+  try {
+    const r = await fetch(`/api/cases/${state.activeCase.id}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg })
+    });
+    if (!r.ok || !r.body) throw new Error('chat stream failed');
+
+    // Parse SSE stream from POST response
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop();
+      for (const block of events) {
+        if (!block.trim() || block.startsWith(':')) continue;
+        const ev = parseSSE(block);
+        if (!ev) continue;
+        handleChatEvent(ev, body, sourceTag);
+      }
+    }
+  } catch (err) {
+    body.innerHTML = `<p><em>${esc(err.message)}</em></p>`;
+    sourceTag.textContent = 'failed';
+  }
 });
 
-async function cleanup() {
-  if (room) { try { await room.disconnect(); } catch {} room = null; }
-  const audio = $('#ai-audio');
-  if (audio.srcObject) {
-    try { audio.srcObject.getTracks().forEach(t => t.stop()); } catch {}
-    audio.srcObject = null;
+function parseSSE(block) {
+  let event = 'message', data = '';
+  for (const line of block.split('\n')) {
+    if (line.startsWith('event:')) event = line.slice(6).trim();
+    else if (line.startsWith('data:')) data += line.slice(5).trim();
+  }
+  try { return { event, data: JSON.parse(data) }; }
+  catch { return { event, data }; }
+}
+
+function handleChatEvent(ev, bodyEl, sourceTag) {
+  if (ev.event === 'tool_call') {
+    sourceTag.textContent = ev.data.name;
+    const line = toolLine({ name: ev.data.name, args: ev.data.args });
+    bodyEl.appendChild(line);
+    scrollThread();
+  } else if (ev.event === 'final') {
+    sourceTag.textContent = 'text';
+    bodyEl.insertAdjacentHTML('beforeend', md(ev.data.text));
+    scrollThread();
+  } else if (ev.event === 'failed') {
+    sourceTag.textContent = 'failed';
+    bodyEl.insertAdjacentHTML('beforeend', `<p><em>${esc(ev.data.error || 'failed')}</em></p>`);
+  } else if (ev.event === 'done') {
+    /* nothing — final text already rendered */
   }
 }
 
-function setStatus(msg, cls) {
-  $('#voice-status').textContent = msg;
-  $('#voice-status').className = 'status' + (cls ? ' ' + cls : '');
+// ─────────────────── voice (LiveKit) ───────────────────
+$('#mic-btn').addEventListener('click', async () => {
+  if (state.liveRoom) {
+    try { await state.liveRoom.disconnect(); } catch {}
+    state.liveRoom = null;
+    $('#mic-btn').classList.remove('recording');
+    return;
+  }
+  if (!state.activeCase) return;
+  const c = state.activeCase;
+  const endpoint = c.kind === 'standalone_research' ? 'research-room' : 'voice-room';
+  const tokRes = await fetch(`/api/cases/${c.id}/${endpoint}`, { method: 'POST' });
+  const tok = await tokRes.json();
+  if (!tokRes.ok) { alert(tok.error || 'voice unavailable'); return; }
+
+  const room = new LivekitClient.Room({
+    adaptiveStream: true, dynacast: true,
+    audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+  });
+  state.liveRoom = room;
+
+  // Attach agent audio
+  room.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
+    if (track.kind === 'audio') track.attach($('#agent-audio'));
+  });
+
+  // Live transcripts — also persist to conversation_messages so reload preserves
+  let lastSavedFinal = ''; // crude dedupe (Sarvam emits partials AND finals)
+  room.on(LivekitClient.RoomEvent.TranscriptionReceived, async (segments, participant) => {
+    const text = segments.map(s => s.text).join(' ').trim();
+    if (!text) return;
+    const isAgent = participant?.identity?.startsWith('agent-');
+    const isFinal = segments.every(s => s.final);
+    if (!isFinal) return;
+    if (text === lastSavedFinal) return;
+    lastSavedFinal = text;
+    const role = isAgent ? 'assistant' : 'user';
+    renderMessage({
+      role, content: text,
+      meta: { source: 'voice' },
+      created_at: new Date().toISOString()
+    });
+    scrollThread();
+    // fire-and-forget persistence
+    fetch(`/api/cases/${c.id}/messages`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role, content: text, meta: { source: 'voice' } })
+    }).catch(() => {});
+  });
+
+  room.on(LivekitClient.RoomEvent.Disconnected, () => {
+    $('#mic-btn').classList.remove('recording');
+    state.liveRoom = null;
+  });
+
+  await room.connect(tok.url, tok.token);
+  await room.localParticipant.setMicrophoneEnabled(true);
+  $('#mic-btn').classList.add('recording');
+});
+
+// Keyboard shortcut: ⌘M / Ctrl+M = toggle mic
+window.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'm') {
+    e.preventDefault();
+    $('#mic-btn').click();
+  }
+});
+
+// ─────────────────── live research timeline (SSE) ───────────────────
+// Called when:
+//   • voice agent kicks off a research job (we discover via polling /research)
+//   • user clicks an existing research item in the right panel
+// Renders a research block inline in the thread that updates live.
+async function attachResearchBlock(jobId, focus = false) {
+  if (state.researchBlocks.has(jobId)) {
+    if (focus) state.researchBlocks.get(jobId).scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+
+  const block = el('div', { class: 'research-block' },
+    el('div', { class: 'rb-head' }, `Research · job ${jobId}`)
+  );
+  state.threadEl.appendChild(block);
+  state.researchBlocks.set(jobId, block);
+
+  // Fetch initial snapshot so historical jobs show their data immediately
+  try {
+    const r = await fetch(`/api/cases/${state.activeCase.id}/research/${jobId}`);
+    const job = await r.json();
+    if (job.scope) {
+      block.appendChild(el('div', { class: 'rb-soul' },
+        el('span', {}, (job.plan || job.scope.keywords || '').slice(0, 200))));
+    }
+    if (Array.isArray(job.judgments)) {
+      for (const j of job.judgments) renderJudgmentCard(block, j);
+    }
+    if (job.status === 'done' && job.summary) {
+      block.appendChild(el('div', { class: 'rb-stage' }, `done · ${job.summary.slice(0, 200)}`));
+      return; // no SSE needed
+    }
+  } catch {}
+
+  // Open SSE for live updates
+  const es = new EventSource(
+    `/api/cases/${state.activeCase.id}/research/${jobId}/stream`
+  );
+  state.researchStreams.set(jobId, es);
+  bindResearchSSE(es, block, jobId);
+
+  if (focus) block.scrollIntoView({ behavior: 'smooth' });
 }
 
-// ---------- Turn log + warnings ----------
-function pushTurn(kind, text) {
-  if (!text || !text.trim()) return;
-  const log = $('#turn-log');
-  const div = document.createElement('div');
-  div.className = 'turn turn-' + kind;
-  const label = kind === 'user' ? 'You'
-              : kind === 'assistant' ? 'AI'
-              : kind === 'search' ? 'Search'
-              : kind;
-  div.innerHTML = `<span class="turn-label">${label}</span><span class="turn-text">${escapeHtml(text)}</span>`;
-  log.appendChild(div);
-  log.scrollTop = log.scrollHeight;
+function bindResearchSSE(es, block, jobId) {
+  const stage = (text) => block.appendChild(el('div', { class: 'rb-stage' }, text));
+  const cardsByTid = new Map();
+
+  // Make sure existing cards from the snapshot are indexed
+  $$('.judgment-card', block).forEach(c => {
+    const tid = c.dataset.tid;
+    if (tid) cardsByTid.set(tid, c);
+  });
+
+  const ensureCard = (tid, title, court, date) => {
+    if (!tid) return null;
+    let card = cardsByTid.get(String(tid));
+    if (card) return card;
+    card = renderJudgmentCard(block, { tid, title, court, date, verdict: 'pending' });
+    cardsByTid.set(String(tid), card);
+    return card;
+  };
+
+  es.addEventListener('soul_extracted', (e) => {
+    const d = JSON.parse(e.data);
+    block.appendChild(el('div', { class: 'rb-soul' },
+      el('span', {}, d.soul_question || ''),
+      d.keywords ? el('span', { class: 'kw' }, `  · ${d.keywords}`) : null
+    ));
+  });
+  es.addEventListener('ikapi_search_start', (e) => {
+    const d = JSON.parse(e.data);
+    stage(`searching Indian Kanoon — doctype: ${(d.doctypes || []).join(', ')}`);
+  });
+  es.addEventListener('ikapi_broaden', (e) => {
+    const d = JSON.parse(e.data);
+    stage(`broadening to ${d.doctype} (recall low)`);
+  });
+  es.addEventListener('candidates', (e) => {
+    const d = JSON.parse(e.data);
+    stage(`${d.count} candidates fetched`);
+    for (const c of (d.candidates || [])) ensureCard(c.tid, c.title, c.court, c.date);
+    scrollThread();
+  });
+  es.addEventListener('fetch_text', (e) => {
+    const d = JSON.parse(e.data);
+    const card = ensureCard(d.tid, d.title);
+    if (card) appendStage(card, 'reading full text…');
+  });
+  es.addEventListener('agent2_start', (e) => {
+    const d = JSON.parse(e.data);
+    const card = cardsByTid.get(String(d.tid));
+    if (card) appendStage(card, `Agent 2: reading ${d.text_length} chars`);
+  });
+  es.addEventListener('verdict', (e) => {
+    const d = JSON.parse(e.data);
+    const card = ensureCard(d.tid, d.title, d.court, d.date);
+    finalizeJudgmentCard(card, d);
+    scrollThread();
+  });
+  es.addEventListener('indexing_start', (e) => {
+    const d = JSON.parse(e.data);
+    const card = cardsByTid.get(String(d.tid));
+    if (card) appendStage(card, 'indexing into case store…');
+  });
+  es.addEventListener('indexed', (e) => {
+    const d = JSON.parse(e.data);
+    const card = cardsByTid.get(String(d.tid));
+    if (card) appendStage(card, 'indexed ✓');
+  });
+  es.addEventListener('verdicts_complete', (e) => {
+    const d = JSON.parse(e.data);
+    stage(`verdicts: ${d.applicable} applicable · ${d.tangential} tangential · ${d.inapplicable} inapplicable`);
+  });
+  es.addEventListener('done', (e) => {
+    const d = JSON.parse(e.data);
+    stage(`done in ${(d.elapsed_ms/1000).toFixed(1)}s · ${d.summary || ''}`);
+    es.close();
+    state.researchStreams.delete(jobId);
+    scrollThread();
+  });
+  es.addEventListener('failed', (e) => {
+    const d = JSON.parse(e.data);
+    stage(`failed: ${d.reason || d.error || ''}`);
+    es.close();
+    state.researchStreams.delete(jobId);
+  });
+  es.onerror = () => { /* SSE will auto-reconnect; nothing to do here */ };
 }
 
+function renderJudgmentCard(parent, j) {
+  const verdict = (j.verdict || 'pending').toLowerCase();
+  const card = el('div', { class: `judgment-card ${verdict}`,
+    onclick: () => card.classList.toggle('expanded') },
+    el('div', { class: 'jc-title' }, j.title || `tid ${j.tid}`),
+    el('div', { class: 'jc-meta' },
+      [j.court, j.date && fmtDate(j.date)].filter(Boolean).join('  ·  ') || '—')
+  );
+  card.dataset.tid = String(j.tid || '');
+  if (j.verdict && j.verdict !== 'pending') finalizeJudgmentCard(card, {
+    verdict: j.verdict, reason: j.verdict_reason, confidence: j.verdict_confidence,
+    summary: j.agent2_summary
+  });
+  parent.appendChild(card);
+  return card;
+}
+
+function appendStage(card, text) {
+  card.appendChild(el('div', { class: 'jc-stage' }, text));
+}
+
+function finalizeJudgmentCard(card, d) {
+  // Remove old verdict bits if present (re-runs)
+  card.classList.remove('pending', 'applicable', 'tangential', 'inapplicable');
+  card.classList.add((d.verdict || 'INAPPLICABLE').toLowerCase());
+  $$('.jc-verdict, .jc-reason, .jc-summary', card).forEach(n => n.remove());
+  card.appendChild(el('div', { class: 'jc-verdict' },
+    `${d.verdict}  ·  ${d.confidence != null ? d.confidence + '/10' : ''}`));
+  if (d.reason) card.appendChild(el('div', { class: 'jc-reason' }, d.reason));
+  if (d.summary) card.appendChild(el('div', { class: 'jc-summary' }, d.summary));
+}
+
+// ─────────────────── boot ───────────────────
+loadList().catch(console.error);
