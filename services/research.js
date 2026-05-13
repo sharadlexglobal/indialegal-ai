@@ -51,11 +51,11 @@ function locateParaForQuote(quoteText, source) {
   try { m = source.match(new RegExp(probe, 'i')); } catch { return null; }
   if (!m || m.index == null) return null;
 
-  // CASE A — the quote ITSELF starts with a para marker (e.g. "57.").
-  // If the match landed at a position where the preceding char is a
-  // newline (i.e. the quote IS the start of paragraph 57), trust the
-  // quote's own leading number.
-  const selfMarker = trimmed.match(/^\(?(\d+(?:\.\d+)?)\)?[.)]\s/);
+  // CASE A — the quote ITSELF starts with a para marker like "57.".
+  // STRICT: only accept "N." (digit + period). Do NOT accept "(N)" —
+  // that's a sub-clause indicator (sub-clause of some PARENT para),
+  // not the paragraph number itself.
+  const selfMarker = trimmed.match(/^(\d+(?:\.\d+)?)\.\s/);
   if (selfMarker) {
     const numAt = m.index;
     if (numAt === 0 || /[\r\n]/.test(source[numAt - 1] || '\n')) {
@@ -63,11 +63,14 @@ function locateParaForQuote(quoteText, source) {
     }
   }
 
-  // CASE B — the quote is in the BODY of a paragraph. Look backwards
-  // ~2500 chars for the nearest paragraph marker.
-  const start = Math.max(0, m.index - 2500);
+  // CASE B — quote is in the body of a paragraph. Scan ~3000 chars
+  // before the quote for the nearest paragraph-number marker.
+  // STRICT: only "N." at line start, or "Para N." / "Paragraph N.".
+  // Reject bare "(N)" sub-clauses and "N)" enumerated lists — too easy
+  // to confuse with sub-clause numbering.
+  const start = Math.max(0, m.index - 3000);
   const window = source.slice(start, m.index);
-  const re = /(^|\n)\s*(?:Para(?:graph)?\s+)?\(?(\d+(?:\.\d+)?)\)?[.)]\s/gi;
+  const re = /(^|\n)[ \t]*(?:Para(?:graph)?\s+)?(\d+(?:\.\d+)?)\.\s/gi;
   const markers = [];
   let last;
   while ((last = re.exec(window)) !== null) {
