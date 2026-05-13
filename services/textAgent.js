@@ -517,7 +517,35 @@ async function runTurn({ pool, caseId, userText, history, emit }) {
       .map(p => p.text);
 
     if (fnCalls.length === 0) {
-      const finalText = textParts.join('\n').trim();
+      let finalText = textParts.join('\n').trim();
+
+      // CODE-MIX safety net — if user wrote in Roman/Latin script but
+      // the model leaked Devanagari, ask it to redo the answer in
+      // Roman. Single retry, no recursion.
+      const userIsRoman = /[A-Za-z]/.test(userText) && !/[ऀ-ॿ]/.test(userText);
+      const responseHasDevanagari = /[ऀ-ॿ]/.test(finalText);
+      if (userIsRoman && responseHasDevanagari) {
+        emit('tool_call', { name: '_codemix_retry', args: {} });
+        contents.push({ role: 'model', parts: [{ text: finalText }] });
+        contents.push({
+          role: 'user',
+          parts: [{ text:
+            'REWRITE your previous answer entirely in Roman/Hinglish ' +
+            'script. NO Devanagari characters anywhere. Keep all ' +
+            'numbers, section names (Section 21(b) etc), Act names ' +
+            '(NDPS Act, IPC, CrPC etc), case names, and Latin terms ' +
+            'exactly as before in Roman/Latin script. The advocate ' +
+            'cannot read Devanagari well — Roman is mandatory.'
+          }]
+        });
+        const j2 = await callGemini(sys, contents);
+        const retry = (j2.candidates?.[0]?.content?.parts || [])
+          .filter(p => typeof p.text === 'string').map(p => p.text).join('\n').trim();
+        if (retry && !/[ऀ-ॿ]/.test(retry)) {
+          finalText = retry;
+        }
+      }
+
       emit('final', { text: finalText });
       return { text: finalText, tool_calls: toolCalls };
     }
