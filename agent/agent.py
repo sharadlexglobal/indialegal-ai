@@ -83,6 +83,52 @@ async def fetch_case_meta(case_id: str) -> dict:
         return r.json()
 
 
+async def _watch_research_and_announce(session, case_id: str, job_id) -> None:
+    """Background poller — after the agent kicks off legal research, we
+    can't just go silent for 2-4 minutes. Poll the job's status every
+    15 s; when it's `done`, ask the agent to SPEAK the summary so the
+    user hears the result without having to prompt. Bounded to 15 min."""
+    for _ in range(60):
+        await asyncio.sleep(15)
+        try:
+            async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as c:
+                r = await c.get(f"{NODE_URL}/api/cases/{case_id}/research/{job_id}")
+                if r.status_code != 200:
+                    continue
+                data = r.json()
+        except Exception as e:
+            log.warning("watch-research: poll error %s", e)
+            continue
+
+        status = data.get("status")
+        if status == "done":
+            summary = (data.get("summary") or "Research ho gayi.").strip()
+            log.info("[research %s] done — speaking summary", job_id)
+            try:
+                # Two-stage announce: a short heads-up then the actual
+                # summary. Keeps the user from being startled by a long
+                # block of TTS landing mid-silence.
+                await session.say(
+                    "Aapki research complete ho gayi.",
+                    allow_interruptions=True,
+                )
+                await session.say(summary, allow_interruptions=True)
+            except Exception as e:
+                log.error("watch-research: session.say failed: %s", e)
+            return
+        if status == "failed":
+            log.warning("[research %s] failed", job_id)
+            try:
+                await session.say(
+                    "Research mein dikkat aa gayi. Dobara try karte hain?",
+                    allow_interruptions=True,
+                )
+            except Exception:
+                pass
+            return
+    log.warning("[research %s] watcher timed out after 15 min", job_id)
+
+
 async def _ikapi_call(method: str, name: str, arguments: dict) -> dict:
     """Single helper for JSON-RPC calls to the IKAPI MCP server."""
     body = {
@@ -297,7 +343,19 @@ def make_research_tools(case_id: str):
                     json={"scope": scope, "plan": keywords},
                 )
                 r.raise_for_status()
-                return r.text
+                body = r.json()
+
+            # PROACTIVE ANNOUNCE — the original UX bug: after kicking off
+            # research the agent went silent for the 2-4 minutes it took
+            # to finish, and never told the user the result. Spawn a
+            # background poller that wakes the agent up to speak the
+            # summary as soon as `status == 'done'`.
+            job_id = body.get("jobId")
+            if job_id and context and getattr(context, "session", None):
+                asyncio.create_task(
+                    _watch_research_and_announce(context.session, case_id, job_id)
+                )
+            return json.dumps(body)
         except Exception as e:
             log.error("execute_legal_research error: %s", e)
             return json.dumps({"error": "could not start research, try again later"})
