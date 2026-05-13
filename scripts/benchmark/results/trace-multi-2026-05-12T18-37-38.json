@@ -1,0 +1,420 @@
+[
+  {
+    "id": "C01",
+    "area": "Bail post-rejection",
+    "text": "Mere client ko 379 IPC theft mein FIR, trial court mein bail reject hui, sessions court mein second bail ke chances Delhi mein",
+    "expected_doctype": "delhi",
+    "soul": {
+      "legal_area": "Criminal Law",
+      "exact_provision": "Section 379 IPC",
+      "procedural_stage": "Bail application before Sessions Court after rejection by trial court",
+      "core_question": "What are the chances of getting bail from Sessions Court after rejection by trial court for IPC 379 theft in Delhi?",
+      "user_facts": [
+        "FIR under IPC 379 theft",
+        "bail rejected by trial court"
+      ],
+      "what_user_wants_to_do": "File a second bail application in Sessions Court and assess chances of success",
+      "soul_question": "What is the likelihood of a Sessions Court in Delhi granting bail to an accused under Section 379 IPC after a trial court has rejected bail?"
+    },
+    "verifications": [
+      {
+        "tid": 21224510,
+        "title": "Raksha Jindal vs Central Bureau Of Investigation on 5 March, 2015",
+        "court": "Delhi High Court",
+        "date": "2015-03-05",
+        "text_len": 644559,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment is a High Court decision on appeals against conviction for corruption and forgery, and does not discuss bail under Section 379 IPC or the likelihood of a Sessions Court granting bail after rejection by a trial court."
+      },
+      {
+        "tid": 45465361,
+        "title": "State vs Mohd. Naushad & Ors on 22 November, 2012",
+        "court": "Delhi High Court",
+        "date": "2012-11-22",
+        "text_len": 455029,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment does not discuss bail under Section 379 IPC or any bail-related issue. It concerns appeals against conviction and sentence for bomb blast related offences under various sections of IPC, not theft."
+      },
+      {
+        "tid": 33817559,
+        "title": "Santoshanand Avdoot @ Ghanshyam ... vs State on 14 August, 2014",
+        "court": "Delhi High Court",
+        "date": "2014-08-14",
+        "text_len": 304999,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment is a High Court appeal decision concerning conviction for conspiracy and attempt to murder, not bail under Section 379 IPC. It does not discuss or provide any guidance on the likelihood of a Sessions Court granting bail under Section 379 IPC after trial court rejection."
+      },
+      {
+        "tid": 34613760,
+        "title": "Vishal Yadav vs State Of U.P. on 2 April, 2014",
+        "court": "Delhi High Court",
+        "date": "2014-04-02",
+        "text_len": 2023424,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment does not discuss bail under Section 379 IPC or the likelihood of a Sessions Court granting bail after a trial court rejection. It is a conviction appeal for murder, not a bail matter."
+      },
+      {
+        "tid": 154440315,
+        "title": "Vishal Yadav vs State Govt. Of Up on 6 February, 2015",
+        "court": "Delhi High Court",
+        "date": "2015-02-06",
+        "text_len": 1142958,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment does not address bail under Section 379 IPC or Sessions Court bail procedures; it concerns enhancement of sentences for murder and related offences in the Nitish Katara case."
+      }
+    ],
+    "summary": {
+      "applicable": 0,
+      "tangential": 0,
+      "inapplicable": 5,
+      "errored": 0,
+      "elapsed_s": 17
+    }
+  },
+  {
+    "id": "C02",
+    "area": "NI Act 138 — strict 15-day notice",
+    "text": "Cheque bounce ka notice complainant ne 14 din mein bhej diya, complaint maintainable hai ya 15 din strict requirement hai? Latest SC view",
+    "expected_doctype": "supremecourt",
+    "soul": {
+      "legal_area": "Negotiable Instruments Act, 1881",
+      "exact_provision": "Section 138 of the Negotiable Instruments Act, 1881 - 15-day notice period",
+      "procedural_stage": "Maintainability of complaint under Section 138",
+      "core_question": "Is the 15-day notice period under Section 138 of the Negotiable Instruments Act mandatory or directory, and does sending the notice within 14 days render the complaint maintainable?",
+      "user_facts": [
+        "Notice sent by complainant within 14 days",
+        "Cheque bounce case"
+      ],
+      "what_user_wants_to_do": "Determine whether the complaint is maintainable given that the notice was sent within 14 days instead of the strict 15-day requirement",
+      "soul_question": "Is the 15-day period for sending notice under Section 138 of the Negotiable Instruments Act mandatory, such that sending the notice within 14 days invalidates the complaint, or is it directory?"
+    },
+    "verifications": [
+      {
+        "tid": 114038066,
+        "title": "Serious Fraud Investigation Office vs Rahul Modi on 27 March, 2019",
+        "court": "Supreme Court of India",
+        "date": "2019-03-27",
+        "text_len": 116169,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment does not address Section 138 of the Negotiable Instruments Act or the 15-day notice period. It concerns the interpretation of Section 212 of the Companies Act, 2013, relating to SFIO investigations. Therefore, it provides no guidance on the soul-question."
+      }
+    ],
+    "summary": {
+      "applicable": 0,
+      "tangential": 0,
+      "inapplicable": 1,
+      "errored": 0,
+      "elapsed_s": 12
+    }
+  },
+  {
+    "id": "C03",
+    "area": "498A quash — settled",
+    "text": "498A IPC mein matrimonial dispute parties mein settle ho gaya, ab FIR quash karwana Delhi HC se",
+    "expected_doctype": "delhi",
+    "soul": {
+      "legal_area": "Criminal Law",
+      "exact_provision": "Section 498A IPC",
+      "procedural_stage": "Quashing of FIR under Section 482 CrPC",
+      "core_question": "How to get FIR under 498A quashed after settlement?",
+      "user_facts": [
+        "Matrimonial dispute under IPC 498A",
+        "Parties have settled"
+      ],
+      "what_user_wants_to_do": "File a petition in Delhi High Court to quash the FIR",
+      "soul_question": "Will the Delhi High Court quash an FIR under Section 498A IPC on the ground of settlement between the parties in a matrimonial dispute?"
+    },
+    "verifications": [
+      {
+        "tid": 188164917,
+        "title": "Sumit Sharma vs State (Nct Of Delhi) & Anr on 8 April, 2016",
+        "court": "Delhi High Court",
+        "date": "2016-04-08",
+        "text_len": 16313,
+        "a2_addresses": "directly",
+        "verdict": "APPLICABLE",
+        "confidence": 10,
+        "reason": "Summary explicitly states the judgment directly answers the soul-question with a clear holding on quashing FIR under Section 498A IPC based on settlement.",
+        "advocate_use": "Cite as authority for quashing of non-compoundable offence FIR under Section 498A IPC upon genuine settlement, per Section 482 Cr.P.C. and Supreme Court guidelines.",
+        "summary": "This judgment directly answers the soul-question: the Delhi High Court quashed an FIR under Section 498A IPC based on a settlement in a matrimonial dispute, holding that the non-compoundable nature of the offence does not bar quashing under Section 482 Cr.P.C. when the parties have genuinely settled and the ends of justice warrant it."
+      },
+      {
+        "tid": 147264029,
+        "title": "Harish Kumar @ Sri Chand & Ors vs The State (Nct Of Delhi) & Anr on 12 August, 2016",
+        "court": "Delhi High Court",
+        "date": "2016-08-12",
+        "text_len": 14941,
+        "a2_addresses": "directly",
+        "verdict": "APPLICABLE",
+        "confidence": 10,
+        "reason": "The summary explicitly states that the Delhi High Court addressed and decided the exact question of quashing FIR under Section 498A IPC based on settlement.",
+        "advocate_use": "Cite this judgment to argue that the Delhi High Court can quash an FIR under Section 498A when the matrimonial dispute is genuinely settled, using its inherent powers under Section 482 Cr.P.C.",
+        "summary": "The Delhi High Court in this judgment directly addressed whether it would quash an FIR under Section 498A IPC based on settlement. It held that despite Section 498A being non-compoundable, the court can exercise its inherent power under Section 482 Cr.P.C. to quash the FIR if the matrimonial dispute is genuinely settled. The court allowed the petition and quashed the FIR, relying on Supreme Court precedents that encourage settlement in matrimonial disputes."
+      },
+      {
+        "tid": 155422918,
+        "title": "Amar Singh Chauhan & Ors vs The State (Govt Of Nct Of Delhi) on 29 January, 2016",
+        "court": "Delhi High Court",
+        "date": "2016-01-29",
+        "text_len": 14859,
+        "a2_addresses": "directly",
+        "verdict": "APPLICABLE",
+        "confidence": 10,
+        "reason": "The summary directly states that the Delhi High Court held an FIR under Section 498A IPC can be quashed on settlement, matching the soul-question exactly.",
+        "advocate_use": "Cite this judgment to argue that the Delhi High Court will quash an FIR under Section 498A IPC when parties have settled, relying on inherent powers under Section 482 Cr.P.C.",
+        "summary": "The Delhi High Court directly addressed the soul-question and held that an FIR under Section 498A IPC can be quashed on the ground of settlement in a matrimonial dispute, even though the offence is non-compoundable. The court relied on precedents like B.S. Joshi and Narinder Singh to exercise its inherent power under Section 482 Cr.P.C. to quash the FIR, as the parties had amicably settled their differences. This supports the position that the court will quash such an FIR upon settlement."
+      },
+      {
+        "tid": 48759906,
+        "title": "Vijay Sharma & Anr vs State Of Nct Delhi & Anr on 4 December, 2015",
+        "court": "Delhi High Court",
+        "date": "2015-12-04",
+        "text_len": 13910,
+        "a2_addresses": "directly",
+        "verdict": "APPLICABLE",
+        "confidence": 10,
+        "reason": "The summary directly states that the Delhi High Court quashed an FIR under Section 498A IPC based on settlement between parties in a matrimonial dispute.",
+        "advocate_use": "Cite this case to support a petition to quash an FIR under Section 498A IPC on grounds of settlement.",
+        "summary": "The Delhi High Court held that an FIR under Section 498A IPC can be quashed on the basis of settlement between the parties in a matrimonial dispute, despite the offence being non-compoundable, by exercising inherent power under Section 482 CrPC to secure ends of justice. The court allowed the petition and quashed the FIR."
+      },
+      {
+        "tid": 1884279,
+        "title": "Kamal Dhawan vs State And Anr. on 6 September, 1999",
+        "court": "Delhi High Court",
+        "date": "1999-09-06",
+        "text_len": 19870,
+        "a2_addresses": "directly",
+        "verdict": "APPLICABLE",
+        "confidence": 10,
+        "reason": "The judgment directly holds that FIR under Section 498A IPC cannot be quashed on settlement due to non-compoundable nature.",
+        "advocate_use": "Cite this judgment to argue that under Section 482 CrPC, quashing is barred for non-compoundable offences like Section 498A IPC even if parties settle.",
+        "summary": "The Delhi High Court in this 1999 judgment directly held that an FIR under Section 498A IPC cannot be quashed on the ground of settlement because the offence is non-compoundable. The court emphasized that inherent powers under Section 482 CrPC cannot override the statutory bar in Section 320(9). Thus, the court dismissed the petitions seeking quashing based on compromise."
+      }
+    ],
+    "summary": {
+      "applicable": 5,
+      "tangential": 0,
+      "inapplicable": 0,
+      "errored": 0,
+      "elapsed_s": 20
+    }
+  },
+  {
+    "id": "C04",
+    "area": "NDPS Section 50 defect",
+    "text": "NDPS Section 50 ki search mein 2 gazetted officers ki jagah ek SHO ne search ki, recovery valid hai? Latest SC view on procedural defect",
+    "expected_doctype": "supremecourt",
+    "soul": {
+      "legal_area": "Criminal Law",
+      "exact_provision": "Section 50 of the Narcotic Drugs and Psychotropic Substances Act, 1985",
+      "procedural_stage": "Search and seizure",
+      "core_question": "Is the recovery of contraband valid under the NDPS Act if the search was conducted by a single SHO instead of two gazetted officers as required under Section 50?",
+      "user_facts": [
+        "Search conducted by SHO",
+        "not by two gazetted officers",
+        "under NDPS Section 50"
+      ],
+      "what_user_wants_to_do": "Determine validity of recovery in light of procedural defect",
+      "soul_question": "Does a search under Section 50 of the NDPS Act conducted by a Station House Officer alone, without two gazetted officers, render the recovery of contraband invalid, and what is the latest Supreme Court position on such procedural defects?"
+    },
+    "verifications": [
+      {
+        "tid": 1769219,
+        "title": "State (N.C.T. Of Delhi) vs Navjot Sandhu@ Afsan Guru on 4 August, 2005",
+        "court": "Supreme Court of India",
+        "date": "2005-08-04",
+        "text_len": 474733,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment does not address the soul-question regarding Section 50 of the NDPS Act or searches by a Station House Officer alone. It concerns the Prevention of Terrorism Act (POTA) and the Parliament attack case. Therefore, it provides no relevant information on the issue raised."
+      }
+    ],
+    "summary": {
+      "applicable": 0,
+      "tangential": 0,
+      "inapplicable": 1,
+      "errored": 0,
+      "elapsed_s": 15
+    }
+  },
+  {
+    "id": "C05",
+    "area": "125 CrPC interim maintenance",
+    "text": "Wife ne 125 CrPC mein maintenance file ki, interim maintenance ka quantum kaise calculate hota hai Rajnesh v Neha ke baad",
+    "expected_doctype": "supremecourt",
+    "soul": {
+      "legal_area": "Family Law / Criminal Procedure Code (Maintenance)",
+      "exact_provision": "Section 125 CrPC",
+      "procedural_stage": "Interim maintenance application",
+      "core_question": "How is the quantum of interim maintenance calculated under Section 125 CrPC after the Rajnesh v. Neha judgment?",
+      "user_facts": [
+        "Wife filed for maintenance under Section 125 CrPC",
+        "Seeking interim maintenance",
+        "Rajnesh v. Neha (2020) judgment is relevant"
+      ],
+      "what_user_wants_to_do": "Calculate the quantum of interim maintenance",
+      "soul_question": "What are the principles and formula for calculating the amount of interim maintenance under Section 125 CrPC as laid down in Rajnesh v. Neha?"
+    },
+    "verdicts": [],
+    "summary": {
+      "applicable": 0,
+      "tangential": 0,
+      "inapplicable": 0
+    }
+  },
+  {
+    "id": "C06",
+    "area": "POCSO consent age",
+    "text": "POCSO ke under consent age 18 hai, lekin 17 saal ki ladki ne consent diya tha romantic relationship — latest Delhi HC view on consensual relationship",
+    "expected_doctype": "delhi",
+    "soul": {
+      "legal_area": "Criminal Law - POCSO",
+      "exact_provision": "Protection of Children from Sexual Offences Act, 2012, Sections 2(1)(d), 3, 4, and related provisions on consent",
+      "procedural_stage": "Case law analysis / appellate review",
+      "core_question": "Whether consent given by a 17-year-old girl in a romantic relationship can be a valid defense against charges under the POCSO Act, considering the absolute age of consent of 18 years.",
+      "user_facts": [
+        "17-year-old girl gave consent to romantic relationship"
+      ],
+      "what_user_wants_to_do": "To understand the latest Delhi High Court's stance on consensual relationships involving minors aged 16-18 under POCSO.",
+      "soul_question": "Under the POCSO Act, does the consent of a 17-year-old in a bona fide romantic relationship provide any exception or defense to the offence of penetrative sexual assault, and if so, what is the current position of the Delhi High Court?"
+    },
+    "verdicts": [],
+    "summary": {
+      "applicable": 0,
+      "tangential": 0,
+      "inapplicable": 0
+    }
+  },
+  {
+    "id": "C07",
+    "area": "Order 8 Rule 1 CPC",
+    "text": "Commercial suit mein Order 8 Rule 1 CPC ke 30 din time-bar mein written statement file nahi kiya, condonation milegi ya deemed admission ho gayi?",
+    "expected_doctype": "delhi",
+    "soul": {
+      "legal_area": "Civil Procedure - Commercial Suits",
+      "exact_provision": "Order VIII Rule 1 CPC read with Section 16 of the Commercial Courts Act, 2015",
+      "procedural_stage": "Filing of written statement",
+      "core_question": "Can delay in filing written statement in a commercial suit be condoned or does it result in deemed admission?",
+      "user_facts": [
+        "Commercial suit",
+        "Written statement not filed within 30 days"
+      ],
+      "what_user_wants_to_do": "Determine whether condonation of delay is possible or if deemed admission applies",
+      "soul_question": "In a commercial suit, does failure to file a written statement within the 30-day period under Order VIII Rule 1 CPC (as amended by the Commercial Courts Act) result in deemed admission under Order VIII Rule 5, or does the court have discretion to condone the delay?",
+      "verdict_needed": false
+    },
+    "verifications": [
+      {
+        "tid": 88916123,
+        "title": "North Delhi Municipal Corporation vs Vipin Gupta on 22 March, 2018",
+        "court": "Delhi High Court",
+        "date": "2018-03-22",
+        "text_len": 104035,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment does not address the soul-question regarding deemed admission under Order VIII Rule 5 for failure to file a written statement within 30 days under the Commercial Courts Act. It focuses on contractual payment disputes and decree on admissions under Order XII Rule 6."
+      },
+      {
+        "tid": 118412341,
+        "title": "North Delhi Municipal Corporation And ... vs Sanjeev Kumar on 22 March, 2018",
+        "court": "Delhi High Court",
+        "date": "2018-03-22",
+        "text_len": 124958,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment does not discuss the soul-question regarding Order VIII Rule 1 and deemed admission under Order VIII Rule 5 CPC in commercial suits. It focuses on contract terms for payment and interest in disputes between municipal corporations and contractors."
+      },
+      {
+        "tid": 32843384,
+        "title": "Unilin Beheer B.V. vs Balaji Action Buildwell on 15 May, 2019",
+        "court": "Delhi High Court",
+        "date": "2019-05-15",
+        "text_len": 34758,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment focuses on the mandatory filing of an affidavit of admission/denial of documents along with the written statement under the Delhi High Court Rules, not on the 30-day period or deemed admission under Order VIII Rule 5 CPC. It does not address your soul-question."
+      },
+      {
+        "tid": 41488100,
+        "title": "North Delhi Municipal Corporation & ... vs Gautam Anand on 22 March, 2018",
+        "court": "Delhi High Court",
+        "date": "2018-03-22",
+        "text_len": 129229,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment does not discuss Order VIII Rule 1 CPC or the Commercial Courts Act. It focuses on contract disputes between contractors and municipal corporations, specifically payment delays, interest, and security deposits. Therefore, it provides no guidance on deemed admissions or condonation of delay in filing written statements in commercial suits."
+      },
+      {
+        "tid": 17509216,
+        "title": "Phonepe Private Limited vs Ezy Services & Anr. on 15 April, 2021",
+        "court": "Delhi High Court",
+        "date": "2021-04-15",
+        "text_len": 209661,
+        "a2_addresses": "not at all",
+        "verdict": "INAPPLICABLE",
+        "confidence": 10,
+        "reason": "Agent 2 short-circuit — judgment does not address soul-question",
+        "summary": "The judgment does not address the soul-question regarding Order VIII Rule 1 CPC and deemed admission under Order VIII Rule 5 in a commercial suit. It is a trademark infringement case concerning interim injunction and does not discuss procedural filing deadlines or condonation of delay."
+      }
+    ],
+    "summary": {
+      "applicable": 0,
+      "tangential": 0,
+      "inapplicable": 5,
+      "errored": 0,
+      "elapsed_s": 17
+    }
+  },
+  {
+    "id": "C08",
+    "area": "NDPS Section 37 twin conditions",
+    "text": "NDPS Section 37 twin conditions latest SC interpretation commercial quantity heroin recovery, bail ke chances kya hain",
+    "expected_doctype": "supremecourt",
+    "soul": {
+      "legal_area": "NDPS Act",
+      "exact_provision": "Section 37",
+      "procedural_stage": "Bail",
+      "core_question": "What are the chances of bail under NDPS Section 37 for commercial quantity of heroin, considering the latest Supreme Court interpretation of the twin conditions?",
+      "user_facts": [
+        "commercial quantity of heroin",
+        "recovery of heroin"
+      ],
+      "what_user_wants_to_do": "Seek bail for client charged with NDPS offence involving commercial quantity of heroin.",
+      "soul_question": "Under NDPS Section 37, what is the current legal position regarding the satisfaction of twin conditions for bail when the accused is found with commercial quantity of heroin, in light of the latest Supreme Court judgments?"
+    },
+    "verdicts": [],
+    "summary": {
+      "applicable": 0,
+      "tangential": 0,
+      "inapplicable": 0
+    }
+  }
+]
