@@ -286,9 +286,14 @@ async function submitExtract(buffer, filename, schema = LEGAL_SCHEMA, opts = {})
 //   expectedTypes — array of doc-type strings (use SEGMENT_TYPES_FOR_DATALAB
 //                  from typeSchemas.js)
 async function submitSegmentation(buffer, filename, expectedTypes = []) {
+  // Datalab's segmentation_schema requires each entry to have a `name`
+  // (the segment label). We pass `name` and a description; Datalab
+  // returns the matched `name` as the segment's type in the response.
   const segments = expectedTypes.map(t => ({
-    type: t,
-    description: `A ${String(t).replace(/_/g, ' ')} document segment.`
+    name: t,
+    description:
+      `A ${String(t).replace(/_/g, ' ')} document — typically identified ` +
+      `by its heading, case title, formal markers, and signature block.`
   }));
   const segmentationSchema = { segments };
 
@@ -348,18 +353,26 @@ function parseExtractResult(result) {
 // Take the OCR'd flat markdown for a SLICE of pages [start, end].
 // Used by the orchestrator to give DeepSeek the text of each segment
 // for the gap-fill pass.
+//
+// flattenForPrompt emits a `\n\n--- PAGE N ---\n` boundary; we split
+// permissively so leading/trailing whitespace doesn't break us.
 function markdownForPageRange(flatMarkdown, page_start, page_end) {
   if (!flatMarkdown) return '';
-  const pages = flatMarkdown.split(/\n--- PAGE (\d+) ---\n/);
-  // Even indices = text after the marker; odd indices = page numbers
+  // The split keeps page numbers in odd indices, content in even-of-(i+1).
+  const parts = flatMarkdown.split(/\n*--- PAGE (\d+) ---\n?/);
   const out = [];
-  for (let i = 1; i < pages.length; i += 2) {
-    const pageNum = parseInt(pages[i], 10);
+  for (let i = 1; i < parts.length; i += 2) {
+    const pageNum = parseInt(parts[i], 10);
+    if (!Number.isFinite(pageNum)) continue;
     if (pageNum >= page_start && pageNum <= page_end) {
-      out.push(`--- PAGE ${pageNum} ---\n${pages[i + 1] || ''}`);
+      out.push(`--- PAGE ${pageNum} ---\n${(parts[i + 1] || '').trim()}`);
     }
   }
-  return out.join('\n').trim() || flatMarkdown;  // fallback: whole md
+  const joined = out.join('\n\n').trim();
+  // If the slice came up empty (page numbering mismatch — e.g. some
+  // PDFs renumber per section), fall back to giving the model the
+  // whole markdown so it can still extract atoms.
+  return joined || flatMarkdown;
 }
 
 module.exports = {

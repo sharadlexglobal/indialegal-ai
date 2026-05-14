@@ -35,6 +35,39 @@ const { SEGMENT_TYPES_FOR_DATALAB, schemaForType } = require('./typeSchemas');
 const MIN_SEG_PAGES_FOR_DS_FALLBACK = 30;
 // If any segment is below this confidence, run DeepSeek classification:
 const LOW_CONFIDENCE = new Set(['low', 'medium-low']);
+// Bound how many segments we extract in parallel. Datalab queues
+// over-parallel /extract calls; >4-6 in parallel can lead to a hung
+// state without errors. 4 is a sane default.
+const PER_SEGMENT_CONCURRENCY = 4;
+// Hard ceiling on a single segment's wall-clock time. If a segment
+// goes past this, we abandon it with a logged error so other segments
+// still finish.
+const SEGMENT_TIMEOUT_MS = 5 * 60 * 1000;
+
+// Concurrency-limited Promise.all replacement.
+async function mapLimited(items, limit, fn) {
+  const out = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const i = cursor++;
+      try { out[i] = await fn(items[i], i); }
+      catch (e) { out[i] = { __error: e.message || String(e) }; }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
+// Race a promise against a timeout. Resolves to {timedOut:true} on timeout.
+function withTimeout(p, ms, label) {
+  return Promise.race([
+    p.then(v => ({ value: v })),
+    new Promise(resolve =>
+      setTimeout(() => resolve({ timedOut: true, label }), ms)
+    )
+  ]);
+}
 
 // ─────────────────────────────────────────────────────────────────
 // Main entry: takes the buffer + already-flattened markdown + page_count
@@ -99,92 +132,124 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
     emit('fallback_single_segment', {});
   }
 
-  // ─── Layer B — Per-segment (parallel) ─────────────────────────
-  emit('per_segment_extraction', { count: segments.length });
+  // ─── Layer B — Per-segment (concurrency-limited) ──────────────
+  emit('per_segment_extraction', {
+    count: segments.length,
+    concurrency: PER_SEGMENT_CONCURRENCY
+  });
 
-  const segmentRows = await Promise.all(segments.map(async (seg, i) => {
+  const segmentRows = await mapLimited(segments, PER_SEGMENT_CONCURRENCY, async (seg, i) => {
+    const tSeg0 = Date.now();
     const segText = datalab.markdownForPageRange(
       flatMarkdown, seg.page_start, seg.page_end
     );
 
     emit('segment_started', {
       index: i, name: seg.name, type: seg.type,
-      pages: [seg.page_start, seg.page_end]
+      pages: [seg.page_start, seg.page_end],
+      text_len: segText.length
     });
 
-    // Step 4 — type → schema
-    let typeForSchema = seg.type;
+    // Wrap the whole segment body in a timeout so a single stuck
+    // segment can't hold up the rest. On timeout we emit + return
+    // a row with whatever we have (often nothing).
+    const work = (async () => {
+      // Step 4 — type → schema
+      let typeForSchema = seg.type;
 
-    // Step 4.5 — DeepSeek classify if Datalab type is missing/low
-    if (!typeForSchema || LOW_CONFIDENCE.has((seg.confidence || '').toLowerCase())) {
+      // Step 4.5 — DeepSeek classify if Datalab type is missing/low
+      if (!typeForSchema || LOW_CONFIDENCE.has((seg.confidence || '').toLowerCase())) {
+        try {
+          const cls = await ds.classifySegment({
+            segmentText: segText,
+            allowedTypes: SEGMENT_TYPES_FOR_DATALAB
+          });
+          if (cls && cls.type && cls.type !== 'unknown' && cls.confidence !== 'low') {
+            typeForSchema = cls.type;
+            seg.type = cls.type;
+            seg.confidence = cls.confidence;
+            seg._source = 'deepseek_classified';
+          }
+        } catch {}
+      }
+      const schema = schemaForType(typeForSchema);
+
+      // Step 5 — Datalab type-specific extract for this page range
+      let facts = null;
       try {
-        const cls = await ds.classifySegment({
+        const sub = await datalab.submitExtract(
+          buffer, filename, schema,
+          { page_range: `${seg.page_start}-${seg.page_end}` }
+        );
+        const res = await datalab.pollUntilDone(sub.checkUrl);
+        facts = datalab.parseExtractResult(res);
+        emit('segment_extracted', { index: i, fieldsFound: factsFilledCount(facts) });
+      } catch (e) {
+        console.warn(`[extract ${caseId}] seg ${i} datalab extract failed:`, e.message);
+        emit('segment_extract_failed', { index: i, error: String(e.message || e).slice(0, 200) });
+      }
+
+      // Step 6 — DeepSeek gap-fill
+      let gapAtoms = [];
+      try {
+        gapAtoms = await ds.gapFillSegment({
           segmentText: segText,
-          allowedTypes: SEGMENT_TYPES_FOR_DATALAB
+          structuredFacts: facts,
+          segmentType: typeForSchema,
+          segmentName: seg.name
         });
-        if (cls && cls.type && cls.type !== 'unknown' && cls.confidence !== 'low') {
-          typeForSchema = cls.type;
-          seg.type = cls.type;
-          seg.confidence = cls.confidence;
-          seg._source = 'deepseek_classified';
-        }
-      } catch {}
-    }
-    const schema = schemaForType(typeForSchema);
+        emit('segment_gapfilled', { index: i, atomsRaw: gapAtoms.length });
+      } catch (e) {
+        console.warn(`[extract ${caseId}] seg ${i} gap-fill failed:`, e.message);
+        emit('segment_gapfill_failed', { index: i, error: String(e.message || e).slice(0, 200) });
+      }
 
-    // Step 5 — Datalab type-specific extract for this page range
-    let facts = null;
-    try {
-      const sub = await datalab.submitExtract(
-        buffer, filename, schema,
-        { page_range: `${seg.page_start}-${seg.page_end}` }
-      );
-      const res = await datalab.pollUntilDone(sub.checkUrl);
-      facts = datalab.parseExtractResult(res);
-      emit('segment_extracted', { index: i, fieldsFound: factsFilledCount(facts) });
-    } catch (e) {
-      console.warn(`[extract ${caseId}] seg ${i} datalab extract failed:`, e.message);
-      emit('segment_extract_failed', { index: i, error: e.message });
-    }
-
-    // Step 6 — DeepSeek gap-fill
-    let gapAtoms = [];
-    try {
-      gapAtoms = await ds.gapFillSegment({
-        segmentText: segText,
-        structuredFacts: facts,
-        segmentType: typeForSchema,
-        segmentName: seg.name
+      // Step 7 — verify + de-dup
+      const verifiedAtoms = gapAtoms.filter(a => ds.verifyAtomAgainstSource(a, segText));
+      const deduped = dedupAtoms(verifiedAtoms, facts);
+      emit('segment_atoms_verified', {
+        index: i,
+        kept: deduped.length,
+        dropped_unverified: gapAtoms.length - verifiedAtoms.length,
+        dropped_duplicates: verifiedAtoms.length - deduped.length
       });
-      emit('segment_gapfilled', { index: i, atomsRaw: gapAtoms.length });
-    } catch (e) {
-      console.warn(`[extract ${caseId}] seg ${i} gap-fill failed:`, e.message);
+
+      return {
+        segment_index: i,
+        segment_name: seg.name,
+        segment_type: seg.type,
+        page_start: seg.page_start,
+        page_end: seg.page_end,
+        confidence: seg.confidence || 'medium',
+        facts: facts || {},
+        other_atoms: deduped,
+        markdown_excerpt: segText.slice(0, 200000),
+        classification_source: seg._source || 'datalab'
+      };
+    })();
+
+    const raced = await withTimeout(work, SEGMENT_TIMEOUT_MS, `segment-${i}`);
+    let row;
+    if (raced.timedOut) {
+      console.warn(`[extract ${caseId}] seg ${i} TIMEOUT after ${SEGMENT_TIMEOUT_MS / 1000}s`);
+      emit('segment_timeout', { index: i, after_s: SEGMENT_TIMEOUT_MS / 1000 });
+      row = {
+        segment_index: i,
+        segment_name: seg.name,
+        segment_type: seg.type,
+        page_start: seg.page_start,
+        page_end: seg.page_end,
+        confidence: seg.confidence || 'low',
+        facts: {},
+        other_atoms: [],
+        markdown_excerpt: segText.slice(0, 200000),
+        classification_source: 'timeout'
+      };
+    } else {
+      row = raced.value;
     }
 
-    // Step 7 — verify + de-dup
-    const verifiedAtoms = gapAtoms
-      .filter(a => ds.verifyAtomAgainstSource(a, segText));
-    const deduped = dedupAtoms(verifiedAtoms, facts);
-    emit('segment_atoms_verified', {
-      index: i,
-      kept: deduped.length,
-      dropped: gapAtoms.length - deduped.length
-    });
-
-    const row = {
-      segment_index: i,
-      segment_name: seg.name,
-      segment_type: seg.type,
-      page_start: seg.page_start,
-      page_end: seg.page_end,
-      confidence: seg.confidence || 'medium',
-      facts: facts || {},
-      other_atoms: deduped,
-      markdown_excerpt: segText.slice(0, 200000),
-      classification_source: seg._source || 'datalab'
-    };
-
-    // Persist as we go — UI can render partial state.
+    // Persist (always — even on timeout/partial, so user sees something)
     try {
       await pool.query(
         `INSERT INTO case_segments
@@ -202,19 +267,32 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
       console.warn(`[extract ${caseId}] seg ${i} persist failed:`, e.message);
     }
 
-    emit('segment_done', { index: i, type: row.segment_type });
+    emit('segment_done', {
+      index: i,
+      type: row.segment_type,
+      facts_count: factsFilledCount(row.facts),
+      atoms_count: row.other_atoms.length,
+      elapsed_s: ((Date.now() - tSeg0) / 1000).toFixed(1)
+    });
     return row;
-  }));
+  });
 
   // ─── Layer C — Cross-segment intelligence ─────────────────────
-  emit('cross_segment_started', {});
+  // Filter out any unhandled-error rows (shouldn't happen given our
+  // per-segment try/catch but defensive).
+  const validRows = segmentRows.filter(r => r && !r.__error);
+  const failedRows = segmentRows.length - validRows.length;
+  emit('cross_segment_started', {
+    valid: validRows.length,
+    failed: failedRows
+  });
 
   const rollup = {};
 
   // Step 10/11 — server-side roll-ups (no LLM)
-  rollup.evidence_index = collectEvidence(segmentRows);
-  rollup.statutes_index = collectStatutes(segmentRows);
-  rollup.parties_raw = collectAllParties(segmentRows);
+  rollup.evidence_index = collectEvidence(validRows);
+  rollup.statutes_index = collectStatutes(validRows);
+  rollup.parties_raw = collectAllParties(validRows);
   emit('rollup_local_done', {
     evidence: rollup.evidence_index.length,
     statutes: rollup.statutes_index.length
@@ -222,7 +300,7 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
 
   // Step 8 — party graph
   try {
-    rollup.party_graph = await ds.unifyPartyGraph({ segments: segmentRows });
+    rollup.party_graph = await ds.unifyPartyGraph({ segments: validRows });
     emit('party_graph_done', { count: rollup.party_graph.length });
   } catch (e) {
     rollup.party_graph = [];
@@ -231,7 +309,7 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
 
   // Step 9 — timeline
   try {
-    rollup.timeline = await ds.unifyTimeline({ segments: segmentRows });
+    rollup.timeline = await ds.unifyTimeline({ segments: validRows });
     emit('timeline_done', { count: rollup.timeline.length });
   } catch (e) {
     rollup.timeline = [];
@@ -240,7 +318,7 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
 
   // Step 12 — causation
   try {
-    rollup.causation_map = await ds.causationMap({ segments: segmentRows });
+    rollup.causation_map = await ds.causationMap({ segments: validRows });
     emit('causation_done', { count: rollup.causation_map.length });
   } catch (e) {
     rollup.causation_map = [];
@@ -248,7 +326,7 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
 
   // Step 13 — consistency audit
   try {
-    rollup.inconsistencies = await ds.consistencyAudit({ segments: segmentRows });
+    rollup.inconsistencies = await ds.consistencyAudit({ segments: validRows });
     emit('audit_done', { count: rollup.inconsistencies.length });
   } catch (e) {
     rollup.inconsistencies = [];
@@ -259,7 +337,7 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
     const cr = await pool.query(`SELECT title FROM cases WHERE id=$1`, [caseId]);
     rollup.brief = await ds.caseBrief({
       caseTitle: cr.rows[0]?.title || '',
-      segments: segmentRows
+      segments: validRows
     });
     emit('brief_done', { length: (rollup.brief || '').length });
   } catch (e) {
@@ -278,10 +356,12 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
 
   emit('extraction_done', {
     segments: segmentRows.length,
+    valid_segments: validRows.length,
+    failed_segments: failedRows,
     elapsed_ms: Date.now() - t0
   });
 
-  return { segments: segmentRows, rollup };
+  return { segments: validRows, rollup };
 }
 
 // ─── helpers ─────────────────────────────────────────────────────
