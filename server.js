@@ -206,6 +206,49 @@ app.get('/api/cases/:id/facts', async (req, res) => {
   res.json(r.rows[0]);
 });
 
+// V2 segment-aware fact lookup. Searches across every segment in the
+// case for a field; returns matches with their source segment + pages.
+// Used by the voice agent's lookup_case_fact tool.
+app.get('/api/cases/:id/fact', async (req, res) => {
+  try {
+    const field = String(req.query.field || '').trim();
+    if (!field) return res.status(400).json({ error: 'field required' });
+    const sr = await pool.query(
+      `SELECT segment_index, segment_type, page_start, page_end,
+              facts -> $1 AS value
+         FROM case_segments
+        WHERE case_id = $2
+          AND facts ? $1
+          AND facts -> $1 IS NOT NULL
+        ORDER BY segment_index ASC`,
+      [field, req.params.id]
+    );
+    const hits = sr.rows
+      .filter(r => r.value !== null && r.value !== '' &&
+                   !(Array.isArray(r.value) && r.value.length === 0));
+    if (hits.length) {
+      return res.json({
+        field,
+        value: hits.length === 1 ? hits[0].value : hits.map(h => h.value),
+        sources: hits.map(h =>
+          `seg${h.segment_index} (${h.segment_type}, pp ${h.page_start}-${h.page_end})`),
+        multi: hits.length > 1
+      });
+    }
+    // V1 fallback
+    const cr = await pool.query(`SELECT facts FROM cases WHERE id=$1`, [req.params.id]);
+    if (!cr.rows.length) return res.status(404).json({ error: 'case not found' });
+    const f = cr.rows[0].facts || {};
+    const v = f[field];
+    if (v == null || v === '' || (Array.isArray(v) && !v.length)) {
+      return res.json({ field, value: null, reason: 'not in any segment' });
+    }
+    res.json({ field, value: v, source: 'case-level (v1)' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Voice session — LiveKit path. Issues a participant JWT for joining a
 // per-case room. The room name encodes the case id so the Python agent
 // can identify which case the user is asking about.

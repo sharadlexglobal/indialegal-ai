@@ -27,8 +27,10 @@
  * step-by-step progress while the pipeline runs.
  */
 
+const { Buffer } = require('buffer');
 const datalab = require('./datalab');
 const ds = require('./deepseekExtract');
+const gemini = require('./gemini');
 const bus = require('./eventBus');
 const { SEGMENT_TYPES_FOR_DATALAB, schemaForType } = require('./typeSchemas');
 
@@ -391,6 +393,30 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
     console.warn('rollup persist failed:', e.message);
   }
 
+  // ─── Step 15 — Index structured data into Gemini File Search ──
+  // For chat grounding: upload each segment's structured atoms +
+  // a case_overview document (brief + timeline + parties + statutes)
+  // as separate .txt files into the case's Gemini store. After this,
+  // search_case_file retrieves both raw PDF text AND structured
+  // atoms — fully grounded answers.
+  try {
+    const cr = await pool.query(
+      `SELECT gemini_store_name, title FROM cases WHERE id=$1`,
+      [caseId]
+    );
+    const storeName = cr.rows[0]?.gemini_store_name;
+    if (storeName) {
+      emit('indexing_structured', { segments: validRows.length });
+      await indexStructuredData(pool, caseId, storeName, validRows, rollup, cr.rows[0]?.title);
+      emit('indexing_structured_done', {});
+    } else {
+      emit('indexing_structured_skipped', { reason: 'no gemini store' });
+    }
+  } catch (e) {
+    console.warn('structured indexing failed:', e.message);
+    emit('indexing_structured_failed', { error: String(e.message || e).slice(0, 200) });
+  }
+
   emit('extraction_done', {
     segments: segmentRows.length,
     valid_segments: validRows.length,
@@ -399,6 +425,182 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
   });
 
   return { segments: validRows, rollup };
+}
+
+// ─── Gemini indexing helpers ─────────────────────────────────────
+
+// Build a clean human-readable text doc for one segment. The file
+// gets uploaded to Gemini File Search so search_case_file can find
+// the segment's structured atoms (not just raw OCR text).
+function buildSegmentDocument(segment) {
+  const lines = [];
+  lines.push(`=== SUB-DOCUMENT ${segment.segment_index}: ${segment.segment_name || segment.segment_type} ===`);
+  lines.push(`Document type: ${segment.segment_type}`);
+  lines.push(`Pages: ${segment.page_start}-${segment.page_end}`);
+  lines.push(`Classification source: ${segment.classification_source}`);
+  lines.push('');
+
+  // Structured facts — print each filled field
+  lines.push('--- Structured Facts ---');
+  const f = segment.facts || {};
+  for (const [k, v] of Object.entries(f)) {
+    if (v == null || v === '' || (Array.isArray(v) && v.length === 0)) continue;
+    const label = k.replace(/_/g, ' ');
+    if (Array.isArray(v)) {
+      lines.push(`${label}:`);
+      for (const item of v) lines.push(`  • ${String(item)}`);
+    } else if (typeof v === 'object') {
+      lines.push(`${label}: ${JSON.stringify(v)}`);
+    } else {
+      lines.push(`${label}: ${v}`);
+    }
+  }
+  lines.push('');
+
+  // Other atoms — DeepSeek gap-fill, verbatim-verified
+  const atoms = segment.other_atoms || [];
+  if (atoms.length) {
+    lines.push('--- Additional Atoms (verbatim from source) ---');
+    for (const a of atoms) {
+      if (!a || !a.atom_value) continue;
+      lines.push(`${a.atom_name || 'atom'} (page ${a.source_page || '?'}): ${a.atom_value}`);
+      if (a.why_significant) lines.push(`  Why significant: ${a.why_significant}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+// Build the case-level overview document (brief + timeline + party
+// graph + statutes + causation + evidence + inconsistencies).
+function buildOverviewDocument(rollup, caseTitle) {
+  const lines = [];
+  lines.push(`=== CASE OVERVIEW: ${caseTitle || ''} ===`);
+  lines.push('');
+
+  if (rollup.brief) {
+    lines.push('--- Brief ---');
+    lines.push(rollup.brief);
+    lines.push('');
+  }
+
+  const timeline = rollup.timeline || [];
+  if (timeline.length) {
+    lines.push(`--- Timeline (${timeline.length} events, chronological) ---`);
+    for (const e of timeline) {
+      lines.push(`${e.date || '?'}: ${e.event || ''}`);
+      const srcs = (e.sources || []).map(s =>
+        typeof s === 'object' ? `seg${s.segment_index ?? '?'}` : String(s)
+      ).join(', ');
+      if (srcs) lines.push(`  Source: ${srcs}`);
+    }
+    lines.push('');
+  }
+
+  const parties = rollup.party_graph || [];
+  if (parties.length) {
+    lines.push(`--- Party graph (${parties.length} unique people) ---`);
+    for (const p of parties) {
+      const aliases = (p.aliases || []).slice(0, 6).join(', ');
+      lines.push(`${p.canonical_name}: ${aliases ? '[' + aliases + ']' : ''}`);
+    }
+    lines.push('');
+  }
+
+  const stats = rollup.statutes_index || [];
+  if (stats.length) {
+    lines.push(`--- Statutory references (${stats.length} unique) ---`);
+    for (const s of stats) {
+      lines.push(`${s.text} (cited in segments ${(s.segments || []).join(', ')})`);
+    }
+    lines.push('');
+  }
+
+  const evid = rollup.evidence_index || [];
+  if (evid.length) {
+    lines.push(`--- Evidence index (${evid.length}) ---`);
+    for (const e of evid) {
+      lines.push(`seg${e.segment_index}: ${e.exhibit}`);
+    }
+    lines.push('');
+  }
+
+  const ce = rollup.causation_map || [];
+  if (ce.length) {
+    lines.push(`--- Causation links (${ce.length}) ---`);
+    for (const c of ce) {
+      lines.push(`seg${c.from_segment} → seg${c.to_segment} (${c.relationship}): ${c.evidence || ''}`);
+    }
+    lines.push('');
+  }
+
+  const ic = rollup.inconsistencies || [];
+  if (ic.length) {
+    lines.push(`--- Inconsistencies / red flags (${ic.length}) ---`);
+    for (const i of ic) {
+      lines.push(`${i.field}: seg${i.segment_a}="${i.value_a}" vs seg${i.segment_b}="${i.value_b}"`);
+      lines.push(`  Why: ${i.why_inconsistent}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+// Upload all structured docs into the case's Gemini File Search store.
+// Each segment becomes one .txt file; case_overview is one .txt file.
+async function indexStructuredData(pool, caseId, storeName, segments, rollup, caseTitle) {
+  // Build files: one per segment + one overview
+  const files = [];
+  for (const seg of segments) {
+    const text = buildSegmentDocument(seg);
+    if (!text || text.length < 80) continue;
+    const slug = String(seg.segment_type || 'segment')
+      .replace(/[^a-z0-9_-]+/gi, '_').slice(0, 30);
+    files.push({
+      filename: `case-${caseId}-seg${seg.segment_index}-${slug}.txt`,
+      text,
+      segment_index: seg.segment_index
+    });
+  }
+  if (rollup) {
+    files.push({
+      filename: `case-${caseId}-overview.txt`,
+      text: buildOverviewDocument(rollup, caseTitle),
+      segment_index: -1
+    });
+  }
+
+  // Upload with concurrency=3 (Gemini upload is slow ~5-10s each).
+  const concurrency = 3;
+  let cursor = 0;
+  const indexed = [];
+  async function worker() {
+    while (cursor < files.length) {
+      const i = cursor++;
+      const f = files[i];
+      try {
+        const buf = Buffer.from(f.text, 'utf-8');
+        const { operationName } = await gemini.uploadAndImport(
+          storeName, buf, f.filename, 'text/plain'
+        );
+        const { documentName } = await gemini.pollIndexingComplete(operationName);
+        indexed.push({ ...f, documentName });
+        if (f.segment_index >= 0) {
+          // Persist document name back on the segment row
+          await pool.query(
+            `UPDATE case_segments
+                SET facts = jsonb_set(COALESCE(facts, '{}'::jsonb),
+                                       '{__gemini_document}', $1::jsonb, true)
+              WHERE case_id=$2 AND segment_index=$3`,
+            [JSON.stringify(documentName || operationName), caseId, f.segment_index]
+          ).catch(() => {});
+        }
+      } catch (e) {
+        console.warn(`[indexStructured] ${f.filename} failed:`, e.message);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, files.length) }, worker));
+  return indexed.length;
 }
 
 // ─── helpers ─────────────────────────────────────────────────────

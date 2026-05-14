@@ -322,6 +322,18 @@ def make_lookup_tool(case_id: str):
           "arbitration clause hai kya"   → "arbitration_clause"
         """
         try:
+            # V2: hit the segment-aware /fact endpoint which searches
+            # across every sub-document for this field. Returns either
+            # single value with source, or multi-segment value list.
+            async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as c:
+                r = await c.get(
+                    f"{NODE_URL}/api/cases/{case_id}/fact",
+                    params={"field": field}
+                )
+                if r.status_code == 200:
+                    return r.text
+            # If /fact endpoint isn't deployed, fall back to legacy
+            # whole-case facts blob.
             if "facts" not in cache:
                 async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as c:
                     r = await c.get(f"{NODE_URL}/api/cases/{case_id}/facts")
@@ -330,15 +342,13 @@ def make_lookup_tool(case_id: str):
             facts = cache["facts"]
             if field not in facts:
                 return json.dumps({
-                    "field": field,
-                    "value": None,
+                    "field": field, "value": None,
                     "reason": "unknown field name"
                 })
             val = facts.get(field)
             if val is None or val == "" or (isinstance(val, list) and not val):
                 return json.dumps({
-                    "field": field,
-                    "value": None,
+                    "field": field, "value": None,
                     "reason": "not in case-sheet"
                 })
             return json.dumps({"field": field, "value": val})

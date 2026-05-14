@@ -414,15 +414,60 @@ const FUNCTION_DECLS = [
 async function toolLookupCaseFact(_ctx, args) {
   const { pool, caseId } = _ctx;
   const field = String(args.field || '').trim();
+  if (!field) return { field, value: null, reason: 'no field given' };
+
+  // V2 extraction: look across every segment for this field. Returns
+  // the value(s) found — if multiple segments have it, return them
+  // all so the chat agent can speak to the variation. Falls back to
+  // cases.facts for v1 backward compatibility.
+  const sr = await pool.query(
+    `SELECT segment_index, segment_type, page_start, page_end,
+            facts -> $1 AS value
+       FROM case_segments
+      WHERE case_id = $2
+        AND facts ? $1
+        AND facts -> $1 IS NOT NULL
+      ORDER BY segment_index ASC`,
+    [field, caseId]
+  );
+  const hits = sr.rows
+    .map(r => ({
+      segment_index: r.segment_index,
+      segment_type: r.segment_type,
+      pages: `${r.page_start}-${r.page_end}`,
+      value: r.value
+    }))
+    .filter(h => h.value !== null && h.value !== '' &&
+                 !(Array.isArray(h.value) && h.value.length === 0));
+
+  if (hits.length === 1) {
+    const h = hits[0];
+    return {
+      field, value: h.value,
+      source: `seg${h.segment_index} (${h.segment_type}, pp ${h.pages})`
+    };
+  }
+  if (hits.length > 1) {
+    return {
+      field,
+      value: hits.map(h => h.value),   // one merged-array for the LLM
+      sources: hits.map(h =>
+        `seg${h.segment_index} (${h.segment_type}, pp ${h.pages})`),
+      note: 'field found in multiple segments — values listed in order'
+    };
+  }
+
+  // V1 fallback — older uploads (pre-v2 extraction) only have
+  // cases.facts populated.
   const r = await pool.query(`SELECT facts FROM cases WHERE id=$1`, [caseId]);
   if (!r.rows.length) return { field, value: null, reason: 'case not found' };
   const facts = r.rows[0].facts || {};
-  if (!(field in facts)) return { field, value: null, reason: 'unknown field name' };
+  if (!(field in facts)) return { field, value: null, reason: 'not in any segment' };
   const val = facts[field];
   if (val == null || val === '' || (Array.isArray(val) && val.length === 0)) {
     return { field, value: null, reason: 'not in case-sheet' };
   }
-  return { field, value: val };
+  return { field, value: val, source: 'case-level (v1)' };
 }
 
 async function toolSearchCaseFile(_ctx, args) {
