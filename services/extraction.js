@@ -82,13 +82,13 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
 
   emit('extraction_started', { pageCount });
 
-  // ─── Step 2 — Datalab segmentation ────────────────────────────
+  // ─── Step 2 — Datalab segmentation (AUTO-DETECT) ──────────────
+  // Empty schema = pure auto-detection per Datalab docs. We classify
+  // each returned segment later via DeepSeek.
   emit('segmenting', {});
   let segments = [];
   try {
-    const sub = await datalab.submitSegmentation(
-      buffer, filename, SEGMENT_TYPES_FOR_DATALAB
-    );
+    const sub = await datalab.submitSegmentation(buffer, filename, []);  // auto
     const segResult = await datalab.pollUntilDone(sub.checkUrl);
     segments = datalab.parseSegmentationResult(segResult);
     emit('datalab_segments', { count: segments.length, segments });
@@ -110,7 +110,8 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
     try {
       const dsSegs = await ds.deepseekSegmentation({
         markdown: flatMarkdown,
-        allowedTypes: SEGMENT_TYPES_FOR_DATALAB
+        allowedTypes: SEGMENT_TYPES_FOR_DATALAB,
+        pageCount
       });
       if (dsSegs.length > segments.length) {
         // Prefer the richer split; mark source so we can audit later.

@@ -286,10 +286,18 @@ async function submitExtract(buffer, filename, schema = LEGAL_SCHEMA, opts = {})
 //   expectedTypes — array of doc-type strings (use SEGMENT_TYPES_FOR_DATALAB
 //                  from typeSchemas.js)
 async function submitSegmentation(buffer, filename, expectedTypes = []) {
-  // Datalab's segmentation_schema requires each entry to have a `name`
-  // (the segment label). We pass `name` and a description; Datalab
-  // returns the matched `name` as the segment's type in the response.
-  const segments = expectedTypes.map(t => ({
+  // Per Datalab docs: passing an EMPTY segments array triggers AUTO-
+  // DETECTION — Datalab finds segment boundaries by itself and labels
+  // each with whatever name it chooses. We then post-classify each
+  // segment via DeepSeek into our type registry. This is more robust
+  // than a constrained schema (which empirically returned 0 segments
+  // on the Sodhani 240-page test PDF).
+  //
+  // If caller passes expectedTypes, we ALSO include hints (both `type`
+  // and `name` keys to be belt-and-suspenders against schema-version
+  // drift); empty array → pure auto.
+  const segments = (expectedTypes || []).map(t => ({
+    type: t,
     name: t,
     description:
       `A ${String(t).replace(/_/g, ' ')} document — typically identified ` +

@@ -147,32 +147,41 @@ ${String(segmentText || '').slice(0, 80000)}`
 // 3. Fallback segmentation when Datalab returns 1 mega-segment for a
 //    long PDF. DeepSeek reads the full markdown and proposes splits.
 // ─────────────────────────────────────────────────────────────────
-async function deepseekSegmentation({ markdown, allowedTypes = [] }) {
+async function deepseekSegmentation({ markdown, allowedTypes = [], pageCount = null }) {
+  // Cap input — even with 1M context, > 200K chars makes DeepSeek
+  // sluggish (often 60+ sec). For segmentation we don't need the
+  // full document; we need to SEE structural boundaries (headings,
+  // case titles, signature blocks). 200K chars is ~50K tokens which
+  // is plenty.
+  const capped = String(markdown || '').slice(0, 200000);
+  const pageHint = pageCount ? `The PDF has ${pageCount} pages total.` : '';
   const out = await ds([{
     role: 'user',
-    content: `You are reading a SINGLE PDF that may contain MULTIPLE
-distinct legal documents stapled / scanned together (e.g. an FIR
-followed by a charge sheet followed by affidavits followed by
-agreements followed by court orders).
+    content: `You are reading a SINGLE PDF that contains MULTIPLE
+distinct legal documents stapled / scanned together (FIR + charge
+sheet + affidavits + agreements + court orders + applications +
+written statements + replies, etc.).
 
-Your job: identify the sub-documents and output their page ranges and
-document types. A page boundary between sub-documents typically shows
-a new heading / case-title / formal document-type marker / signatory
-block separating them.
+Identify each sub-document and output its page range + type. A page
+boundary shows a NEW HEADING / case title / formal document marker /
+signature block.
+
+${pageHint}
+IMPORTANT: page_start and page_end MUST be within 1 to ${pageCount || 'pageCount'} —
+do NOT invent pages beyond the document length.
 
 Allowed types: ${allowedTypes.join(', ')}, unknown.
 
-PDF TEXT (with --- PAGE N --- markers):
-${String(markdown || '').slice(0, 400000)}
+PDF TEXT (first 200K chars, with --- PAGE N --- markers if any):
+${capped}
 
 Output strict JSON:
 {
   "segments": [
-    { "type": "...", "page_start": <int>, "page_end": <int>, "name": "...", "why": "..." },
-    ...
+    { "type": "...", "page_start": <int>, "page_end": <int>, "name": "...", "why": "..." }
   ]
 }`
-  }], { label: 'ds-segment' });
+  }], { label: 'ds-segment', timeoutMs: 120000 });
   const segs = Array.isArray(out?.segments) ? out.segments : [];
   return segs
     .filter(s => s && s.page_start && s.page_end)
