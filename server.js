@@ -11,6 +11,7 @@ const gemini = require('./services/gemini');
 const research = require('./services/research');
 const bus = require('./services/eventBus');
 const textAgent = require('./services/textAgent');
+const extraction = require('./services/extraction');
 const {
   buildRealtimeSystemPrompt,
   FORBIDDEN_PHRASES,
@@ -89,31 +90,40 @@ async function processCase(caseId, buffer, filename, title) {
      pageMap, caseId]
   );
 
-  // Stage 2 — Run in PARALLEL: Datalab structured extraction (atomic facts)
-  // and Gemini File Search upload+indexing (semantic search). Independent
-  // failures are fine. Voice readiness ('ready' status) tracks Gemini only.
+  // Stage 2 — Run in PARALLEL:
+  //   (a) NEW v2 extraction orchestrator — segments the PDF into
+  //       sub-documents, runs type-specific Datalab extracts on each
+  //       page-range, DeepSeek gap-fills + verifies atoms, then builds
+  //       cross-segment intelligence (party graph, timeline, causation,
+  //       audit, brief). Emits live SSE on `extract:<caseId>`.
+  //   (b) Gemini File Search upload+indexing (semantic search).
+  // Independent failures don't block each other.
   const extractTask = (async () => {
     try {
       await pool.query(
         `UPDATE cases SET facts_status='extracting', updated_at=NOW() WHERE id=$1`,
         [caseId]
       );
-      const { checkUrl: extractUrl } = await datalab.submitExtract(buffer, filename);
-      await pool.query(
-        `UPDATE cases SET extract_check_url=$1, updated_at=NOW() WHERE id=$2`,
-        [extractUrl, caseId]
-      );
-      const extractResult = await datalab.pollUntilDone(extractUrl);
-      const facts = datalab.parseExtractResult(extractResult);
+      const out = await extraction.runExtraction({
+        pool, caseId, buffer, filename,
+        flatMarkdown: flat,
+        pageCount: result.page_count || null
+      });
+      // Roll the first segment's facts into the case-level `facts`
+      // column too — keeps backwards compatibility with lookup_case_fact
+      // and the old ctx-facts UI for atomic queries about the case
+      // ("judge kaun hai", etc.). Voice/text agent's lookup tool
+      // continues to work unchanged.
+      const primary = out.segments[0]?.facts || {};
       await pool.query(
         `UPDATE cases SET facts=$1, facts_status='done', updated_at=NOW() WHERE id=$2`,
-        [facts, caseId]
+        [primary, caseId]
       );
     } catch (e) {
-      console.warn(`[case ${caseId}] datalab extract failed:`, e.message);
+      console.warn(`[case ${caseId}] v2 extraction failed:`, e.message);
       await pool.query(
-        `UPDATE cases SET facts_status='failed', updated_at=NOW() WHERE id=$1`,
-        [caseId]
+        `UPDATE cases SET facts_status='failed', error=$1, updated_at=NOW() WHERE id=$2`,
+        [String(e.message || e).slice(0, 500), caseId]
       );
     }
   })();
@@ -478,6 +488,51 @@ function openSSE(req, res) {
     end() { clearInterval(ping); res.end(); }
   };
 }
+
+// Live SSE for case-file EXTRACTION progress (v2 orchestrator).
+// Streams: extraction_started → segmenting → datalab_segments →
+// (optional deepseek_segmentation_fallback) → per_segment_extraction →
+// segment_started/extracted/gapfilled/atoms_verified/done per segment →
+// rollup_local_done → party_graph_done → timeline_done → causation_done →
+// audit_done → brief_done → extraction_done.
+app.get('/api/cases/:id/extraction/stream', (req, res) => {
+  const topic = `extract:${req.params.id}`;
+  const sse = openSSE(req, res);
+  let closed = false;
+  const cleanup = bus.subscribe(topic, (entry) => {
+    if (closed) return;
+    sse.send(entry.event, entry.data);
+    if (entry.event === 'extraction_done' || entry.event === 'extraction_failed') {
+      closed = true;
+      setTimeout(() => { cleanup(); sse.end(); }, 100);
+    }
+  });
+  req.on('close', () => { closed = true; cleanup(); });
+});
+
+// Read all segments + rollup for a case.
+app.get('/api/cases/:id/segments', async (req, res) => {
+  try {
+    const segs = await pool.query(
+      `SELECT id, segment_index, segment_name, segment_type,
+              page_start, page_end, confidence,
+              facts, other_atoms, classification_source, created_at
+         FROM case_segments
+        WHERE case_id=$1
+        ORDER BY segment_index ASC`,
+      [req.params.id]
+    );
+    const c = await pool.query(`SELECT rollup, extraction_v FROM cases WHERE id=$1`, [req.params.id]);
+    res.json({
+      segments: segs.rows,
+      rollup: c.rows[0]?.rollup || null,
+      extraction_v: c.rows[0]?.extraction_v || 1
+    });
+  } catch (e) {
+    console.error('segments fetch error', e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // Live SSE stream for a research job. Streams the full event sequence
 // (with replay for late subscribers) and closes after 'done' or 'failed'.

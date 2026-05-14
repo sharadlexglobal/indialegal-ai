@@ -253,11 +253,13 @@ function flattenForPrompt(result) {
   return out;
 }
 
-async function submitExtract(buffer, filename, schema = LEGAL_SCHEMA) {
+async function submitExtract(buffer, filename, schema = LEGAL_SCHEMA, opts = {}) {
   const form = new FormData();
   form.append('file', buffer, { filename, contentType: 'application/pdf' });
   form.append('page_schema', JSON.stringify(schema));
-  form.append('mode', 'balanced');
+  form.append('mode', opts.mode || 'balanced');
+  if (opts.page_range) form.append('page_range', String(opts.page_range));
+  if (opts.max_pages) form.append('max_pages', String(opts.max_pages));
 
   const res = await fetch(`${BASE}/api/v1/extract`, {
     method: 'POST',
@@ -272,6 +274,66 @@ async function submitExtract(buffer, filename, schema = LEGAL_SCHEMA) {
   return { requestId: data.request_id, checkUrl: data.request_check_url };
 }
 
+// Datalab document-segmentation endpoint. Splits a multi-document PDF
+// (case file containing FIR + charge sheet + agreements + affidavits +
+// orders + ...) into typed sub-documents with page ranges and
+// confidence scores. We pass the full list of legal doc types we
+// support as the `segmentation_schema` so Datalab classifies each
+// segment into one of those buckets.
+//
+//   buffer       — raw PDF
+//   filename     — original filename
+//   expectedTypes — array of doc-type strings (use SEGMENT_TYPES_FOR_DATALAB
+//                  from typeSchemas.js)
+async function submitSegmentation(buffer, filename, expectedTypes = []) {
+  const segments = expectedTypes.map(t => ({
+    type: t,
+    description: `A ${String(t).replace(/_/g, ' ')} document segment.`
+  }));
+  const segmentationSchema = { segments };
+
+  const form = new FormData();
+  form.append('file', buffer, { filename, contentType: 'application/pdf' });
+  form.append('output_format', 'markdown');
+  form.append('mode', 'balanced');
+  form.append('segmentation_schema', JSON.stringify(segmentationSchema));
+
+  const res = await fetch(`${BASE}/api/v1/segment`, {
+    method: 'POST',
+    headers: {
+      'X-Api-Key': process.env.DATALAB_API_KEY,
+      ...form.getHeaders()
+    },
+    body: form
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(`Datalab segment submit failed: ${JSON.stringify(data)}`);
+  return { requestId: data.request_id, checkUrl: data.request_check_url };
+}
+
+// Reads polled segmentation result. Datalab returns either
+// `segmentation_results` (with `name`, `pages`, `confidence`,
+// optionally `type`) or null. Normalises into a uniform array of
+// {name, type, page_start, page_end, confidence}.
+function parseSegmentationResult(result) {
+  const raw = result.segmentation_results || result.segmentation || result.segments || [];
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map((s, i) => {
+    const pages = Array.isArray(s.pages) ? s.pages
+                  : (s.page_range ? String(s.page_range).split(/[-,]/).map(n => parseInt(n, 10))
+                                  : []);
+    const page_start = pages[0] || s.page_start || s.from || null;
+    const page_end   = pages[pages.length - 1] || s.page_end || s.to || page_start;
+    return {
+      idx: i,
+      name: s.name || s.label || `Segment ${i + 1}`,
+      type: s.type || s.document_type || null,
+      page_start, page_end,
+      confidence: s.confidence || 'medium'
+    };
+  }).filter(s => s.page_start != null);
+}
+
 // Reads the polled extract result and normalises into a plain JS object.
 function parseExtractResult(result) {
   let raw = result.extraction_schema_json;
@@ -283,7 +345,26 @@ function parseExtractResult(result) {
   return raw || null;
 }
 
+// Take the OCR'd flat markdown for a SLICE of pages [start, end].
+// Used by the orchestrator to give DeepSeek the text of each segment
+// for the gap-fill pass.
+function markdownForPageRange(flatMarkdown, page_start, page_end) {
+  if (!flatMarkdown) return '';
+  const pages = flatMarkdown.split(/\n--- PAGE (\d+) ---\n/);
+  // Even indices = text after the marker; odd indices = page numbers
+  const out = [];
+  for (let i = 1; i < pages.length; i += 2) {
+    const pageNum = parseInt(pages[i], 10);
+    if (pageNum >= page_start && pageNum <= page_end) {
+      out.push(`--- PAGE ${pageNum} ---\n${pages[i + 1] || ''}`);
+    }
+  }
+  return out.join('\n').trim() || flatMarkdown;  // fallback: whole md
+}
+
 module.exports = {
   submitPdf, pollUntilDone, flattenForPrompt, extractPrintedPageMap,
-  submitExtract, parseExtractResult, LEGAL_SCHEMA
+  submitExtract, parseExtractResult, LEGAL_SCHEMA,
+  submitSegmentation, parseSegmentationResult,
+  markdownForPageRange
 };

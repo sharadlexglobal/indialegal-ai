@@ -61,6 +61,36 @@ CREATE TABLE IF NOT EXISTS research_jobs (
 CREATE INDEX IF NOT EXISTS research_jobs_case_idx ON research_jobs (case_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS research_jobs_status_idx ON research_jobs (status);
 
+-- Sub-document storage. A single uploaded case file can contain
+-- multiple legal documents (FIR + charge sheet + agreements + orders +
+-- affidavits). The extraction orchestrator segments the PDF, classifies
+-- each segment, and stores one row per sub-document here with its own
+-- structured atoms and gap-fill atoms.
+CREATE TABLE IF NOT EXISTS case_segments (
+  id              BIGSERIAL PRIMARY KEY,
+  case_id         BIGINT NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  segment_index   INTEGER NOT NULL,
+  segment_name    TEXT,
+  segment_type    TEXT,                   -- 'FIR','charge_sheet','sale_deed', etc.
+  page_start      INTEGER,
+  page_end        INTEGER,
+  confidence      TEXT,                   -- 'high' | 'medium' | 'low'
+  facts           JSONB,                  -- Datalab type-specific extraction
+  other_atoms     JSONB,                  -- DeepSeek gap-fill atoms (deduped, verified)
+  markdown_excerpt TEXT,                  -- the segment's source text
+  classification_source TEXT,             -- 'datalab' | 'deepseek' | 'reconciled'
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS case_segments_case_idx
+  ON case_segments (case_id, segment_index);
+CREATE INDEX IF NOT EXISTS case_segments_type_idx
+  ON case_segments (segment_type);
+
+-- Aggregate / roll-up atoms at case-level (timeline, party graph,
+-- evidence index, causation map, inconsistencies, final brief).
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS rollup JSONB;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS extraction_v INTEGER DEFAULT 1;
+
 -- Unified conversation log. Voice and text BOTH append rows here.
 -- Frontend renders the whole thread by case_id in chronological order.
 --   role: 'user' | 'assistant' | 'tool'
