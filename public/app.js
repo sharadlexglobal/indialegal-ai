@@ -221,7 +221,8 @@ $('#back-to-list').addEventListener('click', () => {
 });
 
 async function loadContext(caseId, kind) {
-  // Facts (only meaningful for uploaded docs)
+  // Facts (only meaningful for uploaded docs). Universal-atomic schema
+  // has ~60 fields — group them so the panel stays scannable.
   const factsEl = $('#ctx-facts');
   factsEl.innerHTML = '';
   if (kind === 'document') {
@@ -229,23 +230,7 @@ async function loadContext(caseId, kind) {
       const r = await fetch(`/api/cases/${caseId}/facts`);
       const { facts, facts_status } = await r.json();
       const f = facts || {};
-      const order = ['case_title','case_number','court','judge','petitioner','respondent','sections','filing_date','next_hearing_date','one_line_summary'];
-      const labels = {
-        case_title: 'Title', case_number: 'Case no.', court: 'Court', judge: 'Judge',
-        petitioner: 'Petitioner', respondent: 'Respondent', sections: 'Sections',
-        filing_date: 'Filed', next_hearing_date: 'Next hearing',
-        one_line_summary: 'Summary'
-      };
-      let any = false;
-      for (const k of order) {
-        const v = f[k];
-        if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue;
-        any = true;
-        factsEl.appendChild(el('dt', {}, labels[k] || k));
-        factsEl.appendChild(el('dd', {}, Array.isArray(v) ? v.join(', ') : String(v)));
-      }
-      if (!any) factsEl.appendChild(el('dd', { class: 'row empty' },
-        facts_status === 'done' ? 'No facts extracted.' : 'Extracting…'));
+      renderFactGroups(factsEl, f, facts_status);
     } catch {
       factsEl.appendChild(el('dd', { class: 'row empty' }, '—'));
     }
@@ -277,6 +262,110 @@ async function loadContext(caseId, kind) {
       }
     }
   } catch {}
+}
+
+// Render the universal-atomic facts grouped in the same logical
+// sections as the Datalab schema, so the advocate can scan top-to-
+// bottom. Empty groups are dropped entirely (no clutter).
+const FACT_GROUPS = [
+  { head: 'Identity',
+    fields: ['document_type','document_title_or_heading','document_date','document_reference_number'] },
+  { head: 'Court',
+    fields: ['case_title','case_number','court','judge_or_bench','filing_date','next_hearing_date','advocate_for_petitioner','advocate_for_respondent'] },
+  { head: 'Parties',
+    fields: ['parties','petitioner','respondent','relationship_between_parties'] },
+  { head: 'Authority & signatures',
+    fields: ['issuing_authority','signatories','attesting_witnesses'] },
+  { head: 'Subject matter',
+    fields: ['subject_matter_summary','subject_matter_type','property_description','monetary_amounts_in_dispute'] },
+  { head: 'Facts',
+    fields: ['facts_chronology','key_incidents','transactions','cause_of_action_date','cause_of_action_description'] },
+  { head: 'Evidence',
+    fields: ['documentary_evidence','oral_evidence_witnesses','specific_admissions','specific_denials'] },
+  { head: 'Statute & precedent',
+    fields: ['sections','articles_invoked','rules_invoked','precedents_cited'] },
+  { head: 'Prayers',
+    fields: ['main_prayers','interim_prayers','alternative_prayers'] },
+  { head: 'Orders',
+    fields: ['order_outcome','operative_directions','costs_awarded','key_orders_or_holdings'] },
+  { head: 'Deed / agreement',
+    fields: ['consideration_amount','consideration_payment_mode','effective_date','termination_or_expiry_date','governing_law','jurisdiction_clause','arbitration_clause','key_obligations'] },
+  { head: 'Will',
+    fields: ['testator_name','executor','beneficiaries','specific_bequests'] },
+  { head: 'Criminal',
+    fields: ['fir_number','fir_date','police_station','offences_alleged','investigating_officer','accused_named','arrest_status','recoveries'] },
+  { head: 'Notice / service',
+    fields: ['notice_recipient','notice_demand','notice_compliance_period','notice_consequence_threatened','mode_of_service','postal_or_tracking_number'] },
+  { head: 'Summary',
+    fields: ['one_line_summary','detailed_summary'] }
+];
+
+const FACT_LABELS = {
+  document_type: 'Type', document_title_or_heading: 'Heading',
+  document_date: 'Date', document_reference_number: 'Ref no.',
+  case_title: 'Title', case_number: 'Case no.', court: 'Court',
+  judge_or_bench: 'Judge / bench', filing_date: 'Filed',
+  next_hearing_date: 'Next hearing',
+  advocate_for_petitioner: 'Adv. (P)', advocate_for_respondent: 'Adv. (R)',
+  parties: 'Parties', petitioner: 'Petitioner', respondent: 'Respondent',
+  relationship_between_parties: 'Inter-se relation',
+  issuing_authority: 'Issued by', signatories: 'Signatories',
+  attesting_witnesses: 'Attesting witnesses',
+  subject_matter_summary: 'Subject (gist)', subject_matter_type: 'Subject type',
+  property_description: 'Property', monetary_amounts_in_dispute: 'Amounts',
+  facts_chronology: 'Chronology', key_incidents: 'Key incidents',
+  transactions: 'Transactions',
+  cause_of_action_date: 'Cause of action (date)',
+  cause_of_action_description: 'Cause of action',
+  documentary_evidence: 'Doc. evidence', oral_evidence_witnesses: 'Oral witnesses',
+  specific_admissions: 'Admissions', specific_denials: 'Denials',
+  sections: 'Sections', articles_invoked: 'Articles',
+  rules_invoked: 'Rules', precedents_cited: 'Precedents cited',
+  main_prayers: 'Main prayers', interim_prayers: 'Interim prayers',
+  alternative_prayers: 'Alt. prayers',
+  order_outcome: 'Outcome', operative_directions: 'Operative directions',
+  costs_awarded: 'Costs', key_orders_or_holdings: 'Key orders / holdings',
+  consideration_amount: 'Consideration', consideration_payment_mode: 'Payment mode',
+  effective_date: 'Effective', termination_or_expiry_date: 'Termination',
+  governing_law: 'Governing law', jurisdiction_clause: 'Jurisdiction',
+  arbitration_clause: 'Arbitration', key_obligations: 'Key obligations',
+  testator_name: 'Testator', executor: 'Executor',
+  beneficiaries: 'Beneficiaries', specific_bequests: 'Bequests',
+  fir_number: 'FIR no.', fir_date: 'FIR date', police_station: 'PS',
+  offences_alleged: 'Offences', investigating_officer: 'IO',
+  accused_named: 'Accused', arrest_status: 'Arrest status',
+  recoveries: 'Recoveries',
+  notice_recipient: 'Notice to', notice_demand: 'Notice demand',
+  notice_compliance_period: 'Compliance period',
+  notice_consequence_threatened: 'Threatened action',
+  mode_of_service: 'Mode of service', postal_or_tracking_number: 'Postal / tracking #',
+  one_line_summary: 'One-line', detailed_summary: 'Summary'
+};
+
+function renderFactGroups(host, facts, status) {
+  const isFilled = (v) =>
+    v != null && v !== '' && !(Array.isArray(v) && v.length === 0);
+  let anyShown = false;
+
+  for (const group of FACT_GROUPS) {
+    const filledInGroup = group.fields.filter(k => isFilled(facts[k]));
+    if (!filledInGroup.length) continue;
+    anyShown = true;
+    host.appendChild(el('dt', { class: 'ctx-group-head' }, group.head));
+    for (const k of filledInGroup) {
+      const v = facts[k];
+      host.appendChild(el('dt', { class: 'ctx-fact-key' }, FACT_LABELS[k] || k));
+      const valStr = Array.isArray(v)
+        ? v.join('  ·  ')
+        : String(v);
+      host.appendChild(el('dd', { class: 'ctx-fact-val' }, valStr));
+    }
+  }
+  if (!anyShown) {
+    host.appendChild(el('dd', { class: 'row empty' },
+      status === 'done' ? 'No facts extracted.' :
+      status === 'failed' ? 'Extraction failed.' : 'Extracting…'));
+  }
 }
 
 async function loadMessages(caseId) {

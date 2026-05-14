@@ -233,14 +233,70 @@ def make_lookup_tool(case_id: str):
         fall back to search_case_file.
 
         Args:
-          field: one of these field names (exact spelling):
-            "document_type", "case_title", "case_number",
-            "court", "judge", "filing_date",
-            "fir_number", "fir_date", "police_station",
-            "petitioner", "respondent",
-            "advocate_for_petitioner", "advocate_for_respondent",
-            "sections", "prayer", "next_hearing_date",
-            "key_orders_or_holdings", "one_line_summary"
+          field: exact spelling of one of these universal-atomic
+            fields (extracted by Datalab from the uploaded PDF):
+
+            Identity / signatures:
+              document_type, document_title_or_heading, document_date,
+              document_reference_number, issuing_authority,
+              signatories, attesting_witnesses
+
+            Parties:
+              parties, petitioner, respondent,
+              relationship_between_parties
+
+            Court metadata:
+              case_title, case_number, court, judge_or_bench,
+              filing_date, next_hearing_date,
+              advocate_for_petitioner, advocate_for_respondent
+
+            Subject matter:
+              subject_matter_summary, subject_matter_type,
+              property_description, monetary_amounts_in_dispute
+
+            Facts / incidents:
+              facts_chronology, key_incidents, transactions
+
+            Cause of action:
+              cause_of_action_date, cause_of_action_description
+
+            Evidence:
+              documentary_evidence, oral_evidence_witnesses,
+              specific_admissions, specific_denials
+
+            Statute / precedent:
+              sections, articles_invoked, rules_invoked,
+              precedents_cited
+
+            Prayers:
+              main_prayers, interim_prayers, alternative_prayers
+
+            Orders:
+              order_outcome, operative_directions, costs_awarded,
+              key_orders_or_holdings
+
+            Agreement / deed atoms:
+              consideration_amount, consideration_payment_mode,
+              effective_date, termination_or_expiry_date,
+              governing_law, jurisdiction_clause, arbitration_clause,
+              key_obligations
+
+            Will atoms:
+              testator_name, beneficiaries, executor,
+              specific_bequests
+
+            Criminal / police atoms:
+              fir_number, fir_date, police_station, offences_alleged,
+              investigating_officer, accused_named, arrest_status,
+              recoveries
+
+            Notice / service atoms:
+              notice_recipient, notice_demand, notice_compliance_period,
+              notice_consequence_threatened, mode_of_service,
+              postal_or_tracking_number
+
+            Summaries:
+              one_line_summary, detailed_summary
 
         Returns a JSON string. Possible shapes:
           {"field": "<name>", "value": "<the value>"}        // present
@@ -248,14 +304,22 @@ def make_lookup_tool(case_id: str):
 
         Map the user's spoken question to one of the field names above.
         Examples (user → field):
-          "judge kaun hai"           → "judge"
-          "kis court mein chal raha" → "court"
-          "petitioner kaun hai"      → "petitioner"
-          "kis section mein hai"     → "sections"
-          "case number kya hai"      → "case_number"
-          "FIR kab hua tha"          → "fir_date"
-          "agli sunwai kab hai"      → "next_hearing_date"
-          "yeh case kya hai"         → "one_line_summary"
+          "judge kaun hai"               → "judge_or_bench"
+          "kis court mein chal raha"     → "court"
+          "petitioner kaun hai"          → "petitioner"
+          "kis section mein hai"         → "sections"
+          "case number kya hai"          → "case_number"
+          "FIR kab hua tha"              → "fir_date"
+          "agli sunwai kab hai"          → "next_hearing_date"
+          "yeh case kya hai"             → "one_line_summary"
+          "facts kya hain"               → "facts_chronology"
+          "main prayer kya hai"          → "main_prayers"
+          "kya evidence hai"             → "documentary_evidence"
+          "consideration kitni thi"      → "consideration_amount"
+          "witness kaun the"             → "oral_evidence_witnesses"
+          "kya recover hua"              → "recoveries"
+          "notice kis ko bheji"          → "notice_recipient"
+          "arbitration clause hai kya"   → "arbitration_clause"
         """
         try:
             if "facts" not in cache:

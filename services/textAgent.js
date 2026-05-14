@@ -303,11 +303,45 @@ const FUNCTION_DECLS = [
         field: {
           type: 'STRING',
           description:
-            'One of: document_type, case_title, case_number, court, judge, ' +
-            'filing_date, fir_number, fir_date, police_station, petitioner, ' +
-            'respondent, advocate_for_petitioner, advocate_for_respondent, ' +
-            'sections, prayer, next_hearing_date, key_orders_or_holdings, ' +
-            'one_line_summary'
+            'Universal-atomic case-sheet field. One of: ' +
+            // Identity
+            'document_type, document_title_or_heading, document_date, document_reference_number, ' +
+            // Issuing / signatures
+            'issuing_authority, signatories, attesting_witnesses, ' +
+            // Parties
+            'parties, petitioner, respondent, relationship_between_parties, ' +
+            // Court metadata
+            'case_title, case_number, court, judge_or_bench, filing_date, ' +
+            'next_hearing_date, advocate_for_petitioner, advocate_for_respondent, ' +
+            // Subject matter
+            'subject_matter_summary, subject_matter_type, property_description, ' +
+            'monetary_amounts_in_dispute, ' +
+            // Facts / incidents
+            'facts_chronology, key_incidents, transactions, ' +
+            // Cause of action
+            'cause_of_action_date, cause_of_action_description, ' +
+            // Evidence
+            'documentary_evidence, oral_evidence_witnesses, specific_admissions, specific_denials, ' +
+            // Statute / precedent
+            'sections, articles_invoked, rules_invoked, precedents_cited, ' +
+            // Prayers
+            'main_prayers, interim_prayers, alternative_prayers, ' +
+            // Orders
+            'order_outcome, operative_directions, costs_awarded, key_orders_or_holdings, ' +
+            // Agreement / deed atoms
+            'consideration_amount, consideration_payment_mode, effective_date, ' +
+            'termination_or_expiry_date, governing_law, jurisdiction_clause, ' +
+            'arbitration_clause, key_obligations, ' +
+            // Will atoms
+            'testator_name, beneficiaries, executor, specific_bequests, ' +
+            // Criminal / police
+            'fir_number, fir_date, police_station, offences_alleged, ' +
+            'investigating_officer, accused_named, arrest_status, recoveries, ' +
+            // Notice / service
+            'notice_recipient, notice_demand, notice_compliance_period, ' +
+            'notice_consequence_threatened, mode_of_service, postal_or_tracking_number, ' +
+            // Summaries
+            'one_line_summary, detailed_summary'
         }
       },
       required: ['field']

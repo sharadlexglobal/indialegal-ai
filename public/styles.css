@@ -597,6 +597,23 @@ button.icon.recording {
   line-height: 1.45;
   margin-top: 2px;
 }
+/* Group headings inside the context panel — serif italic, slightly
+   bolder than field keys so the eye can find sections at a glance. */
+.ctx-facts dt.ctx-group-head {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  margin-top: 22px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--rule);
+}
+.ctx-facts dt.ctx-group-head:first-child { margin-top: 0; }
+.ctx-facts dt.ctx-fact-key {
+  margin-top: 8px;
+}
 .ctx-research-item {
   font-size: 14px;
   padding: 8px 0;
