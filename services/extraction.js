@@ -82,19 +82,23 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
 
   emit('extraction_started', { pageCount });
 
-  // ─── Step 2 — Datalab segmentation (AUTO-DETECT, time-boxed) ──
-  // Empty schema = auto-detect per Datalab docs. But this can hang
-  // on big scanned PDFs (we've seen 10+ min stuck), so we time-box
-  // it to 90 sec and fall through to DeepSeek fallback if it's slow.
+  // ─── Step 2 — Datalab segmentation (typed schema, time-boxed) ─
+  // We give Datalab the full type registry so it can label segments
+  // into our schemas. Bigger time budget (4 min) so Datalab has a
+  // proper chance on large scanned PDFs before we fall through to
+  // DeepSeek. If Datalab finds nothing useful, DS-seg takes over.
   emit('segmenting', {});
   let segments = [];
+  const SEG_TIMEOUT_MS = 240_000;   // 4 min — was 90 s
   const segPromise = (async () => {
-    const sub = await datalab.submitSegmentation(buffer, filename, []);
+    const sub = await datalab.submitSegmentation(
+      buffer, filename, SEGMENT_TYPES_FOR_DATALAB
+    );
     return await datalab.pollUntilDone(sub.checkUrl);
   })();
-  const segRaced = await withTimeout(segPromise, 90_000, 'datalab-seg');
+  const segRaced = await withTimeout(segPromise, SEG_TIMEOUT_MS, 'datalab-seg');
   if (segRaced.timedOut) {
-    emit('datalab_segment_timeout', { after_s: 90 });
+    emit('datalab_segment_timeout', { after_s: SEG_TIMEOUT_MS / 1000 });
   } else if (segRaced.value) {
     try {
       segments = datalab.parseSegmentationResult(segRaced.value);
