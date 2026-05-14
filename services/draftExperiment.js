@@ -280,21 +280,53 @@ const CITATION_PATTERNS = [
   /AIR\s*(\d{4})\s*SC\s*\d+\s*[\-—]?\s*([A-Z][A-Za-z.\s]+?\sv\.\s[A-Z][A-Za-z.\s]+)/g
 ];
 
+// Citation extractor — single combined regex.
+//
+// Matches: <CaseName> v. <CaseName>, (YYYY) X SCC Y
+//       or <CaseName> v. <CaseName>, AIR YYYY SC Z
+// where case-name parts are: capitalized words optionally chained
+// with allowed connectives (&, of, the, and, Ors., Anr., Ltd, etc.).
+// Period inside "v." doesn't break the match because the regex
+// captures it explicitly. Sentence-prose like "The test of..." can't
+// match because case-name parts must START with capital letters.
 function extractCitations(markdown) {
   const out = [];
   const seen = new Set();
-  // Simple liberal pattern that catches "<Name> v[.] <Name>, (YYYY) ..."
-  const re = /\*?\*?([A-Z][A-Za-z.&'\-\s]{2,80}\sv\.\s[A-Z][A-Za-z.&'\-\s]{2,80})\*?\*?,?\s*[\(\[]?(\d{4})[\)\]]?\s*([\dA-Z\s]+(SCC|AIR|SCR|SCALE|SCC OnLine))?/g;
-  let m;
-  while ((m = re.exec(markdown)) !== null) {
-    const cite = (m[1] || '').trim().replace(/\s+/g, ' ');
-    const year = m[2];
-    if (cite.length < 8 || /(in|the|this|that|hon'ble|court|hereby|whereas)$/i.test(cite)) continue;
-    const key = cite.toLowerCase() + '|' + year;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push({ name: cite, year, raw_match: m[0].slice(0, 200) });
+
+  const PART = '[A-Z][A-Za-z.&\'\\-]{1,40}';
+  const CONN = '(?:' + PART + '|&|of|the|and|in|Ors\\.?|Anr\\.?|Ltd\\.?|Pvt\\.?|Co\\.?|Corp\\.?|Inc\\.?|Bank|State|Union|Govt|Govt\\.|Through|LR\\.?|Sons)';
+  const NAME = PART + '(?:\\s+' + CONN + '){0,8}';
+  const CASE = NAME + '\\s+v\\.?s?\\.?\\s+' + NAME;
+
+  // (YYYY) X SCC Y
+  const sccRe = new RegExp(
+    '\\*?\\*?(' + CASE + ')\\*?\\*?\\s*,?\\s*\\((\\d{4})\\)\\s*\\d+\\s+(?:SCC(?:\\s+OnLine)?|SCR|SCALE)\\s+\\d+',
+    'g'
+  );
+  // AIR YYYY SC Z
+  const airRe = new RegExp(
+    '\\*?\\*?(' + CASE + ')\\*?\\*?\\s*,?\\s+AIR\\s+(\\d{4})\\s+SC\\s+\\d+',
+    'g'
+  );
+
+  function harvest(re) {
+    let m;
+    while ((m = re.exec(markdown)) !== null) {
+      let name = m[1].trim().replace(/\s+/g, ' ').replace(/^[*\s,]+|[*\s,]+$/g, '');
+      const year = m[2];
+      if (name.length < 8 || name.length > 220) continue;
+      // Reject when "v." actually means "verses-in-text" — e.g. "is v."
+      // or a name starting with a connector word.
+      if (/^(The|A|An|This|That|These|Those|However|Moreover|Further|Reliance|Even|While|Further|It|As)\s/i.test(name)) continue;
+      if (/\s(is|are|was|were|has|have|been|will|would|shall|relies|relied|placed)\s/i.test(name)) continue;
+      const key = name.toLowerCase() + '|' + year;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ name, year, raw_match: m[0].slice(0, 200) });
+    }
   }
+  harvest(sccRe);
+  harvest(airRe);
   return out;
 }
 
