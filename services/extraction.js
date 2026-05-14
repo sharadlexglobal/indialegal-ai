@@ -82,19 +82,26 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
 
   emit('extraction_started', { pageCount });
 
-  // ─── Step 2 — Datalab segmentation (AUTO-DETECT) ──────────────
-  // Empty schema = pure auto-detection per Datalab docs. We classify
-  // each returned segment later via DeepSeek.
+  // ─── Step 2 — Datalab segmentation (AUTO-DETECT, time-boxed) ──
+  // Empty schema = auto-detect per Datalab docs. But this can hang
+  // on big scanned PDFs (we've seen 10+ min stuck), so we time-box
+  // it to 90 sec and fall through to DeepSeek fallback if it's slow.
   emit('segmenting', {});
   let segments = [];
-  try {
-    const sub = await datalab.submitSegmentation(buffer, filename, []);  // auto
-    const segResult = await datalab.pollUntilDone(sub.checkUrl);
-    segments = datalab.parseSegmentationResult(segResult);
-    emit('datalab_segments', { count: segments.length, segments });
-  } catch (e) {
-    console.warn(`[extract ${caseId}] datalab segment failed:`, e.message);
-    emit('datalab_segment_failed', { error: e.message });
+  const segPromise = (async () => {
+    const sub = await datalab.submitSegmentation(buffer, filename, []);
+    return await datalab.pollUntilDone(sub.checkUrl);
+  })();
+  const segRaced = await withTimeout(segPromise, 90_000, 'datalab-seg');
+  if (segRaced.timedOut) {
+    emit('datalab_segment_timeout', { after_s: 90 });
+  } else if (segRaced.value) {
+    try {
+      segments = datalab.parseSegmentationResult(segRaced.value);
+      emit('datalab_segments', { count: segments.length, segments });
+    } catch (e) {
+      emit('datalab_segment_failed', { error: String(e.message || e).slice(0, 200) });
+    }
   }
 
   // ─── Step 3 — DeepSeek segmentation fallback ──────────────────
