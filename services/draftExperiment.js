@@ -298,7 +298,7 @@ function extractCitations(markdown) {
   return out;
 }
 
-async function ikapiSearch(query) {
+async function ikapiSearch(query, doctype = 'supremecourt', max = 5) {
   try {
     const r = await fetch(IKAPI_MCP_URL, {
       method: 'POST',
@@ -307,7 +307,7 @@ async function ikapiSearch(query) {
         jsonrpc: '2.0', id: 1, method: 'tools/call',
         params: {
           name: 'search_cases',
-          arguments: { query, doctype: 'supremecourt', max_results: 3 }
+          arguments: { query, doctype, max_results: max }
         }
       })
     });
@@ -320,20 +320,92 @@ async function ikapiSearch(query) {
   }
 }
 
+// Cleaned tokens for matching: drop honorifics + connectives.
+const NOISE_TOKENS = new Set([
+  'mr', 'ms', 'mrs', 'smt', 'sh', 'shri', 'hon', 'honble', "hon'ble",
+  'justice', 'mr.', 'ms.', 'shri.', 'dr', 'late', 'ltd', 'ltd.',
+  'pvt', 'pvt.', 'co', 'co.', 'company', 'corp', 'corporation',
+  'union', 'state', 'and', 'ors', 'ors.', 'another', 'anr', 'anr.',
+  'v', 'v.', 'vs', 'vs.', 'versus', 'the', 'of', '&', 'm/s',
+  'a', 'an'
+]);
+
+function distinctiveTokens(name) {
+  // Split on "v.", "vs", "versus" — keep both sides
+  const sides = String(name)
+    .toLowerCase()
+    .replace(/[(){}[\]"]/g, '')
+    .split(/\s+v\.?\s+|\s+vs\.?\s+|\s+versus\s+/);
+  const tokens = new Set();
+  for (const side of sides) {
+    for (const w of side.split(/[\s,.&\-']+/)) {
+      const clean = w.replace(/[^a-z]/g, '');
+      if (clean.length < 3) continue;
+      if (NOISE_TOKENS.has(clean)) continue;
+      tokens.add(clean);
+    }
+  }
+  return [...tokens];
+}
+
+// Try multiple search variants — full → distinctive tokens → smaller subset.
+async function verifyOneCitation(c) {
+  const tokens = distinctiveTokens(c.name);
+  if (!tokens.length) return { ...c, verified: false, matched_title: null, attempts: 0 };
+
+  const variants = [
+    `${c.name} ${c.year}`,                  // full + year
+    `${c.name}`,                            // full
+    `${tokens.join(' ')} ${c.year}`,        // distinctive tokens
+    `${tokens.slice(0, 3).join(' ')}`,      // first 3 distinctive tokens
+    `${tokens.slice(0, 2).join(' ')}`       // first 2 distinctive tokens
+  ];
+
+  const yearNum = parseInt(c.year, 10);
+
+  for (const q of variants) {
+    // Try SC first (most citations are SC), then fall back to HC
+    for (const dt of ['supremecourt', 'judgments']) {
+      const hits = await ikapiSearch(q, dt, 6);
+      for (const h of hits) {
+        const t = String(h.title || '').toLowerCase();
+        // Match if BOTH distinctive tokens (or at least the 2 longest)
+        // appear in the title.
+        const longestTwo = tokens.sort((a, b) => b.length - a.length).slice(0, 2);
+        if (longestTwo.length === 2
+            && t.includes(longestTwo[0]) && t.includes(longestTwo[1])) {
+          // Year fuzzing ±2 (Indian Kanoon date ≈ judgment year)
+          if (yearNum && h.date) {
+            const hYear = parseInt(String(h.date).slice(0, 4), 10);
+            if (hYear && Math.abs(hYear - yearNum) > 2) continue;
+          }
+          return {
+            ...c, verified: true,
+            matched_title: h.title,
+            matched_tid: h.tid,
+            matched_via: q
+          };
+        }
+      }
+    }
+  }
+  return { ...c, verified: false, matched_title: null };
+}
+
 async function verifyCitations(markdown) {
   const cites = extractCitations(markdown);
-  const results = await Promise.all(cites.map(async (c) => {
-    const hits = await ikapiSearch(`${c.name} ${c.year}`);
-    const matched = hits.find(h => {
-      const t = String(h.title || '').toLowerCase();
-      const nameWords = c.name.toLowerCase().split(/\s+v\.\s+/);
-      return nameWords.length === 2
-        && t.includes(nameWords[0].split(' ').pop() || '')
-        && t.includes(nameWords[1].split(' ')[0] || '');
-    });
-    return { ...c, verified: !!matched, matched_title: matched?.title || null };
-  }));
-  return results;
+  // Concurrency 3 to not hammer IKAPI
+  const results = [];
+  let i = 0;
+  async function worker() {
+    while (i < cites.length) {
+      const c = cites[i++];
+      results.push(await verifyOneCitation(c));
+    }
+  }
+  await Promise.all([worker(), worker(), worker()]);
+  // Preserve original order
+  return cites.map(c => results.find(r => r.name === c.name && r.year === c.year) || c);
 }
 
 function annotateUnverified(markdown, verifications) {

@@ -50,23 +50,70 @@ async function ds(messages, { timeoutMs = 90000, label = '' } = {}) {
   return null;
 }
 
-// Build all the raw court-related signals we can find across segments.
+// Parse a date string into a comparable number for sorting.
+// Handles "23.05.2019", "05.09.2019", "13 December 2022", "2024-01-24" etc.
+function parseDocDate(s) {
+  if (!s) return 0;
+  const str = String(s).trim();
+  // Try ISO yyyy-mm-dd
+  let m = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`).getTime();
+  // Try DD.MM.YYYY / DD-MM-YYYY / DD/MM/YYYY
+  m = str.match(/(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{4})/);
+  if (m) return new Date(`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`).getTime();
+  // Try "DD MMM YYYY" or "DD MMMM YYYY"
+  m = str.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+  if (m) {
+    const d = new Date(`${m[2]} ${m[1]}, ${m[3]}`);
+    if (!isNaN(d)) return d.getTime();
+  }
+  return 0;
+}
+
+// Build all the raw court-related signals — ranked by recency so the
+// LLM can prefer the MOST RECENT judge for the cause title.
 function harvestCourtSignals(segments, rollup) {
   const signals = {
     court_strings: [],
     judge_strings: [],
     case_numbers: [],
-    designation_hints: [],
-    document_dates: [],
-    place_strings: []
+    most_recent_judge_hint: null
   };
+  const judgeByDate = [];
   for (const s of segments) {
     const f = s.facts || {};
     if (f.court) signals.court_strings.push(`seg${s.segment_index}: ${f.court}`);
-    if (f.judge_or_bench) signals.judge_strings.push(`seg${s.segment_index}: ${f.judge_or_bench}`);
-    if (f.judge) signals.judge_strings.push(`seg${s.segment_index}: ${f.judge}`);
+    const judge = f.judge_or_bench || f.judge;
+    if (judge) {
+      signals.judge_strings.push(`seg${s.segment_index}: ${judge}`);
+      // Track for recency ranking
+      const date = f.document_date || f.date_of_order || f.filing_date;
+      const ts = parseDocDate(date);
+      judgeByDate.push({
+        segIdx: s.segment_index,
+        segType: s.segment_type,
+        judge,
+        date: date || 'unknown',
+        ts,
+        isOrder: s.segment_type === 'court_order'
+      });
+    }
     if (f.case_number) signals.case_numbers.push(`seg${s.segment_index}: ${f.case_number}`);
     if (f.case_title) signals.case_numbers.push(`seg${s.segment_index} title: ${f.case_title}`);
+  }
+  // Sort: prefer court_orders first (those are authoritative on who is
+  // currently hearing the matter), then by recency
+  judgeByDate.sort((a, b) => {
+    if (a.isOrder !== b.isOrder) return a.isOrder ? -1 : 1;
+    return b.ts - a.ts;
+  });
+  if (judgeByDate.length) {
+    const latest = judgeByDate[0];
+    signals.most_recent_judge_hint =
+      `Most recent / authoritative judge: "${latest.judge}" ` +
+      `from seg${latest.segIdx} (${latest.segType}, dated ${latest.date}). ` +
+      `Other judge mentions in the file are likely from earlier orders / ` +
+      `different proceedings — prefer this one for the cause-title.`;
   }
   return signals;
 }
@@ -138,10 +185,14 @@ CRITICAL DISAMBIGUATION RULES:
 
 Case title: ${caseTitle}
 
+${signals.most_recent_judge_hint || '(no recency hint available)'}
+
 Court strings extracted from various sub-documents:
 ${(signals.court_strings || []).slice(0, 40).join('\n')}
 
-Judge strings extracted:
+Judge strings extracted (across multiple orders / hearings — multiple
+judges may have heard the matter over time; for the CURRENT cause
+title use the most recent / authoritative one as hinted above):
 ${(signals.judge_strings || []).slice(0, 40).join('\n')}
 
 Case numbers / titles:
@@ -149,6 +200,18 @@ ${(signals.case_numbers || []).slice(0, 40).join('\n')}
 
 Brief from rollup:
 ${(rollup.brief || '').slice(0, 2000)}
+
+────────────────── ADDITIONAL DISAMBIGUATION RULES ──────────────────
+
+  (R5) Files in litigation pass through MULTIPLE judges over the years.
+       For the cause-title of a fresh filing, use the MOST RECENT
+       judge — the one named in the latest court_order segments.
+  (R6) If the most_recent_judge_hint above is provided, STRONGLY
+       prefer that judge unless other signals firmly contradict.
+  (R7) If only a designation (CCJ / ADJ / Civil Judge) is available
+       without a confirmed CURRENT name, output judge_name as null
+       and write cause_title_block without a specific name —
+       e.g. "IN THE COURT OF THE LD. CIVIL JUDGE, [district], [complex]"
 
 ──────────── OUTPUT (strict JSON) ────────────
 
