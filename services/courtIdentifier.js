@@ -101,19 +101,58 @@ function harvestCourtSignals(segments, rollup) {
     if (f.case_number) signals.case_numbers.push(`seg${s.segment_index}: ${f.case_number}`);
     if (f.case_title) signals.case_numbers.push(`seg${s.segment_index} title: ${f.case_title}`);
   }
-  // Sort: prefer court_orders first (those are authoritative on who is
-  // currently hearing the matter), then by recency
-  judgeByDate.sort((a, b) => {
-    if (a.isOrder !== b.isOrder) return a.isOrder ? -1 : 1;
-    return b.ts - a.ts;
-  });
-  if (judgeByDate.length) {
+  // Sort by recency only (we want the CURRENT presiding judge).
+  judgeByDate.sort((a, b) => b.ts - a.ts);
+
+  // De-duplicate by judge surname so we can detect "many different
+  // judges over time" (DC judges rotate) vs "one judge consistently".
+  const surname = (j) => {
+    const m = String(j || '').toUpperCase().match(/[A-Z][A-Z'\-]{2,}/g);
+    if (!m) return '';
+    // Drop honorifics + designations
+    const noise = new Set(['MR','MS','MRS','SMT','SH','SHRI','DR','LD','HON',
+      'HONBLE',"HON'BLE",'JUSTICE','ACJ','CCJ','ARC','CJ','ADJ','MM','CMM',
+      'CJM','JMFC','THE','COURT','OF','SUPREME','HIGH','DELHI','NDD','PHC',
+      'NEW']);
+    return m.filter(x => !noise.has(x)).join(' ').trim() || '';
+  };
+
+  const distinctJudges = [];
+  const seenSurnames = new Set();
+  for (const j of judgeByDate) {
+    const sn = surname(j.judge);
+    if (!sn || seenSurnames.has(sn)) continue;
+    seenSurnames.add(sn);
+    distinctJudges.push({ ...j, surname: sn });
+  }
+
+  signals.distinct_judges_recent = distinctJudges.slice(0, 6);
+
+  // If multiple distinct judges in the last ~2 years → AMBIGUOUS.
+  // Output a null-judge hint so identifier picks designation-only cause
+  // title and flags for user clarification.
+  const now = Date.now();
+  const twoYears = 2 * 365 * 24 * 60 * 60 * 1000;
+  const recentJudges = distinctJudges.filter(j => j.ts > now - twoYears);
+
+  if (recentJudges.length >= 2) {
+    signals.most_recent_judge_hint =
+      `AMBIGUOUS — ${recentJudges.length} different judges have heard this matter ` +
+      `within the last ~2 years (district court judges rotate): ` +
+      recentJudges.slice(0, 4).map(j =>
+        `"${j.judge}" (${j.date}, seg${j.segIdx} ${j.segType})`).join('; ') +
+      `. Do NOT pick a specific name. Use designation-only cause-title ` +
+      `("IN THE COURT OF THE LD. CIVIL JUDGE, ...") and set judge_name=null. ` +
+      `Surface user_clarification_needed asking the user to confirm the ` +
+      `current presiding officer.`;
+  } else if (judgeByDate.length) {
     const latest = judgeByDate[0];
     signals.most_recent_judge_hint =
-      `Most recent / authoritative judge: "${latest.judge}" ` +
-      `from seg${latest.segIdx} (${latest.segType}, dated ${latest.date}). ` +
-      `Other judge mentions in the file are likely from earlier orders / ` +
-      `different proceedings — prefer this one for the cause-title.`;
+      `Most recent judge: "${latest.judge}" from seg${latest.segIdx} ` +
+      `(${latest.segType}, dated ${latest.date}). Other mentions appear ` +
+      `to be from earlier or unrelated proceedings — prefer this one for ` +
+      `the cause-title BUT IF you have any doubt, output judge_name=null ` +
+      `and use the designation-only format.`;
   }
   return signals;
 }
