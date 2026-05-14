@@ -15,9 +15,12 @@
  */
 
 const fetch = require('node-fetch');
+const courtIdentifier = require('./courtIdentifier');
 
 const URL = 'https://api.deepseek.com/v1/chat/completions';
 const MODEL = 'deepseek-v4-flash';
+
+const IKAPI_MCP_URL = process.env.IKAPI_MCP_URL || 'https://ikapi.onrender.com/mcp';
 
 async function ds(messages, { timeoutMs = 240000, label = '' } = {}) {
   for (let i = 0; i < 3; i++) {
@@ -108,11 +111,13 @@ function buildCaseDump({ caseTitle, segments, rollup, legal_issues }) {
 }
 
 // ─── The template ──────────────────────────────────────────────
+// CAUSE-TITLE BLOCK is now a DYNAMIC placeholder filled by Court
+// Identifier output. We never hardcode "Delhi HC" — court agent
+// decides the correct forum + designation + format.
 const WRITTEN_ARG_OVR17_TEMPLATE = `
-**IN THE HIGH COURT OF DELHI AT NEW DELHI**
-**(ORDINARY ORIGINAL CIVIL JURISDICTION)**
+{{cause_title_block}}
 
-**C.S. (OS) No. {{case_number}}**
+**Case No.: {{case_number}}**
 
 **IN THE MATTER OF:**
 
@@ -258,12 +263,99 @@ function applyFill(template, fill) {
     const placeholder = new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, 'g');
     out = out.replace(placeholder, String(v ?? ''));
   }
-  // Any remaining placeholders → mark as [MISSING]
   out = out.replace(/\{\{[^}]+\}\}/g, '[MISSING — please supply]');
   return out;
 }
 
-// ─── Public: run experiment ────────────────────────────────────
+// ─── Mandatory citation verifier ─────────────────────────────────
+// Extracts every case citation from the draft (looking for the pattern
+// "Name v. Other Name, (Year) X SCC Y" / "AIR Year SC Z" / etc.),
+// hits IKAPI search to verify each, returns a summary of which are
+// confirmed / suspicious / not found. Suspicious citations BLOCK
+// delivery — the draft is returned with [VERIFY] tags inserted.
+const CITATION_PATTERNS = [
+  // "Name v. Name, (YYYY) X SCC Y"
+  /\*?\*?([A-Z][A-Za-z.&'\-\s]{2,60}?\sv\.\s[A-Z][A-Za-z.&'\-\s]{2,80}?),?\s*\(?(\d{4})\)?\s*(?:[A-Z]+\s+)?([0-9A-Z]+)\s*(SCC|AIR|SCR)\s*([0-9A-Z]+)/g,
+  // "AIR YYYY SC ZZZ — Name v. Name"
+  /AIR\s*(\d{4})\s*SC\s*\d+\s*[\-—]?\s*([A-Z][A-Za-z.\s]+?\sv\.\s[A-Z][A-Za-z.\s]+)/g
+];
+
+function extractCitations(markdown) {
+  const out = [];
+  const seen = new Set();
+  // Simple liberal pattern that catches "<Name> v[.] <Name>, (YYYY) ..."
+  const re = /\*?\*?([A-Z][A-Za-z.&'\-\s]{2,80}\sv\.\s[A-Z][A-Za-z.&'\-\s]{2,80})\*?\*?,?\s*[\(\[]?(\d{4})[\)\]]?\s*([\dA-Z\s]+(SCC|AIR|SCR|SCALE|SCC OnLine))?/g;
+  let m;
+  while ((m = re.exec(markdown)) !== null) {
+    const cite = (m[1] || '').trim().replace(/\s+/g, ' ');
+    const year = m[2];
+    if (cite.length < 8 || /(in|the|this|that|hon'ble|court|hereby|whereas)$/i.test(cite)) continue;
+    const key = cite.toLowerCase() + '|' + year;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ name: cite, year, raw_match: m[0].slice(0, 200) });
+  }
+  return out;
+}
+
+async function ikapiSearch(query) {
+  try {
+    const r = await fetch(IKAPI_MCP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 1, method: 'tools/call',
+        params: {
+          name: 'search_cases',
+          arguments: { query, doctype: 'supremecourt', max_results: 3 }
+        }
+      })
+    });
+    const j = await r.json();
+    const text = j.result?.content?.[0]?.text || '';
+    const payload = JSON.parse(text);
+    return payload.results || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+async function verifyCitations(markdown) {
+  const cites = extractCitations(markdown);
+  const results = await Promise.all(cites.map(async (c) => {
+    const hits = await ikapiSearch(`${c.name} ${c.year}`);
+    const matched = hits.find(h => {
+      const t = String(h.title || '').toLowerCase();
+      const nameWords = c.name.toLowerCase().split(/\s+v\.\s+/);
+      return nameWords.length === 2
+        && t.includes(nameWords[0].split(' ').pop() || '')
+        && t.includes(nameWords[1].split(' ')[0] || '');
+    });
+    return { ...c, verified: !!matched, matched_title: matched?.title || null };
+  }));
+  return results;
+}
+
+function annotateUnverified(markdown, verifications) {
+  let out = markdown;
+  for (const v of verifications) {
+    if (v.verified) continue;
+    // Append [VERIFY] tag after every occurrence of the case name
+    const safe = v.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    out = out.replace(new RegExp(safe, 'g'), `${v.name} **[VERIFY: not found in IKAPI search]**`);
+  }
+  return out;
+}
+
+// ─── Public: run experiment with full pipeline ─────────────────
+//
+//   Step 1 — courtIdentifier  (decide HC vs DC vs Tribunal, fill cause-title)
+//   Step 2 — buildCaseDump    (compact data feed for LLM)
+//   Step 3 — DeepSeek fill    (placeholders → content with [seg] citations)
+//   Step 4 — applyFill        (deterministic substitution)
+//   Step 5 — verifyCitations  (MANDATORY — every cited case → IKAPI check)
+//   Step 6 — annotateUnverified (any unverified citation → [VERIFY] tag)
+//
 async function runExperiment({ pool, caseId, templateName = 'written_arguments_o6r17' }) {
   const cr = await pool.query(
     `SELECT title, rollup, legal_issues FROM cases WHERE id=$1`, [caseId]
@@ -275,17 +367,50 @@ async function runExperiment({ pool, caseId, templateName = 'written_arguments_o
        FROM case_segments WHERE case_id=$1 ORDER BY segment_index ASC`,
     [caseId]
   );
+
+  // Step 1 — Identify the actual court (NEVER hardcoded)
+  const courtInfo = await courtIdentifier.identifyCourt({ pool, caseId });
+
   const dump = buildCaseDump({
     caseTitle: cr.rows[0].title,
     segments: sr.rows,
     rollup: cr.rows[0].rollup || {},
     legal_issues: cr.rows[0].legal_issues || {}
   });
-  const prompt = buildFillPrompt(dump, WRITTEN_ARG_OVR17_TEMPLATE);
+
+  // Step 3 — Fill the rest via DeepSeek (court block excluded — we
+  // already have it from the identifier).
+  const prompt = buildFillPrompt(dump, WRITTEN_ARG_OVR17_TEMPLATE)
+    + `\n\nADDITIONAL — court already identified by a separate agent. Use the supplied cause_title_block VERBATIM; do NOT override.\nCourt info: ${JSON.stringify(courtInfo, null, 2)}`;
   const fill = await ds([{ role: 'user', content: prompt }], { label: 'fill' });
-  if (!fill) throw new Error('DeepSeek returned nothing');
-  const draftMarkdown = applyFill(WRITTEN_ARG_OVR17_TEMPLATE, fill);
-  return { fill, draftMarkdown };
+  if (!fill) throw new Error('DeepSeek fill returned nothing');
+
+  // Inject the identifier's cause-title verbatim (never trust LLM with it)
+  fill.cause_title_block = courtInfo.cause_title_block || fill.cause_title_block;
+
+  // Step 4 — deterministic substitution
+  let draftMarkdown = applyFill(WRITTEN_ARG_OVR17_TEMPLATE, fill);
+
+  // Step 5 — mandatory citation verifier
+  const verifications = await verifyCitations(draftMarkdown);
+  const unverifiedCount = verifications.filter(v => !v.verified).length;
+
+  // Step 6 — annotate any unverified citations
+  if (unverifiedCount > 0) {
+    draftMarkdown = annotateUnverified(draftMarkdown, verifications);
+  }
+
+  return {
+    court_info: courtInfo,
+    fill,
+    draftMarkdown,
+    citation_audit: {
+      total: verifications.length,
+      verified: verifications.length - unverifiedCount,
+      unverified: unverifiedCount,
+      details: verifications
+    }
+  };
 }
 
 module.exports = { runExperiment, WRITTEN_ARG_OVR17_TEMPLATE };
