@@ -90,6 +90,11 @@ CREATE INDEX IF NOT EXISTS case_segments_type_idx
 -- evidence index, causation map, inconsistencies, final brief).
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS rollup JSONB;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS extraction_v INTEGER DEFAULT 1;
+-- Senior-advocate-style legal-issues spotted from the extracted data.
+-- DeepSeek thinks like a 30-year litigator and returns priority-ranked
+-- issues with factual basis, applicable law, both-side arguments, red
+-- flags, and top strategic moves.
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS legal_issues JSONB;
 
 -- Unified conversation log. Voice and text BOTH append rows here.
 -- Frontend renders the whole thread by case_id in chronological order.

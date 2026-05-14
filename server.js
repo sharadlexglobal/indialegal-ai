@@ -12,6 +12,7 @@ const research = require('./services/research');
 const bus = require('./services/eventBus');
 const textAgent = require('./services/textAgent');
 const extraction = require('./services/extraction');
+const issueSpotter = require('./services/legalIssueSpotter');
 const {
   buildRealtimeSystemPrompt,
   FORBIDDEN_PHRASES,
@@ -551,6 +552,31 @@ app.get('/api/cases/:id/extraction/stream', (req, res) => {
     }
   });
   req.on('close', () => { closed = true; cleanup(); });
+});
+
+// Spot legal issues — feeds extracted data to DeepSeek as senior advocate.
+// POST /api/cases/:id/spot-issues  (writes to cases.legal_issues, returns JSON)
+// GET  /api/cases/:id/legal-issues (reads stored issues, idempotent)
+app.post('/api/cases/:id/spot-issues', async (req, res) => {
+  try {
+    const out = await issueSpotter.spotIssues({ pool, caseId: req.params.id });
+    res.json(out);
+  } catch (e) {
+    console.error('spot-issues error', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/cases/:id/legal-issues', async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT legal_issues FROM cases WHERE id=$1`, [req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'not found' });
+    res.json(r.rows[0].legal_issues || null);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Read all segments + rollup for a case.
