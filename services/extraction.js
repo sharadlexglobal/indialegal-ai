@@ -132,6 +132,31 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
     emit('fallback_single_segment', {});
   }
 
+  // Sanitize segments — clamp page ranges to [1, pageCount] and drop
+  // any segment that lives entirely outside the document. DeepSeek's
+  // fallback segmentation sometimes hallucinates segments past the end
+  // of the file; without clamping, they produce phantom rows with
+  // zero facts and noisy gap-fill atoms.
+  if (pageCount) {
+    const before = segments.length;
+    segments = segments
+      .map(s => ({
+        ...s,
+        page_start: Math.max(1, Math.min(s.page_start || 1, pageCount)),
+        page_end:   Math.max(1, Math.min(s.page_end || pageCount, pageCount))
+      }))
+      .filter(s => s.page_end >= s.page_start)
+      // Drop segments whose entire span is outside the document
+      .filter(s => s.page_start <= pageCount);
+    // Re-number after filtering
+    segments = segments.map((s, i) => ({ ...s, idx: i }));
+    if (segments.length !== before) {
+      emit('segments_clamped', {
+        before, after: segments.length, page_count: pageCount
+      });
+    }
+  }
+
   // ─── Layer B — Per-segment (concurrency-limited) ──────────────
   emit('per_segment_extraction', {
     count: segments.length,
@@ -431,22 +456,54 @@ function collectEvidence(segments) {
   return out;
 }
 
+// Harvest every statute / section / article / rule / clause reference
+// across all type-schema variants used in the registry. Each schema
+// uses slightly different field names — we union them so nothing
+// statutory slips through the rollup.
+const STATUTE_FIELDS = [
+  // common
+  'sections', 'articles_invoked', 'rules_invoked',
+  // FIR / charge-sheet specific
+  'offences_alleged', 'sections_chargesheeted', 'sections_dropped',
+  // petition variants
+  'statutory_invocation',
+  // judgment / order variants
+  'statutes_considered',
+  // generic / universal fallback
+  'statutes_mentioned',
+  // notice
+  'statutory_provision_invoked', 'statutory_provision'
+];
+
 function collectStatutes(segments) {
   const out = {};
   function add(arr, segIdx) {
     for (const s of (arr || [])) {
       if (!s) continue;
-      const key = String(s).trim().toLowerCase();
+      const key = String(s).trim().toLowerCase().replace(/\s+/g, ' ');
+      if (!key) continue;
       if (!out[key]) out[key] = { text: s, segments: [] };
       if (!out[key].segments.includes(segIdx)) out[key].segments.push(segIdx);
     }
   }
   for (const seg of segments) {
-    add(seg.facts?.sections, seg.segment_index);
-    add(seg.facts?.offences_alleged, seg.segment_index);
-    add(seg.facts?.sections_chargesheeted, seg.segment_index);
-    add(seg.facts?.articles_invoked, seg.segment_index);
-    add(seg.facts?.rules_invoked, seg.segment_index);
+    const f = seg.facts || {};
+    for (const field of STATUTE_FIELDS) {
+      const v = f[field];
+      if (!v) continue;
+      // Some schemas mark them as strings, some as arrays of strings
+      if (Array.isArray(v)) add(v, seg.segment_index);
+      else if (typeof v === 'string') add([v], seg.segment_index);
+    }
+    // Also harvest from other_atoms entries that look like statute refs
+    for (const a of (seg.other_atoms || [])) {
+      const v = a && a.atom_value;
+      if (typeof v !== 'string') continue;
+      // Heuristic: contains "Section N" / "Article N" / "Order N Rule N"
+      if (/\b(Section|Sec\.?|Article|Art\.?|Order)\s+\d/i.test(v)) {
+        add([v.slice(0, 200)], seg.segment_index);
+      }
+    }
   }
   return Object.values(out).sort((a, b) => b.segments.length - a.segments.length);
 }

@@ -368,11 +368,13 @@ function markdownForPageRange(flatMarkdown, page_start, page_end) {
       out.push(`--- PAGE ${pageNum} ---\n${(parts[i + 1] || '').trim()}`);
     }
   }
-  const joined = out.join('\n\n').trim();
-  // If the slice came up empty (page numbering mismatch — e.g. some
-  // PDFs renumber per section), fall back to giving the model the
-  // whole markdown so it can still extract atoms.
-  return joined || flatMarkdown;
+  // If the slice is empty, return empty — DO NOT fall back to the
+  // whole markdown. An empty slice means the requested page range is
+  // outside the document (e.g. DeepSeek's segmentation hallucinated
+  // pages beyond page_count). Returning whole markdown would cause
+  // every phantom segment to run gap-fill over the entire PDF,
+  // producing duplicated / nonsense atoms.
+  return out.join('\n\n').trim();
 }
 
 module.exports = {

@@ -321,18 +321,37 @@ async function consistencyAudit({ segments }) {
   }));
   const out = await ds([{
     role: 'user',
-    content: `Compare these sub-document extractions and surface any
-FACTUAL INCONSISTENCIES — same field with conflicting values across
-segments. An advocate would want to know these for attack-points or
-to reconcile.
+    content: `Compare these sub-document extractions and surface ONLY
+GENUINE FACTUAL INCONSISTENCIES that an advocate would treat as
+attack-points or reconciliation tasks.
 
-Examples of inconsistencies worth flagging:
-  - Sale consideration differs between sale deed and FIR
-  - Party name spelled differently across documents (only if NOT just
-    obvious aliasing — if it looks like a TYPO that changed identity)
-  - Dates that don't line up
-  - Sections in FIR don't match charge sheet
-  - One document says "settlement reached", another denies it
+DO flag:
+  - Sale consideration / monetary amount differs between two
+    documents describing the SAME transaction.
+  - Date of an event differs across documents.
+  - Section / offence list in FIR vs charge sheet that should
+    have matched.
+  - One document says "settlement reached"; another denies it.
+  - One document calls a fact "admitted"; another denies the same
+    fact.
+  - Property description / address conflicts.
+
+DO NOT FLAG (these are NORMAL, not inconsistencies):
+  - The same person playing DIFFERENT PROCEDURAL ROLES in
+    different documents — e.g. plaintiff in the main suit vs
+    defendant in the counter-claim filed in the same suit; or
+    petitioner in one application vs respondent in the opposing
+    side's application. Procedural-posture changes are by design.
+  - Same person appearing as "applicant" in one doc and "the
+    counter-claimant" in another — these are role labels, not
+    identity conflicts.
+  - Same case being referenced by different procedural stages
+    (FIR vs charge sheet vs court order in same case).
+  - Different witnesses listed in different documents (each doc
+    lists its own).
+  - Minor spelling variations of names that look like obvious
+    OCR / typing variants (these are aliases the party_graph step
+    already consolidated).
 
 INPUT:
 ${JSON.stringify(dump, null, 2)}
