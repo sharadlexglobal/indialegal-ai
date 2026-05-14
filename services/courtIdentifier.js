@@ -128,31 +128,44 @@ function harvestCourtSignals(segments, rollup) {
 
   signals.distinct_judges_recent = distinctJudges.slice(0, 6);
 
-  // If multiple distinct judges in the last ~2 years → AMBIGUOUS.
-  // Output a null-judge hint so identifier picks designation-only cause
-  // title and flags for user clarification.
-  const now = Date.now();
-  const twoYears = 2 * 365 * 24 * 60 * 60 * 1000;
-  const recentJudges = distinctJudges.filter(j => j.ts > now - twoYears);
-
-  if (recentJudges.length >= 2) {
+  // If THREE OR MORE distinct judges appear anywhere in the case file,
+  // that's structural rotation — we cannot confidently name the
+  // current presiding officer. Use designation-only cause-title and
+  // surface a clarification question.
+  if (distinctJudges.length >= 3) {
     signals.most_recent_judge_hint =
-      `AMBIGUOUS — ${recentJudges.length} different judges have heard this matter ` +
-      `within the last ~2 years (district court judges rotate): ` +
-      recentJudges.slice(0, 4).map(j =>
+      `AMBIGUOUS — ${distinctJudges.length} different judges have heard ` +
+      `this matter over its lifetime (district-court judge rotation is ` +
+      `normal): ` +
+      distinctJudges.slice(0, 6).map(j =>
         `"${j.judge}" (${j.date}, seg${j.segIdx} ${j.segType})`).join('; ') +
-      `. Do NOT pick a specific name. Use designation-only cause-title ` +
-      `("IN THE COURT OF THE LD. CIVIL JUDGE, ...") and set judge_name=null. ` +
-      `Surface user_clarification_needed asking the user to confirm the ` +
-      `current presiding officer.`;
+      `. Do NOT pick any specific judge name. ` +
+      `Set judge_name = null. Set judge_designation to the designation ` +
+      `appearing in the most recent court_order (typically CCJ / ACJ / ` +
+      `Civil Judge). Use the designation-only cause-title in this format: ` +
+      `"IN THE COURT OF THE LD. CIVIL JUDGE, NEW DELHI DISTRICT, PATIALA ` +
+      `HOUSE COURTS, NEW DELHI" (substitute the actual district + ` +
+      `complex). MANDATORY: set user_clarification_needed to "Multiple ` +
+      `judges have presided over this matter — please confirm the name ` +
+      `of the CURRENT presiding officer for the cause title." Confidence ` +
+      `should be at most 'medium' on judge_name even when the rest is high.`;
+  } else if (distinctJudges.length === 2) {
+    // 2 judges — borderline. Prefer court_order over plaint.
+    const orderJudges = distinctJudges.filter(j => j.isOrder);
+    const chosen = orderJudges[0] || distinctJudges[0];
+    signals.most_recent_judge_hint =
+      `BORDERLINE — 2 distinct judges in this matter. Most recent from ` +
+      `a court_order (authoritative): "${chosen.judge}" ` +
+      `(seg${chosen.segIdx}, ${chosen.date}). The other appears in a ` +
+      `plaint / non-order document. Prefer the order-judge unless ` +
+      `clearly outdated. If in doubt, output judge_name=null and use ` +
+      `designation-only cause-title.`;
   } else if (judgeByDate.length) {
     const latest = judgeByDate[0];
     signals.most_recent_judge_hint =
       `Most recent judge: "${latest.judge}" from seg${latest.segIdx} ` +
-      `(${latest.segType}, dated ${latest.date}). Other mentions appear ` +
-      `to be from earlier or unrelated proceedings — prefer this one for ` +
-      `the cause-title BUT IF you have any doubt, output judge_name=null ` +
-      `and use the designation-only format.`;
+      `(${latest.segType}, dated ${latest.date}). Use this for the ` +
+      `cause-title.`;
   }
   return signals;
 }
