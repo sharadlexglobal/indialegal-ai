@@ -356,25 +356,48 @@ function parseExtractResult(result) {
 //
 // flattenForPrompt emits a `\n\n--- PAGE N ---\n` boundary; we split
 // permissively so leading/trailing whitespace doesn't break us.
-function markdownForPageRange(flatMarkdown, page_start, page_end) {
+function markdownForPageRange(flatMarkdown, page_start, page_end, pageCount = null) {
   if (!flatMarkdown) return '';
-  // The split keeps page numbers in odd indices, content in even-of-(i+1).
+  // Strategy 1: marker-based slice.
   const parts = flatMarkdown.split(/\n*--- PAGE (\d+) ---\n?/);
+  const distinctMarkers = new Set();
   const out = [];
   for (let i = 1; i < parts.length; i += 2) {
     const pageNum = parseInt(parts[i], 10);
     if (!Number.isFinite(pageNum)) continue;
+    distinctMarkers.add(pageNum);
     if (pageNum >= page_start && pageNum <= page_end) {
       out.push(`--- PAGE ${pageNum} ---\n${(parts[i + 1] || '').trim()}`);
     }
   }
-  // If the slice is empty, return empty — DO NOT fall back to the
-  // whole markdown. An empty slice means the requested page range is
-  // outside the document (e.g. DeepSeek's segmentation hallucinated
-  // pages beyond page_count). Returning whole markdown would cause
-  // every phantom segment to run gap-fill over the entire PDF,
-  // producing duplicated / nonsense atoms.
-  return out.join('\n\n').trim();
+  const markerSlice = out.join('\n\n').trim();
+
+  // Trust the marker slice ONLY when the markdown has dense page
+  // markers (≥ 50% of pageCount, or no pageCount given). Many scanned
+  // PDFs come back from Datalab with sparse / single page markers —
+  // the marker slice then over- or under-represents the segment.
+  const markersSparse = pageCount &&
+    distinctMarkers.size < Math.max(2, Math.floor(pageCount * 0.5));
+
+  if (markerSlice && !markersSparse) return markerSlice;
+
+  // Strategy 2: char-proportional fallback. Map page_start..page_end
+  // to a proportional char slice of the markdown so each segment gets
+  // approximately its share even when page boundaries are sparse.
+  if (pageCount && flatMarkdown.length > 2000) {
+    const stripped = flatMarkdown.replace(/^\s*--- PAGE \d+ ---\n/, '');
+    const charsPerPage = stripped.length / pageCount;
+    const startOff = Math.max(0, Math.floor((page_start - 1) * charsPerPage));
+    const endOff = Math.min(stripped.length, Math.ceil(page_end * charsPerPage));
+    if (endOff > startOff) {
+      const slice = stripped.slice(startOff, endOff).trim();
+      if (slice) return `[approx pages ${page_start}-${page_end}]\n${slice}`;
+    }
+  }
+
+  // Last resort: empty (don't return whole markdown — that would
+  // cause phantom-segment hallucination in DeepSeek gap-fill).
+  return markerSlice;
 }
 
 module.exports = {

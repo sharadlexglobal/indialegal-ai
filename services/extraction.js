@@ -166,7 +166,7 @@ async function runExtraction({ pool, caseId, buffer, filename, flatMarkdown, pag
   const segmentRows = await mapLimited(segments, PER_SEGMENT_CONCURRENCY, async (seg, i) => {
     const tSeg0 = Date.now();
     const segText = datalab.markdownForPageRange(
-      flatMarkdown, seg.page_start, seg.page_end
+      flatMarkdown, seg.page_start, seg.page_end, pageCount
     );
 
     emit('segment_started', {
