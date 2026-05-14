@@ -13,6 +13,7 @@ const bus = require('./services/eventBus');
 const textAgent = require('./services/textAgent');
 const extraction = require('./services/extraction');
 const issueSpotter = require('./services/legalIssueSpotter');
+const draftExperiment = require('./services/draftExperiment');
 const {
   buildRealtimeSystemPrompt,
   FORBIDDEN_PHRASES,
@@ -575,6 +576,21 @@ app.get('/api/cases/:id/legal-issues', async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'not found' });
     res.json(r.rows[0].legal_issues || null);
   } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Drafting experiment — template + DeepSeek fill, returns court-ready
+// markdown. POST /api/cases/:id/draft-experiment   (template_name optional)
+app.post('/api/cases/:id/draft-experiment', async (req, res) => {
+  try {
+    const out = await draftExperiment.runExperiment({
+      pool, caseId: req.params.id,
+      templateName: req.body?.template_name || 'written_arguments_o6r17'
+    });
+    res.json(out);
+  } catch (e) {
+    console.error('draft-experiment error', e);
     res.status(500).json({ error: e.message });
   }
 });
