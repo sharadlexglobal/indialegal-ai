@@ -287,25 +287,144 @@
   }
 
   // ── Screen 2-confirm: fetched case summary ───────────────────
+  // Renders the FULL case payload from bail-watch — parties, orders
+  // with PDF links, hearing history, case status, registration dates,
+  // IA list, etc. — not just the 6-field summary we used to show.
   function screen2_cnrConfirm() {
     const c = S.caseFetched || {};
-    return h('section', { class: 'screen' },
+    const raw = c.raw || {};
+
+    // Normalise where things live in bail-watch's shape (it varies)
+    const petitioner   = raw.petitioner || raw.parties?.petitioner || raw.partyDetails?.petitioner || '';
+    const respondent   = raw.respondent || raw.parties?.respondent || raw.partyDetails?.respondent || '';
+    const orders       = Array.isArray(raw.orders) ? raw.orders : [];
+    const hearings     = Array.isArray(raw.hearings) ? raw.hearings
+                       : Array.isArray(raw.history) ? raw.history : [];
+    const ias          = Array.isArray(raw.ias) ? raw.ias
+                       : Array.isArray(raw.interlocutoryApplications) ? raw.interlocutoryApplications : [];
+    const status       = raw.case_status || raw.status || raw.disposition || '';
+    const filingDate   = raw.filing_date || raw.filingDate || '';
+    const registration = raw.registration_date || raw.registrationDate || '';
+    const nextHearing  = raw.next_hearing_date || raw.nextHearingDate || raw.nextHearing || '';
+    const caseType     = raw.case_type || raw.caseType || raw.type || '';
+    const stageHistory = Array.isArray(raw.stages) ? raw.stages : [];
+
+    function row(label, value) {
+      if (!value && value !== 0) return null;
+      const v = typeof value === 'string' ? value : String(value);
+      return [
+        h('dt', {}, label),
+        h('dd', {}, v)
+      ];
+    }
+
+    // Parties block — petitioner + respondent with full text if available.
+    const partiesBlock = (petitioner || respondent)
+      ? h('section', { class: 'case-section' },
+          h('h3', { class: 'case-section-title' }, 'Parties'),
+          h('div', { class: 'party-grid' },
+            petitioner ? h('div', { class: 'party-cell' },
+              h('div', { class: 'party-role' }, 'Petitioner / Plaintiff'),
+              h('div', { class: 'party-name' }, String(petitioner).replace(/\n+/g, ' / '))
+            ) : null,
+            respondent ? h('div', { class: 'party-cell' },
+              h('div', { class: 'party-role' }, 'Respondent / Defendant'),
+              h('div', { class: 'party-name' }, String(respondent).replace(/\n+/g, ' / '))
+            ) : null
+          )
+        )
+      : null;
+
+    // Orders list — sortable, each clickable to open the PDF
+    function orderRow(o, i) {
+      const date  = o.date || o.orderDate || o.dated || '';
+      const desc  = o.description || o.purpose || o.type || o.title || `Order ${i + 1}`;
+      const url   = o.url || o.pdf || o.pdfUrl || o.file || '';
+      const judge = o.judge || o.signedBy || '';
+      const inner = [
+        h('div', { class: 'order-date' }, date),
+        h('div', { class: 'order-body' },
+          h('div', { class: 'order-desc' }, desc),
+          judge ? h('div', { class: 'order-judge' }, judge) : null
+        )
+      ];
+      return url
+        ? h('a', { class: 'order-row', href: url, target: '_blank', rel: 'noopener' }, ...inner,
+            h('span', { class: 'order-arrow' }, '↗'))
+        : h('div', { class: 'order-row order-row-static' }, ...inner);
+    }
+
+    const ordersBlock = orders.length ? h('section', { class: 'case-section' },
+      h('h3', { class: 'case-section-title' }, `Orders on record (${orders.length})`),
+      h('div', { class: 'order-list' },
+        ...orders.slice(0, 20).map(orderRow),
+        orders.length > 20
+          ? h('div', { class: 'order-more muted' }, `+ ${orders.length - 20} more — visible in the case dossier after extraction`)
+          : null
+      )
+    ) : null;
+
+    // Hearings — last 8
+    const hearingsBlock = hearings.length ? h('section', { class: 'case-section' },
+      h('h3', { class: 'case-section-title' }, `Hearing history (${hearings.length})`),
+      h('div', { class: 'order-list' },
+        ...hearings.slice(0, 8).map((hg, i) => {
+          const date    = hg.date || hg.hearingDate || hg.listed_on || '';
+          const purpose = hg.purpose || hg.next_purpose || hg.stage || hg.business || '';
+          const judge   = hg.judge || hg.coram || '';
+          return h('div', { class: 'order-row order-row-static' },
+            h('div', { class: 'order-date' }, date),
+            h('div', { class: 'order-body' },
+              h('div', { class: 'order-desc' }, purpose || '—'),
+              judge ? h('div', { class: 'order-judge' }, judge) : null
+            )
+          );
+        }),
+        hearings.length > 8
+          ? h('div', { class: 'order-more muted' }, `+ ${hearings.length - 8} earlier hearings`)
+          : null
+      )
+    ) : null;
+
+    // IA list (if any)
+    const iaBlock = ias.length ? h('section', { class: 'case-section' },
+      h('h3', { class: 'case-section-title' }, `Interlocutory applications (${ias.length})`),
+      h('ul', { class: 'simple-list' },
+        ...ias.slice(0, 12).map(ia => h('li', {},
+          (ia.number || ia.no || '') + (ia.subject ? ' — ' + ia.subject : (ia.purpose ? ' — ' + ia.purpose : ''))
+        ))
+      )
+    ) : null;
+
+    return h('section', { class: 'screen wide' },
       h('div', { class: 'eyebrow' }, 'Found it'),
       h('h1', { class: 'headline' }, 'Does this look ', h('em', {}, 'right'), '?'),
       h('p', { class: 'subhead tight' },
-        'Cross-check the case title, court and order count below. If anything looks off, ' +
-        'go back and try the CNR again.'),
+        'Cross-check the details below. If anything looks off, go back and try the CNR again.'),
 
       h('div', { class: 'case-card' },
         h('div', { class: 'case-title' }, c.title || 'Untitled matter'),
+
+        // Top-level metadata grid — always shown
         h('dl', { class: 'case-meta' },
-          h('dt', {}, 'CNR'),       h('dd', {}, S.cnr),
-          h('dt', {}, 'Case No.'),  h('dd', {}, c.caseNumber || '—'),
-          h('dt', {}, 'Court'),     h('dd', {}, c.court || '—'),
-          h('dt', {}, 'Judge'),     h('dd', {}, c.judge || '—'),
-          h('dt', {}, 'Orders'),    h('dd', {}, String(c.orderCount ?? 0)),
-          h('dt', {}, 'Last hearing'), h('dd', {}, c.lastHearing || '—')
-        )
+          ...[
+            row('CNR',            S.cnr),
+            row('Case No.',       c.caseNumber),
+            row('Case type',      caseType),
+            row('Court',          c.court),
+            row('Judge',          c.judge),
+            row('Filed on',       filingDate),
+            row('Registered',     registration),
+            row('Status',         status),
+            row('Last hearing',   c.lastHearing),
+            row('Next hearing',   nextHearing),
+          ].filter(Boolean).flat()
+        ),
+
+        partiesBlock,
+        ordersBlock,
+        hearingsBlock,
+        iaBlock
       ),
       h('div', { class: 'actions' },
         h('button', { class: 'btn btn-primary',

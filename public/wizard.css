@@ -444,6 +444,146 @@ textarea.input {
   color: var(--ink);
 }
 
+/* ── Case-detail sections (CNR confirm screen) ──────────────── */
+.case-section {
+  margin-top: 24pt;
+  padding-top: 18pt;
+  border-top: 1px solid var(--rule-soft);
+}
+.case-section-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  font-weight: 500;
+  margin: 0 0 14pt;
+}
+
+/* Parties — two-column at desktop, stack on mobile */
+.party-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18pt;
+}
+@media (max-width: 600px) {
+  .party-grid { grid-template-columns: 1fr; gap: 14pt; }
+}
+.party-cell {
+  background: var(--paper);
+  border: 1px solid var(--rule-soft);
+  border-radius: 4px;
+  padding: 14pt 16pt;
+}
+.party-role {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  margin-bottom: 6pt;
+}
+.party-name {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+/* Orders + hearings — clickable rows with date column */
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4pt;
+}
+.order-row {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  gap: 14pt;
+  padding: 10pt 14pt;
+  background: var(--paper);
+  border: 1px solid var(--rule-soft);
+  border-radius: 4px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: background 140ms, border-color 140ms, transform 140ms;
+}
+.order-row:hover {
+  background: #FCF8EF;
+  border-color: var(--oxblood);
+  transform: translateX(2px);
+}
+.order-row:hover .order-arrow { color: var(--oxblood); transform: translateX(2px); }
+.order-row-static {
+  cursor: default;
+}
+.order-row-static:hover {
+  background: var(--paper);
+  border-color: var(--rule-soft);
+  transform: none;
+}
+.order-date {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+  padding-top: 2pt;
+  white-space: nowrap;
+}
+.order-body { min-width: 0; }
+.order-desc {
+  font-family: var(--sans);
+  font-size: 0.94rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+.order-judge {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.88rem;
+  color: var(--ink-faint);
+  margin-top: 3pt;
+}
+.order-arrow {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--ink-faint);
+  padding-top: 2pt;
+  transition: color 140ms, transform 140ms;
+}
+.order-more {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.88rem;
+  padding: 10pt 14pt;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .order-row {
+    grid-template-columns: 80px 1fr auto;
+    gap: 10pt;
+    padding: 9pt 11pt;
+  }
+  .order-date { font-size: 11px; }
+  .order-desc { font-size: 0.9rem; }
+}
+
+/* Simple list (IAs etc.) */
+.simple-list {
+  margin: 0;
+  padding-left: 18pt;
+  font-family: var(--sans);
+  font-size: 0.94rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.simple-list li { margin-bottom: 4pt; }
+
+/* Wider screen-card variant for case-detail screen */
+.screen.wide .case-card {
+  max-width: none;
+}
+
 /* ── Upload drop zone ───────────────────────────────────────── */
 .dropzone {
   display: block;
