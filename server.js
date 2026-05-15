@@ -240,41 +240,161 @@ function looksLikePdf(filePath) {
 // extraction, and stores the result in Cloudflare R2.
 const BAILWATCH_BASE = process.env.BAILWATCH_BASE || 'https://bail-watch-app.onrender.com';
 
+// In-memory map of cnrFetch job state. Keys are jobIds; values track
+// status + final case data so the frontend can poll while bail-watch
+// scrapes eCourts. Render edge proxy has ~100s response-start timeout,
+// so we MUST return immediately and let the frontend poll.
+const CNR_FETCH_TOPIC = (jobId) => `cnr-fetch:${jobId}`;
+const cnrFetchJobs = new Map();   // jobId → { status, cnr, slug, data?, error?, startedAt }
+
+function getOrCreateCnrFetchJob(jobId) {
+  let j = cnrFetchJobs.get(jobId);
+  if (!j) {
+    j = { status: 'pending', startedAt: Date.now() };
+    cnrFetchJobs.set(jobId, j);
+  }
+  return j;
+}
+
+// Submit a CNR fetch job. Returns { jobId } instantly. Frontend opens
+// the SSE stream below for live progress + final data.
 app.post('/api/cnr-fetch', limitCnr, validateBody(cnrSchema), async (req, res) => {
   const cnr = String(req.body?.cnr || '').trim().toUpperCase();
   if (!/^[A-Z]{2}[A-Z0-9]{14}$/.test(cnr)) {
     return res.status(400).json({ error: 'Invalid CNR format' });
   }
-  try {
-    // Try to read pre-existing case (idempotent — bail-watch may have it already)
-    const slug = inferSlugFromCnr(cnr);
-    const cached = await tryFetchCaseJson(slug, cnr);
-    if (cached) return res.json(normaliseCaseJson(cached, cnr));
+  const jobId = crypto.randomBytes(12).toString('hex');
+  const slug = inferSlugFromCnr(cnr);
 
-    // Otherwise submit a one-CNR fan-out and poll
-    const submitR = await fetch(`${BAILWATCH_BASE}/api/fetch-cnrs/fanout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ caseType: 'unknown', slug, cnrs: [cnr] })
-    });
-    if (!submitR.ok) {
-      const t = await submitR.text().catch(() => '');
-      return res.status(502).json({ error: 'bail-watch submit failed: ' + t.slice(0, 200) });
-    }
-    const submitJ = await submitR.json();
-    const jobId = submitJ.jobId;
+  const job = getOrCreateCnrFetchJob(jobId);
+  job.cnr = cnr; job.slug = slug; job.status = 'pending';
 
-    // Poll for completion — try up to 3 minutes
-    const deadline = Date.now() + 3 * 60 * 1000;
-    while (Date.now() < deadline) {
-      await new Promise(r => setTimeout(r, 4000));
-      const got = await tryFetchCaseJson(slug, cnr);
-      if (got) return res.json(normaliseCaseJson(got, cnr));
+  // Respond IMMEDIATELY so Render edge doesn't time us out.
+  res.json({ jobId, cnr, slug, status: 'pending' });
+
+  // Background — emits events to topic; the final data sits in job.data.
+  const topic = CNR_FETCH_TOPIC(jobId);
+  const emit = (event, data = {}) => bus.emit(topic, event, data);
+
+  (async () => {
+    try {
+      emit('looking_up', { cnr });
+
+      // Cache hit?
+      const cached = await tryFetchCaseJson(slug, cnr);
+      if (cached) {
+        const data = normaliseCaseJson(cached, cnr);
+        job.status = 'ready';
+        job.data = data;
+        emit('case_ready', data);
+        return;
+      }
+
+      // Submit a fresh fan-out
+      emit('submitting_to_ecourts', {});
+      const submitR = await fetch(`${BAILWATCH_BASE}/api/fetch-cnrs/fanout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseType: 'unknown', slug, cnrs: [cnr] })
+      });
+      if (!submitR.ok) {
+        const t = await submitR.text().catch(() => '');
+        job.status = 'failed';
+        job.error = 'eCourts submit failed: ' + t.slice(0, 200);
+        emit('failed', { error: job.error });
+        return;
+      }
+
+      emit('scraping', {});
+
+      // Poll for completion — try up to 5 minutes
+      const deadline = Date.now() + 5 * 60 * 1000;
+      let attempt = 0;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 5000));
+        attempt++;
+        emit('polling', { attempt, elapsed_s: Math.round((Date.now() - job.startedAt) / 1000) });
+        const got = await tryFetchCaseJson(slug, cnr);
+        if (got) {
+          const data = normaliseCaseJson(got, cnr);
+          job.status = 'ready';
+          job.data = data;
+          emit('case_ready', data);
+          return;
+        }
+      }
+      job.status = 'timeout';
+      job.error = 'Timed out waiting for eCourts (5 min). The case may still arrive — please retry in a minute.';
+      emit('timeout', { error: job.error });
+    } catch (e) {
+      job.status = 'failed';
+      job.error = e.message;
+      emit('failed', { error: e.message });
     }
-    return res.status(504).json({ error: 'Timed out waiting for eCourts (3 min). Try again or upload PDFs manually.' });
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
+  })();
+
+  // Cleanup old jobs every now and then so the Map doesn't grow forever
+  if (cnrFetchJobs.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of cnrFetchJobs) {
+      if (now - v.startedAt > 30 * 60 * 1000) cnrFetchJobs.delete(k);
+    }
   }
+});
+
+// SSE stream for cnr-fetch job progress. If the job is already complete,
+// emits the final state immediately (so a late connector still gets the
+// data) then closes.
+app.get('/api/cnr-fetch/:jobId/stream', (req, res) => {
+  const jobId = req.params.jobId;
+  const job = cnrFetchJobs.get(jobId);
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+  res.flushHeaders?.();
+  const send = (event, data) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  // Replay terminal state if already done
+  if (job && job.status === 'ready') {
+    send('case_ready', job.data);
+    res.end();
+    return;
+  }
+  if (job && (job.status === 'failed' || job.status === 'timeout')) {
+    send(job.status === 'timeout' ? 'timeout' : 'failed', { error: job.error });
+    res.end();
+    return;
+  }
+  if (!job) {
+    send('failed', { error: 'Unknown jobId. The job may have expired — please retry.' });
+    res.end();
+    return;
+  }
+
+  const topic = CNR_FETCH_TOPIC(jobId);
+  const onEvt = (event, data) => send(event, data);
+  bus.on(topic, onEvt);
+
+  const hb = setInterval(() => res.write(':hb\n\n'), 20000);
+  req.on('close', () => { clearInterval(hb); bus.off(topic, onEvt); });
+});
+
+// Convenience JSON poll endpoint — for clients that prefer poll over SSE.
+app.get('/api/cnr-fetch/:jobId', (req, res) => {
+  const job = cnrFetchJobs.get(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'Unknown jobId' });
+  res.json({
+    status: job.status,
+    cnr: job.cnr, slug: job.slug,
+    data: job.data || null,
+    error: job.error || null,
+    elapsed_s: Math.round((Date.now() - job.startedAt) / 1000)
+  });
 });
 
 function inferSlugFromCnr(cnr) {

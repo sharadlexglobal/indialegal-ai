@@ -229,7 +229,24 @@
     function markActive(key)  { lines[key].className = 'status-line active'; lines[key].firstChild.textContent = '◐'; }
     function markFailed(key)  { lines[key].className = 'status-line failed'; lines[key].firstChild.textContent = '×'; }
 
-    // Kick off real fetch in background
+    function showFailure(message) {
+      Object.keys(lines).forEach(k => {
+        if (lines[k].className.includes('active')) markFailed(k);
+      });
+      const errLine = h('div', { class: 'status-line failed' },
+        h('span', { class: 'glyph' }, '!'),
+        h('span', {}, message)
+      );
+      const blk = document.getElementById('status-block');
+      if (blk) blk.appendChild(errLine);
+      const actions = document.getElementById('retry-actions');
+      if (actions) actions.classList.remove('hidden');
+    }
+
+    // ── ASYNC FLOW: POST returns jobId instantly, then SSE for live status ──
+    // Eliminates Render edge timeout (100s) — the user-facing connection
+    // is just a thin SSE stream that emits events as bail-watch progresses.
+    let eventSource = null;
     (async () => {
       try {
         markActive('lookup');
@@ -238,34 +255,69 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cnr: S.cnr })
         });
-        markDone('lookup');
-
         if (!r.ok) {
           const j = await r.json().catch(() => ({}));
           throw new Error(j.error || `HTTP ${r.status}`);
         }
-        markActive('meta');
-        const data = await r.json();
-        markDone('meta');
+        const { jobId } = await r.json();
+        if (!jobId) throw new Error('No jobId returned by server');
 
-        markActive('orders');
-        // Server returns orders count directly
-        markDone('orders');
+        // Open the live progress stream
+        eventSource = new EventSource(`/api/cnr-fetch/${jobId}/stream`);
 
-        markActive('save');
-        S.caseFetched = data;
-        S.caseId = data.caseId || null;
-        markDone('save');
-
-        setTimeout(() => render(screen2_cnrConfirm, 2), 500);
+        eventSource.addEventListener('looking_up', () => {
+          markDone('lookup'); markActive('meta');
+        });
+        eventSource.addEventListener('submitting_to_ecourts', () => {
+          markDone('lookup'); markActive('meta');
+        });
+        eventSource.addEventListener('scraping', () => {
+          // Bail-watch is now scraping — meta line stays active
+        });
+        eventSource.addEventListener('polling', (e) => {
+          // attempt + elapsed_s
+          try {
+            const d = JSON.parse(e.data);
+            const t = lines.meta.lastChild;
+            if (t) t.textContent = `Reading the eCourts record — ${d.elapsed_s}s elapsed`;
+          } catch {}
+        });
+        eventSource.addEventListener('case_ready', (e) => {
+          eventSource.close();
+          markDone('meta');
+          markDone('orders');
+          markActive('save');
+          try {
+            const data = JSON.parse(e.data);
+            S.caseFetched = data;
+            S.caseId = data.caseId || null;
+          } catch {}
+          markDone('save');
+          setTimeout(() => render(screen2_cnrConfirm, 2), 500);
+        });
+        eventSource.addEventListener('failed', (e) => {
+          eventSource.close();
+          try {
+            const d = JSON.parse(e.data);
+            showFailure('Could not fetch this CNR: ' + (d.error || 'unknown error'));
+          } catch {
+            showFailure('Could not fetch this CNR.');
+          }
+        });
+        eventSource.addEventListener('timeout', (e) => {
+          eventSource.close();
+          try {
+            const d = JSON.parse(e.data);
+            showFailure(d.error || 'Timed out waiting for eCourts. Please retry in a minute.');
+          } catch {
+            showFailure('Timed out waiting for eCourts.');
+          }
+        });
+        eventSource.onerror = () => {
+          // EventSource auto-reconnects; only show error if we never got an event
+        };
       } catch (err) {
-        markFailed('lookup');
-        const errLine = h('div', { class: 'status-line failed' },
-          h('span', { class: 'glyph' }, '!'),
-          h('span', {}, 'Could not fetch this CNR: ' + (err.message || 'unknown error'))
-        );
-        document.getElementById('status-block').appendChild(errLine);
-        document.getElementById('retry-actions').classList.remove('hidden');
+        showFailure(err.message || 'unknown error');
       }
     })();
 
