@@ -271,6 +271,12 @@
   }
 
   // ── Screen 3: upload PDFs (background processing) ────────────
+  // Single-file ceiling: 199 MB (downstream document-processor cap).
+  // Users with bigger PDFs are asked to split into 199 MB sets and
+  // upload multiple — the wizard merges everything into one case.
+  const PER_FILE_LIMIT = 199 * 1024 * 1024;
+  const PER_FILE_LIMIT_TEXT = '199 MB';
+
   function screen3_upload() {
     const fileInput = h('input', { type: 'file', accept: 'application/pdf', multiple: 'multiple' });
     const listEl = h('div', { class: 'upload-list', id: 'upload-list' });
@@ -278,32 +284,49 @@
     function renderList() {
       listEl.innerHTML = '';
       for (const u of S.uploads) {
-        const cls = u.stage === 'done' ? 'done'
-                  : u.stage === 'failed' ? 'failed' : 'active';
+        const cls = u.stage === 'done'      ? 'done'
+                  : u.stage === 'failed'    ? 'failed'
+                  : u.stage === 'too_large' ? 'failed'
+                  : 'active';
         const label = u.stage === 'queued'      ? 'Queued'
                     : u.stage === 'uploading'   ? 'Uploading'
                     : u.stage === 'extracting'  ? 'Extracting'
                     : u.stage === 'done'        ? 'Ready'
+                    : u.stage === 'too_large'   ? 'Too large'
                     : u.stage === 'failed'      ? 'Failed'
                     : '—';
-        listEl.appendChild(
-          h('div', { class: 'upload-item ' + cls },
-            h('span', { class: 'name' }, u.name),
-            h('span', { class: 'stage-label' }, label)
-          )
+        const item = h('div', { class: 'upload-item ' + cls },
+          h('span', { class: 'name' }, u.name),
+          h('span', { class: 'stage-label' }, label)
         );
+        if (u.error) {
+          item.appendChild(h('div', { class: 'upload-error' }, u.error));
+        }
+        listEl.appendChild(item);
       }
       const continueBtn = document.getElementById('continue-btn');
-      if (continueBtn) continueBtn.disabled = S.uploads.length === 0;
+      // Continue only if at least one accepted (non-too_large, non-failed) file.
+      const okFiles = S.uploads.filter(u => u.stage !== 'too_large' && u.stage !== 'failed').length;
+      if (continueBtn) continueBtn.disabled = okFiles === 0;
     }
 
     function handleFiles(fileList) {
       for (const file of fileList) {
         if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) continue;
+        if (file.size > PER_FILE_LIMIT) {
+          // Client-side reject — keep the entry on screen with a clear,
+          // actionable error so the user knows to split.
+          S.uploads.push({
+            file: null, name: file.name,
+            stage: 'too_large', caseId: null,
+            error: `Too large (${(file.size / 1024 / 1024).toFixed(0)} MB). Split into ${PER_FILE_LIMIT_TEXT} sets and upload again.`
+          });
+          renderList();
+          continue;
+        }
         const u = { file, name: file.name, stage: 'queued', caseId: null, error: null };
         S.uploads.push(u);
         renderList();
-        // Kick off background upload
         uploadInBackground(u);
       }
     }
@@ -331,7 +354,8 @@
     const dropzone = h('label', { class: 'dropzone' },
       h('div', { class: 'dropzone-icon' }, '↑'),
       h('div', { class: 'dropzone-title' }, 'Drop PDFs here, or click to choose'),
-      h('div', { class: 'dropzone-sub' }, 'PDFs only · multiple files supported'),
+      h('div', { class: 'dropzone-sub' },
+        'PDFs only · multiple files supported · up to ' + PER_FILE_LIMIT_TEXT + ' per file'),
       fileInput
     );
     fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
@@ -355,6 +379,12 @@
         'while extraction runs in the background.'
       ),
       dropzone,
+      h('p', { class: 'helper' },
+        'Each PDF should be ', h('strong', {}, PER_FILE_LIMIT_TEXT + ' or smaller'), '. ' +
+        'You may upload as many separate PDFs as you like. ' +
+        'If your file is larger, please split it into ' + PER_FILE_LIMIT_TEXT + ' sets ' +
+        'and upload each set as a separate PDF — the system will treat them as one matter.'
+      ),
       listEl,
       h('div', { class: 'actions' },
         h('button', { id: 'continue-btn', class: 'btn btn-primary',

@@ -452,6 +452,18 @@ textarea.input {
 .upload-item.done .stage-label    { color: var(--green); }
 .upload-item.failed .stage-label  { color: var(--oxblood-hot); }
 .upload-item.active .stage-label  { color: var(--oxblood); }
+.upload-item {
+  flex-wrap: wrap;
+}
+.upload-error {
+  flex-basis: 100%;
+  margin-top: 6pt;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--oxblood-hot);
+  line-height: 1.4;
+}
 
 /* ── Footer ─────────────────────────────────────────────────── */
 .footnote {
