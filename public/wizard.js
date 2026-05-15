@@ -695,33 +695,136 @@
     );
   }
 
-  // ── Real pipeline kickoff (placeholder — wires to server later) ──
+  // ── Real pipeline kickoff ────────────────────────────────────
+  // Fires the spot-issues + draft-experiment endpoints. When the draft
+  // returns, swaps screen 7 to a completion view with Download PDF.
   async function kickoff() {
-    // Use the first uploaded case (or fetched CNR case) as primary
     const primaryCaseId = S.caseId || (S.uploads.find(u => u.caseId) || {}).caseId;
-    if (!primaryCaseId) return;
+    if (!primaryCaseId) {
+      const finalNote = document.getElementById('final-note');
+      if (finalNote) finalNote.textContent =
+        'No documents were uploaded — please go back and upload at least one PDF.';
+      return;
+    }
+
+    // Spot legal issues (fire-and-forget; result surfaces in research output)
+    fetch(`/api/cases/${primaryCaseId}/spot-issues`, { method: 'POST' }).catch(() => {});
+
+    if (S.intent !== 'draft') {
+      // Research-only path — no draft request, just mark complete eventually
+      return;
+    }
 
     try {
-      if (S.researchMode === 'user' && S.userQuestions) {
-        // POST user's questions — endpoint TBD
+      const r = await fetch(`/api/cases/${primaryCaseId}/draft-experiment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          template_name: 'written_arguments_o6r17',
+          draftType:     S.draftType,
+          onBehalfOf:    S.draftParty
+        })
+      });
+      if (!r.ok) {
+        const errJ = await r.json().catch(() => ({}));
+        throw new Error(errJ.error || `HTTP ${r.status}`);
       }
-      // Spot legal issues — already exists as an endpoint
-      fetch(`/api/cases/${primaryCaseId}/spot-issues`, { method: 'POST' }).catch(() => {});
-
-      if (S.intent === 'draft') {
-        fetch(`/api/cases/${primaryCaseId}/draft-experiment`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            templateName: 'written_arguments_o6r17',
-            draftType: S.draftType,
-            onBehalfOf: S.draftParty
-          })
-        }).catch(() => {});
-      }
+      const result = await r.json();
+      S.draftResult = result;
+      showCompletionUI(result);
     } catch (e) {
-      // Errors will surface via SSE event channel (wired later)
+      const finalNote = document.getElementById('final-note');
+      if (finalNote) {
+        finalNote.style.color = '#6B1B1B';
+        finalNote.textContent = 'The drafting pipeline failed: ' + (e.message || 'unknown error') +
+                                '. Please reload and try again.';
+      }
     }
+  }
+
+  // Replace the "Pipeline" card with a completion card once draft done.
+  function showCompletionUI(result) {
+    const card = document.querySelector('.final-card');
+    if (!card) return;
+
+    const verdict = result.readiness_report?.verdict || 'ready';
+    const grade   = result.readiness_report?.grade   || '—';
+    const cites   = result.citation_audit
+      ? `${result.citation_audit.verified}/${result.citation_audit.total} verified`
+      : '';
+    const elapsed = result.elapsed_seconds
+      ? `${Math.round(result.elapsed_seconds / 60)} min`
+      : '';
+
+    card.innerHTML = '';
+    card.appendChild(h('div', { class: 'final-eyebrow', style: 'color: #2F5D3A;' }, 'Draft ready'));
+    card.appendChild(h('h2', {
+      style: 'font-family: var(--serif); font-weight: 500; font-size: 1.6rem; margin: 8pt 0 14pt; line-height:1.25;'
+    }, 'Your court-ready draft is prepared.'));
+
+    // Quality metrics row
+    const meta = h('dl', {
+      style: 'display: grid; grid-template-columns: max-content 1fr; gap: 6pt 18pt; font-size: 0.92rem; margin-bottom: 18pt;'
+    });
+    const addRow = (k, v) => {
+      meta.appendChild(h('dt', { style: 'font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px; color: #7A6E5C; text-transform: uppercase; padding-top: 4px;' }, k));
+      meta.appendChild(h('dd', { style: 'font-family: var(--sans); color: #14110D;' }, v));
+    };
+    if (cites)   addRow('Citations',        cites);
+    if (grade)   addRow('Readiness grade',  grade);
+    if (verdict) addRow('Verdict',          verdict.replace(/_/g, ' '));
+    if (elapsed) addRow('Time taken',       elapsed);
+    card.appendChild(meta);
+
+    // PDF + view-source buttons
+    const btnRow = h('div', { style: 'display: flex; gap: 12px; flex-wrap: wrap;' });
+    if (result.pdf?.url) {
+      btnRow.appendChild(h('a', {
+        class: 'btn btn-primary',
+        href: result.pdf.url,
+        target: '_blank',
+        download: result.pdf.fileName || 'draft.pdf',
+        style: 'text-decoration: none;'
+      }, 'Download PDF', h('span', {}, '↓')));
+    } else if (result.pdf?.error) {
+      btnRow.appendChild(h('div', {
+        style: 'font-family: var(--serif); font-style: italic; color: #6B1B1B;'
+      }, 'PDF render failed: ' + result.pdf.error + ' — use "View draft text" instead.'));
+    }
+    btnRow.appendChild(h('button', {
+      class: 'btn btn-ghost',
+      onclick: () => showDraftMarkdown(result.draftMarkdown)
+    }, 'View draft text'));
+    card.appendChild(btnRow);
+
+    // Optional: bench questions that the readiness QA flagged
+    const benchQs = result.readiness_report?.bench_questions_unanswered || [];
+    if (benchQs.length) {
+      const note = h('div', {
+        style: 'margin-top: 22pt; padding-top: 18pt; border-top: 1px solid #E0D6BD; font-family: var(--serif); font-style: italic; color: #3D352B; font-size: 0.95rem; line-height: 1.55;'
+      });
+      note.appendChild(document.createTextNode(
+        'Bench questions to anticipate before filing — please address these with your counsel:'
+      ));
+      const ul = h('ul', { style: 'margin: 10pt 0 0 18pt; padding: 0;' });
+      benchQs.forEach(q => ul.appendChild(h('li', { style: 'margin-bottom: 6pt;' }, q)));
+      note.appendChild(ul);
+      card.appendChild(note);
+    }
+  }
+
+  // Plain-text modal-ish view of the draft markdown.
+  function showDraftMarkdown(md) {
+    const overlay = h('div', {
+      style: 'position: fixed; inset: 0; background: rgba(20, 17, 13, 0.55); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 5vh 5vw;',
+      onclick: (e) => { if (e.target === overlay) overlay.remove(); }
+    });
+    const inner = h('div', {
+      style: 'background: #F7F1E5; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 36px 40px; border-radius: 4px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); font-family: var(--serif); font-size: 0.98rem; line-height: 1.7; white-space: pre-wrap; color: #14110D;'
+    });
+    inner.textContent = md || '(no content)';
+    overlay.appendChild(inner);
+    document.body.appendChild(overlay);
   }
 
   // ── Boot ─────────────────────────────────────────────────────

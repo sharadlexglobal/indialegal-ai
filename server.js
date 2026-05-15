@@ -60,11 +60,12 @@ app.use(helmet({
 }));
 
 // ─── CORS lockdown ─────────────────────────────────────────────
-// Only allow same-origin + the production domain. Third-party sites
+// Only allow same-origin + production domains. Third-party sites
 // can't call our API from JavaScript.
 const ALLOWED_ORIGINS = [
   'https://indialegal-ai.onrender.com',
-  // Add custom domain here when wired in Phase 9
+  'https://indialegal.ai',
+  'https://www.indialegal.ai'
 ];
 app.use(cors({
   origin: (origin, cb) => {
@@ -109,17 +110,11 @@ const limitGeneric = makeLimiter({
   windowMs: 60 * 1000, max: 60
 });
 
-// ─── Anonymous-cookie session + LLM token budget ───────────────
-// Every visitor gets an opaque cookie identifier. We track their
-// approximate LLM-token consumption against an in-memory budget so
-// a single anonymous client cannot bankrupt our DeepSeek bill by
-// hammering /draft-experiment from one machine.
-// 500K input tokens + 50K output tokens per cookie per 24 hours.
-const TOKEN_BUDGET_INPUT  = 500_000;
-const TOKEN_BUDGET_OUTPUT =  50_000;
-const TOKEN_BUDGET_WINDOW = 24 * 60 * 60 * 1000;
-const tokenBudgets = new Map();   // sid → { input, output, resetAt }
-
+// ─── Anonymous-cookie session ──────────────────────────────────
+// Every visitor gets an opaque cookie identifier. Useful for future
+// analytics / per-session draft history. No usage limits — legal
+// documentation legitimately needs millions of tokens per case, and
+// rate-limiting on routes is enough abuse protection.
 function ensureSession(req, res, next) {
   let sid = req.cookies.sid;
   if (!sid || !/^[a-f0-9]{32}$/.test(sid)) {
@@ -130,36 +125,8 @@ function ensureSession(req, res, next) {
     });
   }
   req.sid = sid;
-  // Reset window if expired
-  const b = tokenBudgets.get(sid);
-  if (b && Date.now() > b.resetAt) tokenBudgets.delete(sid);
   next();
 }
-
-function checkTokenBudget(req, res, next) {
-  const b = tokenBudgets.get(req.sid);
-  if (b && (b.input >= TOKEN_BUDGET_INPUT || b.output >= TOKEN_BUDGET_OUTPUT)) {
-    const minutesLeft = Math.ceil((b.resetAt - Date.now()) / 60000);
-    return res.status(429).json({
-      error: 'Daily LLM budget exceeded for this session. ' +
-             `Try again in ${Math.ceil(minutesLeft / 60)} hours.`
-    });
-  }
-  next();
-}
-
-// Helper: services call this after an LLM round-trip to debit the user.
-function debitTokens(sid, input = 0, output = 0) {
-  if (!sid) return;
-  let b = tokenBudgets.get(sid);
-  if (!b) {
-    b = { input: 0, output: 0, resetAt: Date.now() + TOKEN_BUDGET_WINDOW };
-    tokenBudgets.set(sid, b);
-  }
-  b.input += input; b.output += output;
-}
-// Expose for services that might want it later (not used by current pipeline)
-app.locals.debitTokens = debitTokens;
 
 // Multer — disk-storage + 200 GB ceiling so multer itself NEVER rejects
 // based on size. Files stream to /tmp and we read them off disk in the
@@ -346,7 +313,7 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
-app.post('/api/cases', limitUpload, checkTokenBudget, upload.single('pdf'), async (req, res) => {
+app.post('/api/cases', limitUpload, upload.single('pdf'), async (req, res) => {
   // With disk-storage multer, req.file is { path, originalname, size, mimetype, ... }
   // — buffer is NOT populated. We read the file lazily into a Buffer below.
   let uploadedPath = null;
@@ -921,7 +888,7 @@ app.get('/api/cases/:id/legal-issues', async (req, res) => {
 
 // Drafting experiment — template + DeepSeek fill, returns court-ready
 // markdown. POST /api/cases/:id/draft-experiment   (template_name optional)
-app.post('/api/cases/:id/draft-experiment', limitDraft, checkTokenBudget, async (req, res) => {
+app.post('/api/cases/:id/draft-experiment', limitDraft, async (req, res) => {
   try {
     const idCheck = z.coerce.number().int().positive().safeParse(req.params.id);
     if (!idCheck.success) return res.status(400).json({ error: 'Invalid case id' });
@@ -929,12 +896,53 @@ app.post('/api/cases/:id/draft-experiment', limitDraft, checkTokenBudget, async 
       pool, caseId: idCheck.data,
       templateName: req.body?.template_name || 'written_arguments_o6r17'
     });
-    // Debit the session — rough estimate of input + output tokens for
-    // the multi-step v8 pipeline (~600K input, ~30K output across all hops).
-    if (req.sid) debitTokens(req.sid, 600_000, 30_000);
+
+    // Auto-render the final markdown to a downloadable PDF via api2pdf.
+    // If api2pdf fails (key missing, network), the response still includes
+    // the markdown so the client can fall back to printing from the browser.
+    if (out?.draftMarkdown && process.env.API2PDF_KEY) {
+      try {
+        const titleBase = req.body?.template_name || 'draft';
+        const pdfMeta = await draftExperiment.renderPdfViaApi2Pdf({
+          markdown: out.draftMarkdown,
+          title: titleBase,
+          filename: `${titleBase}-case-${idCheck.data}`
+        });
+        out.pdf = pdfMeta;
+      } catch (e) {
+        console.warn(`[draft ${idCheck.data}] api2pdf render failed:`, e.message);
+        out.pdf = { error: e.message };
+      }
+    }
+
     res.json(out);
   } catch (e) {
     console.error('draft-experiment error', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// On-demand PDF render — for the case where frontend already holds the
+// markdown (e.g. user clicks "Re-download PDF" without re-running the
+// whole drafting pipeline).
+app.post('/api/render-pdf', limitGeneric, async (req, res) => {
+  try {
+    const schema = z.object({
+      markdown: z.string().min(50).max(2_000_000),
+      title:    z.string().trim().min(1).max(200).optional(),
+      filename: z.string().trim().min(1).max(120).optional()
+    });
+    const parsed = schema.safeParse(req.body || {});
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: 'Invalid input',
+        details: parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`)
+      });
+    }
+    const meta = await draftExperiment.renderPdfViaApi2Pdf(parsed.data);
+    res.json({ pdf: meta });
+  } catch (e) {
+    console.error('render-pdf error', e);
     res.status(500).json({ error: e.message });
   }
 });

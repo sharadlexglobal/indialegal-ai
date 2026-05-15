@@ -1953,6 +1953,8 @@ function execAsync(cmd, opts = {}) {
   });
 }
 
+// Local-only renderer — uses macOS Chrome.app. Kept for dev runs of
+// run-v7-offline.js. Production calls renderPdfViaApi2Pdf instead.
 async function renderPdf({ markdown, outPath, title = 'Written Arguments' }) {
   const html = wrapHtml(mdToHtml(markdown), title);
   const tmpHtml = path.join(os.tmpdir(), `draft-${Date.now()}.html`);
@@ -1962,6 +1964,52 @@ async function renderPdf({ markdown, outPath, title = 'Written Arguments' }) {
               `--print-to-pdf-no-header --print-to-pdf="${outPath}" "file://${tmpHtml}"`;
   await execAsync(cmd);
   return outPath;
+}
+
+// ─── Production PDF renderer — api2pdf.com ─────────────────────
+// Takes markdown, renders to HTML with our court-document CSS, and
+// posts to api2pdf's Chrome service. Returns a hosted PDF URL the
+// user can download. Free tier = 100 PDFs/month; pay-per-PDF after.
+async function renderPdfViaApi2Pdf({ markdown, title = 'Written Arguments', filename }) {
+  const key = process.env.API2PDF_KEY;
+  if (!key) throw new Error('API2PDF_KEY env var not set');
+
+  const html = wrapHtml(mdToHtml(markdown), title);
+  const safeName = String(filename || title || 'draft')
+    .replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80) + '.pdf';
+
+  const r = await fetch('https://v2.api2pdf.com/chrome/pdf/html', {
+    method: 'POST',
+    headers: {
+      'Authorization': key,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      html,
+      inline: false,
+      fileName: safeName,
+      options: {
+        marginTop:    '25mm',
+        marginRight:  '25mm',
+        marginBottom: '25mm',
+        marginLeft:   '30mm',
+        printBackground: true,
+        preferCSSPageSize: true,
+        scale: 1
+      }
+    })
+  });
+  const j = await r.json();
+  if (!r.ok || j.success === false) {
+    throw new Error('api2pdf failed: ' + (j.error || j.message || r.status));
+  }
+  return {
+    url:      j.FileUrl || j.pdf || j.url,
+    bytes:    j.responseSize || null,
+    mbCost:   j.mbOut || null,
+    seconds:  j.seconds || null,
+    fileName: safeName
+  };
 }
 
 module.exports = {
@@ -1985,8 +2033,10 @@ module.exports = {
   timelineGuardDiff,
   applySpotFixes,
   sanitizeForCourt,
-  renderPdf,
+  renderPdf,                // local Mac Chrome (dev only)
+  renderPdfViaApi2Pdf,      // production renderer
   mdToHtml,
+  wrapHtml,
   // LLM primitives
   dsLong,
   dsRaw,
