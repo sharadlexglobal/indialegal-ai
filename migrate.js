@@ -96,6 +96,41 @@ ALTER TABLE cases ADD COLUMN IF NOT EXISTS extraction_v INTEGER DEFAULT 1;
 -- flags, and top strategic moves.
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS legal_issues JSONB;
 
+-- Order PDFs fetched from bail-watch R2 (one row per order PDF found
+-- on eCourts for the matter). Each row holds Mistral OCR full-text +
+-- DeepSeek-extracted timeline events for that order + (eventually)
+-- Datalab structured atoms for deep grounding in the drafting pipeline.
+CREATE TABLE IF NOT EXISTS case_orders (
+  id             BIGSERIAL PRIMARY KEY,
+  case_id        BIGINT NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  order_index    INTEGER NOT NULL,                       -- 1-based; matches bail-watch order-N.pdf
+  r2_key         TEXT,                                   -- e.g. case-types/generic/{CNR}/order-3.pdf
+  order_date     TEXT,                                   -- DD.MM.YYYY when known
+  order_type     TEXT,                                   -- 'order','judgment','interim','consent_decree' etc.
+  signing_judge  TEXT,
+  summary        TEXT,                                   -- short human-readable summary
+  full_text      TEXT,                                   -- Mistral OCR markdown (page-bounded)
+  events         JSONB,                                  -- [{date, what, confidence}] extracted
+  datalab_facts  JSONB,                                  -- structured atoms (filled later by deep-extraction)
+  ocr_status     TEXT NOT NULL DEFAULT 'pending',        -- pending | ocr_done | timeline_done | datalab_done | failed
+  ocr_error      TEXT,
+  bytes          BIGINT,
+  page_count     INTEGER,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS case_orders_case_idx
+  ON case_orders (case_id, order_index);
+CREATE INDEX IF NOT EXISTS case_orders_status_idx
+  ON case_orders (ocr_status);
+
+-- Cases — link to bail-watch CNR + slug so we can resume processing.
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS cnr TEXT;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS bail_watch_slug TEXT;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS case_json JSONB;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS timeline JSONB;
+CREATE INDEX IF NOT EXISTS cases_cnr_idx ON cases (cnr);
+
 -- Unified conversation log. Voice and text BOTH append rows here.
 -- Frontend renders the whole thread by case_id in chronological order.
 --   role: 'user' | 'assistant' | 'tool'

@@ -584,6 +584,73 @@ textarea.input {
   max-width: none;
 }
 
+/* ── Timeline (CNR processing screen) ───────────────────────── */
+.process-counter {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-top: 8pt;
+  padding-left: 32pt;
+  color: var(--ink-faint);
+}
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6pt;
+  margin-top: 12pt;
+  margin-bottom: 28pt;
+}
+.timeline-empty {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-faint);
+  padding: 14pt 0;
+}
+.timeline-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 18pt;
+  padding: 10pt 14pt;
+  background: var(--paper-soft);
+  border: 1px solid var(--rule-soft);
+  border-radius: 4px;
+  animation: fadeInRow 240ms ease-out;
+}
+@keyframes fadeInRow {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.timeline-date {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+  letter-spacing: 0.5px;
+  padding-top: 2pt;
+  white-space: nowrap;
+}
+.timeline-body { min-width: 0; }
+.timeline-what {
+  font-family: var(--sans);
+  font-size: 0.96rem;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.timeline-source {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+  margin-top: 3pt;
+}
+
+@media (max-width: 600px) {
+  .timeline-row { grid-template-columns: 88px 1fr; gap: 10pt; padding: 9pt 11pt; }
+  .timeline-date { font-size: 11px; }
+  .timeline-what { font-size: 0.9rem; }
+  .process-counter { padding-left: 24pt; }
+}
+
 /* ── Upload drop zone ───────────────────────────────────────── */
 .dropzone {
   display: block;

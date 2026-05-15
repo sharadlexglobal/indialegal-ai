@@ -22,6 +22,9 @@ const textAgent = require('./services/textAgent');
 const extraction = require('./services/extraction');
 const issueSpotter = require('./services/legalIssueSpotter');
 const draftExperiment = require('./services/draftExperiment');
+const r2 = require('./services/r2');
+const mistralOcr = require('./services/mistralOcr');
+const timelineSvc = require('./services/timeline');
 const {
   buildRealtimeSystemPrompt,
   FORBIDDEN_PHRASES,
@@ -108,6 +111,10 @@ const limitCnr = makeLimiter({
 });
 const limitGeneric = makeLimiter({
   windowMs: 60 * 1000, max: 60
+});
+const limitProcessFromCnr = makeLimiter({
+  windowMs: 60 * 60 * 1000, max: 5,
+  message: 'Too many process-from-CNR jobs. Please wait.'
 });
 
 // ─── Anonymous-cookie session ──────────────────────────────────
@@ -303,6 +310,268 @@ function normaliseCaseJson(raw, cnr) {
     raw          // keep raw payload for downstream use
   };
 }
+
+// ─── Process-from-CNR: kick off OCR + timeline build ────────────
+// After the user confirms the CNR fetch, this endpoint:
+//   1. Creates a `cases` row keyed to the CNR
+//   2. Reads bail-watch's case.json + manifest from R2
+//   3. Streams each order PDF from R2 → Mistral OCR → DeepSeek timeline-event extract
+//   4. Emits live SSE events on `cnr-process:<caseId>` for the wizard
+//   5. Returns { caseId } immediately; client polls SSE for progress
+const PROCESS_TOPIC = (caseId) => `cnr-process:${caseId}`;
+
+app.post('/api/case/from-cnr/:cnr/process', limitProcessFromCnr, async (req, res) => {
+  try {
+    const cnr = String(req.params.cnr || '').trim().toUpperCase();
+    if (!/^[A-Z]{2}[A-Z0-9]{14}$/.test(cnr)) {
+      return res.status(400).json({ error: 'Invalid CNR' });
+    }
+    const slug = String(req.body?.slug || 'generic');
+    const titleHint = String(req.body?.title || '').slice(0, 200);
+
+    // De-dupe — if we already have a row for this CNR, reuse it.
+    let caseId;
+    const existing = await pool.query(
+      `SELECT id FROM cases WHERE cnr=$1 ORDER BY id DESC LIMIT 1`, [cnr]
+    );
+    if (existing.rows.length) {
+      caseId = existing.rows[0].id;
+      await pool.query(
+        `UPDATE cases SET status='processing', updated_at=NOW() WHERE id=$1`,
+        [caseId]
+      );
+    } else {
+      const ins = await pool.query(
+        `INSERT INTO cases (title, filename, status, kind, cnr, bail_watch_slug)
+         VALUES ($1, $2, 'processing', 'cnr', $3, $4) RETURNING id`,
+        [titleHint || `Case ${cnr}`, '', cnr, slug]
+      );
+      caseId = ins.rows[0].id;
+    }
+
+    // Respond now; do the heavy work async
+    res.json({ caseId, status: 'processing' });
+
+    // ── Background work ──────────────────────────────────────
+    const topic = PROCESS_TOPIC(caseId);
+    const emit = (event, data = {}) => bus.emit(topic, event, data);
+
+    (async () => {
+      try {
+        emit('started', { cnr, slug });
+
+        // Pull case.json from R2 (bail-watch's record)
+        emit('fetch_case_json', {});
+        const caseJson = await r2.getCaseJson(slug, cnr);
+        if (caseJson) {
+          await pool.query(
+            `UPDATE cases SET case_json=$1, updated_at=NOW() WHERE id=$2`,
+            [caseJson, caseId]
+          );
+        }
+
+        // Determine list of order PDFs
+        emit('fetch_manifest', {});
+        const manifest = await r2.getCaseManifest(slug, cnr);
+        const orders = (manifest?.orders || caseJson?.orders || [])
+          .map((o, i) => ({
+            order_index: o.orderNo || o.index || i + 1,
+            order_date: o.orderDate || o.date || '',
+            order_type: o.type || o.section || 'order',
+            r2_key:     o.key || `case-types/${slug}/${cnr}/order-${o.orderNo || i + 1}.pdf`,
+            bytes:      o.bytes
+          }));
+        emit('orders_listed', { count: orders.length, orders });
+
+        if (!orders.length) {
+          emit('no_orders', {});
+          await pool.query(
+            `UPDATE cases SET status='ready', updated_at=NOW() WHERE id=$1`,
+            [caseId]
+          );
+          emit('done', { events: 0 });
+          return;
+        }
+
+        // Insert pending rows for each order
+        for (const o of orders) {
+          await pool.query(
+            `INSERT INTO case_orders
+               (case_id, order_index, r2_key, order_date, order_type, bytes, ocr_status)
+             VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+             ON CONFLICT DO NOTHING`,
+            [caseId, o.order_index, o.r2_key, o.order_date, o.order_type, o.bytes || null]
+          );
+        }
+
+        // Fetch all PDF buffers from R2 (concurrency 4)
+        emit('fetching_pdfs', { count: orders.length });
+        const buffers = await fetchAllPdfs(orders, (done, total) => {
+          emit('fetch_progress', { done, total });
+        });
+
+        // Mistral OCR all in parallel (concurrency 3)
+        emit('ocr_starting', { count: buffers.length });
+        const ocrItems = buffers.map(b => ({
+          buffer: b.buffer, key: b.order.r2_key,
+          label: `order-${b.order.order_index}`,
+          orderIndex: b.order.order_index, orderDate: b.order.order_date
+        }));
+        const ocrResults = await mistralOcr.ocrBatch(ocrItems, {
+          concurrency: 3,
+          onProgress: ({ completed, total }) => {
+            emit('ocr_progress', { completed, total });
+          }
+        });
+
+        // Persist OCR text, kick off timeline extract per order
+        const allEventLists = [];
+        for (let i = 0; i < ocrResults.length; i++) {
+          const r = ocrResults[i];
+          const order = orders[i];
+          if (!r.ok) {
+            await pool.query(
+              `UPDATE case_orders SET ocr_status='failed', ocr_error=$1, updated_at=NOW()
+               WHERE case_id=$2 AND order_index=$3`,
+              [r.error.slice(0, 500), caseId, order.order_index]
+            );
+            emit('ocr_failed', { order_index: order.order_index, error: r.error });
+            continue;
+          }
+          const full = r.result.full_text;
+          await pool.query(
+            `UPDATE case_orders SET full_text=$1, page_count=$2, ocr_status='ocr_done', updated_at=NOW()
+             WHERE case_id=$3 AND order_index=$4`,
+            [full, (r.result.pages || []).length, caseId, order.order_index]
+          );
+          emit('ocr_done', { order_index: order.order_index, chars: full.length });
+
+          // Timeline extraction for this order — kick off, don't await all
+          try {
+            const evs = await timelineSvc.extractEventsFromOrder({
+              orderIndex: order.order_index,
+              orderDate: order.order_date,
+              orderText: full
+            });
+            allEventLists.push(evs);
+            await pool.query(
+              `UPDATE case_orders SET events=$1, ocr_status='timeline_done', updated_at=NOW()
+               WHERE case_id=$2 AND order_index=$3`,
+              [JSON.stringify(evs), caseId, order.order_index]
+            );
+            emit('timeline_progress', {
+              order_index: order.order_index, events_added: evs.length
+            });
+          } catch (e) {
+            console.warn(`[cnr-process ${caseId}] timeline extract failed for order ${order.order_index}: ${e.message}`);
+          }
+        }
+
+        // Merge + persist final timeline
+        const seedEvents = caseJson ? timelineSvc.seedFromCaseJson(caseJson) : [];
+        const merged = timelineSvc.mergeEvents(allEventLists, seedEvents);
+        await pool.query(
+          `UPDATE cases SET timeline=$1, status='ready', updated_at=NOW() WHERE id=$2`,
+          [JSON.stringify(merged), caseId]
+        );
+        emit('timeline_complete', { events: merged });
+        emit('done', { events: merged.length });
+      } catch (e) {
+        console.error(`[cnr-process ${caseId}] error`, e);
+        const topic2 = PROCESS_TOPIC(caseId);
+        bus.emit(topic2, 'error', { error: e.message });
+        await pool.query(
+          `UPDATE cases SET status='failed', error=$1, updated_at=NOW() WHERE id=$2`,
+          [String(e.message || e).slice(0, 1000), caseId]
+        ).catch(() => {});
+      }
+    })().catch(e => console.error(`[cnr-process ${caseId}] uncaught`, e));
+  } catch (e) {
+    if (!res.headersSent) res.status(500).json({ error: e.message });
+  }
+});
+
+// Helper — sequentially get PDF buffers with concurrency 4
+async function fetchAllPdfs(orders, onProgress) {
+  const out = new Array(orders.length);
+  const CONCURRENCY = 4;
+  let idx = 0, done = 0;
+  await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
+    while (idx < orders.length) {
+      const myIdx = idx++;
+      const order = orders[myIdx];
+      try {
+        const { buffer } = await r2.getObjectBuffer(order.r2_key);
+        out[myIdx] = { order, buffer };
+      } catch (e) {
+        out[myIdx] = { order, error: e.message };
+      }
+      done++;
+      if (onProgress) onProgress(done, orders.length);
+    }
+  }));
+  return out.filter(x => x?.buffer);
+}
+
+// SSE stream for the CNR-process progress
+app.get('/api/case/:id/cnr-process/stream', (req, res) => {
+  const topic = PROCESS_TOPIC(req.params.id);
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+  res.flushHeaders?.();
+  const send = (event, data) => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+  const onEvt = (event, data) => send(event, data);
+  bus.on(topic, onEvt);
+  // Heartbeat to keep the connection alive through Render's proxy
+  const hb = setInterval(() => res.write(':hb\n\n'), 20000);
+  req.on('close', () => { clearInterval(hb); bus.off(topic, onEvt); });
+});
+
+// Fetch the saved case state — used by frontend after SSE done
+app.get('/api/case/:id/full', async (req, res) => {
+  try {
+    const idCheck = z.coerce.number().int().positive().safeParse(req.params.id);
+    if (!idCheck.success) return res.status(400).json({ error: 'Invalid id' });
+    const caseId = idCheck.data;
+    const c = await pool.query(
+      `SELECT id, title, cnr, status, case_json, timeline, created_at, updated_at
+         FROM cases WHERE id=$1`, [caseId]);
+    if (!c.rows.length) return res.status(404).json({ error: 'Case not found' });
+    const orders = await pool.query(
+      `SELECT order_index, order_date, order_type, r2_key, summary,
+              ocr_status, page_count, bytes, events
+         FROM case_orders WHERE case_id=$1 ORDER BY order_index ASC`,
+      [caseId]);
+    res.json({ ...c.rows[0], orders: orders.rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Stream/redirect an order PDF — uses presigned R2 URL so the
+// browser fetches from Cloudflare directly (saves our bandwidth).
+app.get('/api/case/:id/order/:n/pdf', async (req, res) => {
+  try {
+    const idCheck = z.coerce.number().int().positive().safeParse(req.params.id);
+    const nCheck = z.coerce.number().int().positive().safeParse(req.params.n);
+    if (!idCheck.success || !nCheck.success) return res.status(400).end();
+    const r = await pool.query(
+      `SELECT r2_key FROM case_orders WHERE case_id=$1 AND order_index=$2`,
+      [idCheck.data, nCheck.data]);
+    if (!r.rows.length) return res.status(404).end();
+    const url = await r2.presignDownloadUrl(r.rows[0].r2_key, { expiresIn: 600 });
+    res.redirect(url);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 app.get('/api/health', async (_req, res) => {
   try {

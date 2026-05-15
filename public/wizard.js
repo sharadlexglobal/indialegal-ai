@@ -428,10 +428,194 @@
       ),
       h('div', { class: 'actions' },
         h('button', { class: 'btn btn-primary',
-                      onclick: () => render(screen3_upload, 3) },
+                      onclick: () => render(screen2c_processing, 3) },
           'Continue', h('span', {}, '→')),
         h('button', { class: 'btn-text', onclick: () => render(screen2_cnr, 2) },
           'Try a different CNR')
+      )
+    );
+  }
+
+  // ── Screen 2.5: process orders from CNR ──────────────────────
+  // Kicks off /api/case/from-cnr/:cnr/process, then opens an SSE
+  // stream and renders progress + live timeline. When done, user
+  // continues to screen 3 (upload additional PDFs).
+  function screen2c_processing() {
+    const cnr = S.cnr;
+    const c = S.caseFetched || {};
+    const slug = 'generic';
+
+    // UI scaffold
+    const statusLine = h('div', { class: 'status-line active' },
+      h('span', { class: 'glyph' }, '◐'),
+      h('span', { id: 'ocr-status-text' }, 'Starting…')
+    );
+    const counter = h('div', { class: 'process-counter muted' },
+      h('span', { id: 'orders-counter' }, '0 of 0'),
+      ' orders processed'
+    );
+    const timelineEl = h('div', { class: 'timeline', id: 'timeline-list' });
+    const continueBtn = h('button', {
+      class: 'btn btn-primary', disabled: true, id: 'continue-after-process',
+      onclick: () => render(screen3_upload, 4)
+    }, 'Continue', h('span', {}, '→'));
+
+    // Local state for live updates
+    const state = { orders: [], events: [], total: 0, ocrDone: 0 };
+
+    function renderTimeline() {
+      timelineEl.innerHTML = '';
+      if (!state.events.length) {
+        timelineEl.appendChild(h('div', { class: 'timeline-empty' },
+          h('em', {}, 'Building timeline as we read each order…')));
+        return;
+      }
+      for (const ev of state.events) {
+        const row = h('div', { class: 'timeline-row' },
+          h('div', { class: 'timeline-date' }, ev.date || '—'),
+          h('div', { class: 'timeline-body' },
+            h('div', { class: 'timeline-what' }, ev.what),
+            ev.source ? h('div', { class: 'timeline-source' }, ev.source)
+                      : ev.order_index ? h('div', { class: 'timeline-source' },
+                          'Order ' + ev.order_index) : null
+          )
+        );
+        timelineEl.appendChild(row);
+      }
+    }
+    renderTimeline();
+
+    // Kick off the backend processing
+    let caseId = null;
+    let eventSource = null;
+
+    async function start() {
+      try {
+        const r = await fetch(`/api/case/from-cnr/${encodeURIComponent(cnr)}/process`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, title: c.title || '' })
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        caseId = j.caseId;
+        S.caseId = caseId;
+        openStream(caseId);
+      } catch (e) {
+        const t = document.getElementById('ocr-status-text');
+        if (t) t.textContent = 'Failed to start: ' + e.message;
+        statusLine.className = 'status-line failed';
+        statusLine.firstChild.textContent = '×';
+      }
+    }
+
+    function setStatus(text, kind = 'active') {
+      const t = document.getElementById('ocr-status-text');
+      if (t) t.textContent = text;
+      statusLine.className = 'status-line ' + kind;
+      const g = statusLine.firstChild;
+      if (g) g.textContent = kind === 'done' ? '✓' : kind === 'failed' ? '×' : '◐';
+    }
+
+    function setCounter(done, total) {
+      const el = document.getElementById('orders-counter');
+      if (el) el.textContent = `${done} of ${total}`;
+    }
+
+    function openStream(id) {
+      eventSource = new EventSource(`/api/case/${id}/cnr-process/stream`);
+
+      eventSource.addEventListener('started',         () => setStatus('Pulling your case from storage…'));
+      eventSource.addEventListener('fetch_case_json', () => setStatus('Reading the case file…'));
+      eventSource.addEventListener('fetch_manifest',  () => setStatus('Listing every order on record…'));
+      eventSource.addEventListener('orders_listed',   (e) => {
+        const d = JSON.parse(e.data);
+        state.total = d.count;
+        state.orders = d.orders;
+        setStatus(`Found ${d.count} order${d.count === 1 ? '' : 's'} — reading them now`);
+        setCounter(0, d.count);
+        if (!d.count) {
+          setStatus('No orders to read', 'done');
+        }
+      });
+      eventSource.addEventListener('fetching_pdfs',   (e) => {
+        const d = JSON.parse(e.data);
+        setStatus(`Downloading ${d.count} order PDFs…`);
+      });
+      eventSource.addEventListener('fetch_progress',  (e) => {
+        const d = JSON.parse(e.data);
+        setStatus(`Downloading PDFs… ${d.done} of ${d.total}`);
+      });
+      eventSource.addEventListener('ocr_starting',    (e) => {
+        const d = JSON.parse(e.data);
+        setStatus(`Reading ${d.count} orders with OCR…`);
+      });
+      eventSource.addEventListener('ocr_progress',    (e) => {
+        const d = JSON.parse(e.data);
+        state.ocrDone = d.completed;
+        setStatus(`Reading orders… ${d.completed} of ${d.total}`);
+        setCounter(d.completed, d.total);
+      });
+      eventSource.addEventListener('ocr_done',        (e) => {
+        const d = JSON.parse(e.data);
+        // single-order completion — no immediate UI change beyond counter
+      });
+      eventSource.addEventListener('ocr_failed',      (e) => {
+        const d = JSON.parse(e.data);
+        console.warn('OCR failed for order', d.order_index, d.error);
+      });
+      eventSource.addEventListener('timeline_progress', (e) => {
+        const d = JSON.parse(e.data);
+        // intermediate per-order progress — wait for timeline_complete
+      });
+      eventSource.addEventListener('timeline_complete', (e) => {
+        const d = JSON.parse(e.data);
+        state.events = d.events || [];
+        renderTimeline();
+        setStatus(`Timeline ready · ${state.events.length} event${state.events.length === 1 ? '' : 's'}`, 'done');
+        const btn = document.getElementById('continue-after-process');
+        if (btn) btn.disabled = false;
+      });
+      eventSource.addEventListener('done',            () => {
+        eventSource.close();
+        const btn = document.getElementById('continue-after-process');
+        if (btn) btn.disabled = false;
+      });
+      eventSource.addEventListener('error',           (e) => {
+        try {
+          const d = JSON.parse(e.data || '{}');
+          if (d.error) setStatus('Error: ' + d.error, 'failed');
+        } catch {}
+      });
+      eventSource.onerror = () => {
+        // EventSource auto-reconnects; we just log
+        console.warn('SSE error');
+      };
+    }
+
+    // Begin
+    setTimeout(start, 50);
+
+    return h('section', { class: 'screen wide' },
+      h('div', { class: 'eyebrow' }, 'Reading the file'),
+      h('h1', { class: 'headline' }, 'Reading every ', h('em', {}, 'order'), '.'),
+      h('p', { class: 'subhead tight' },
+        'We are reading each order on record and stitching together a date-by-date account ' +
+        'of what has happened in this matter. You can keep watching, or simply continue — ' +
+        'the rest runs in the background.'),
+
+      h('div', { class: 'status-block' },
+        statusLine,
+        counter
+      ),
+
+      h('h3', { class: 'case-section-title', style: 'margin-top: 28pt;' }, 'Case timeline so far'),
+      timelineEl,
+
+      h('div', { class: 'actions' },
+        continueBtn,
+        h('button', { class: 'btn-text', onclick: () => render(screen2_cnrConfirm, 2) },
+          '← Back to case details')
       )
     );
   }
