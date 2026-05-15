@@ -158,6 +158,72 @@ body {
   box-shadow: 0 12px 36px rgba(107, 27, 27, 0.08);
 }
 .choice:hover .choice-arrow { transform: translateX(4px); color: var(--oxblood); }
+
+/* ── Minimal welcome variant ─────────────────────────────────────
+   Used by screen 1 (Where to begin?). At rest: just the title.
+   On hover (desktop): a small italic hint slides up from below,
+   previewing what the next step asks for.
+   On mobile (no hover): hint is always visible at a slightly
+   smaller size, since touch users can't hover. */
+.choices-minimal {
+  gap: 22px;
+  margin-top: 28px;
+}
+.choice-min {
+  padding: 56px 32px;
+  min-height: 200px;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-soft);
+  border: 1px solid var(--rule);
+}
+.choice-min-title {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.8rem;
+  line-height: 1.2;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+}
+.choice-min-title em {
+  color: var(--oxblood);
+  font-style: italic;
+}
+.choice-hint {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.96rem;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  margin-top: 14px;
+  max-width: 280px;
+  /* Desktop default — hidden at rest, slides up on hover */
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 220ms ease-out, transform 220ms cubic-bezier(.2,.7,.2,1);
+}
+.choice-min:hover .choice-hint {
+  opacity: 1;
+  transform: translateY(0);
+  color: var(--ink-soft);
+}
+
+/* Mobile — no hover. Hint always visible, slightly smaller. */
+@media (hover: none), (max-width: 600px) {
+  .choice-hint {
+    opacity: 1;
+    transform: none;
+    font-size: 0.88rem;
+    margin-top: 10px;
+    color: var(--ink-faint);
+  }
+  .choice-min {
+    padding: 36px 24px;
+    min-height: 0;
+  }
+  .choice-min-title { font-size: 1.55rem; }
+}
 .choice-numeral {
   font-family: var(--mono);
   font-size: 11px;

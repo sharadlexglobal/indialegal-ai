@@ -132,35 +132,28 @@
   }
 
   // ── Screen 1: welcome / choose path ───────────────────────────
+  // Ultra-minimal: a single soft question + two first-person answers.
+  // On desktop, the next-step hint slides up on hover. On mobile (no
+  // hover), the hint is always visible at a slightly smaller size.
   function screen1_welcome() {
     return h('section', { class: 'screen' },
-      h('div', { class: 'eyebrow' }, 'Welcome'),
-      h('h1', { class: 'headline' }, 'Where are we ', h('em', {}, 'starting from'), '?'),
-      h('p', { class: 'subhead' },
-        'Pick one to begin. Whichever you choose, the next few steps stay simple and one question at a time.'
-      ),
-      h('div', { class: 'choices' },
+      h('h1', { class: 'headline center' }, 'Where to ', h('em', {}, 'begin'), '?'),
+      h('div', { class: 'choices choices-minimal' },
         h('button', {
-          class: 'choice',
+          class: 'choice choice-min',
           onclick: () => { S.path = 'existing'; render(screen2_cnr, 2); }
         },
-          h('div', { class: 'choice-numeral' }, '01'),
-          h('div', { class: 'choice-title' }, 'An existing case'),
-          h('div', { class: 'choice-body' },
-            'You have a CNR number from eCourts. We will fetch the case details, ' +
-            'parties and every order on record automatically.'),
-          h('span', { class: 'choice-arrow' }, '→')
+          h('div', { class: 'choice-min-title' }, 'I have a ', h('em', {}, 'CNR'), '.'),
+          h('div', { class: 'choice-hint' },
+            'Next, enter the 16-character CNR — keep it handy.')
         ),
         h('button', {
-          class: 'choice',
+          class: 'choice choice-min',
           onclick: () => { S.path = 'new'; render(screen2b_newcase, 2); }
         },
-          h('div', { class: 'choice-numeral' }, '02'),
-          h('div', { class: 'choice-title' }, 'A new matter'),
-          h('div', { class: 'choice-body' },
-            'No CNR yet. We will build the case file purely from the documents ' +
-            'you are about to share with us.'),
-          h('span', { class: 'choice-arrow' }, '→')
+          h('div', { class: 'choice-min-title' }, 'I ', h('em', {}, 'don\'t'), ' yet.'),
+          h('div', { class: 'choice-hint' },
+            'Next, upload your case file — one or several PDFs.')
         )
       )
     );
