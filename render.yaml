@@ -3,20 +3,41 @@ services:
     name: indialegal-ai
     runtime: node
     region: singapore
-    plan: starter
+    plan: standard          # bumped from starter — Reasoner CoT needs more RAM
     buildCommand: npm install && node migrate.js
     startCommand: node server.js
     envVars:
+      # ── Database (auto-wired) ──────────────────────────────────
       - key: DATABASE_URL
         fromDatabase:
           name: indialegal-ai-db
           property: connectionString
+
+      # ── Required secrets (paste values in Render UI; sync: false hides from yaml) ──
       - key: OPENAI_API_KEY
-        sync: false
+        sync: false                 # realtime voice
       - key: DATALAB_API_KEY
-        sync: false
+        sync: false                 # OCR + marker
       - key: GEMINI_API_KEY
+        sync: false                 # File Search + summaries
+      - key: DEEPSEEK_API_KEY
+        sync: false                 # drafting + reasoning (CRITICAL)
+      - key: LIVEKIT_URL
+        sync: false                 # voice infra
+      - key: LIVEKIT_API_KEY
         sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+
+      # ── Non-secret defaults (baked into yaml) ──────────────────
+      - key: DEEPSEEK_FLASH_MODEL
+        value: deepseek-v4-flash
+      - key: DEEPSEEK_REASONER_MODEL
+        value: deepseek-v4-pro
+      - key: IKAPI_MCP_URL
+        value: https://ikapi.onrender.com/mcp
+      - key: BAILWATCH_BASE
+        value: https://bail-watch-app.onrender.com
 
 databases:
   - name: indialegal-ai-db

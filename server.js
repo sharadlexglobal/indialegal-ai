@@ -30,14 +30,101 @@ const pool = new Pool({
 
 app.use(express.json({ limit: '20mb' }));
 
-// Force no-cache on the entry HTML so version-bumped /app.js?v=N is
+// Force no-cache on the entry HTML so version-bumped assets are
 // always picked up. Static assets (with their own ?v= cache buster)
 // are served normally below.
+
+// New homepage — user-facing wizard
 app.get(['/', '/index.html'], (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// Legacy dashboard — moved to /admin
+app.get(['/admin', '/admin.html'], (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ─── CNR fetch — proxies to bail-watch manager ──────────────────
+// Submits CNR to bail-watch fan-out, polls until ready, returns
+// the parsed case.json + manifest summary. The bail-watch system
+// (separate service on Render Singapore) handles eCourts captcha,
+// extraction, and stores the result in Cloudflare R2.
+const BAILWATCH_BASE = process.env.BAILWATCH_BASE || 'https://bail-watch-app.onrender.com';
+
+app.post('/api/cnr-fetch', async (req, res) => {
+  const cnr = String(req.body?.cnr || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}[A-Z0-9]{14}$/.test(cnr)) {
+    return res.status(400).json({ error: 'Invalid CNR format' });
+  }
+  try {
+    // Try to read pre-existing case (idempotent — bail-watch may have it already)
+    const slug = inferSlugFromCnr(cnr);
+    const cached = await tryFetchCaseJson(slug, cnr);
+    if (cached) return res.json(normaliseCaseJson(cached, cnr));
+
+    // Otherwise submit a one-CNR fan-out and poll
+    const submitR = await fetch(`${BAILWATCH_BASE}/api/fetch-cnrs/fanout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caseType: 'unknown', slug, cnrs: [cnr] })
+    });
+    if (!submitR.ok) {
+      const t = await submitR.text().catch(() => '');
+      return res.status(502).json({ error: 'bail-watch submit failed: ' + t.slice(0, 200) });
+    }
+    const submitJ = await submitR.json();
+    const jobId = submitJ.jobId;
+
+    // Poll for completion — try up to 3 minutes
+    const deadline = Date.now() + 3 * 60 * 1000;
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 4000));
+      const got = await tryFetchCaseJson(slug, cnr);
+      if (got) return res.json(normaliseCaseJson(got, cnr));
+    }
+    return res.status(504).json({ error: 'Timed out waiting for eCourts (3 min). Try again or upload PDFs manually.' });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+function inferSlugFromCnr(cnr) {
+  // Without case-type knowledge, default to a generic slug. bail-watch
+  // accepts any slug — the case-type is recorded in case.json itself.
+  return 'generic';
+}
+
+async function tryFetchCaseJson(slug, cnr) {
+  try {
+    const r = await fetch(`${BAILWATCH_BASE}/api/cases/${slug}/${cnr}`);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+function normaliseCaseJson(raw, cnr) {
+  // bail-watch returns the saved case.json shape. Normalise to what
+  // the front-end expects (title, court, judge, orderCount, lastHearing).
+  const parties = raw.parties || raw.partyDetails || {};
+  const petitioner = parties.petitioner || parties.plaintiff || raw.petitioner || '';
+  const respondent = parties.respondent || parties.defendant || raw.respondent || '';
+  const title = raw.title || raw.caseTitle
+                 || (petitioner && respondent ? `${petitioner} v. ${respondent}` : 'Untitled matter');
+  return {
+    cnr,
+    title,
+    caseNumber:  raw.caseNumber || raw.case_no || '',
+    court:       raw.court || raw.establishment || '',
+    judge:       raw.judge || raw.coram || '',
+    orderCount:  (raw.orders || []).length || raw.orderCount || 0,
+    lastHearing: raw.lastHearing || raw.lastListed || raw.lastHearingDate || '',
+    raw          // keep raw payload for downstream use
+  };
+}
 
 app.get('/api/health', async (_req, res) => {
   try {

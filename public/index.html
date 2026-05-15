@@ -3,118 +3,34 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>INDIALEGAL.AI</title>
+  <meta name="theme-color" content="#F7F1E5" />
+  <title>indialegal.ai</title>
 
-  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" />
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
 
-  <link rel="stylesheet" href="/styles.css?v=17" />
-  <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.7.5/dist/livekit-client.umd.min.js"></script>
+  <link rel="stylesheet" href="/wizard.css?v=1" />
 </head>
 <body>
 
-  <!-- ───────────── Screen 1: CASES LIST ───────────── -->
-  <main id="screen-list" class="screen">
-    <header class="masthead">
-      <h1>indialegal<span class="amp">.</span>ai</h1>
-      <p class="strap">A grounded legal research and briefing agent.</p>
-    </header>
+  <!-- Wordmark + progress -->
+  <header class="topbar">
+    <div class="wordmark">indialegal<span class="dot">.</span>ai</div>
+    <div class="progress" id="progress" aria-hidden="true"></div>
+  </header>
 
-    <section class="section">
-      <div class="section-head">
-        <h2>Research sessions</h2>
-        <button class="ghost" id="new-research">+ new</button>
-      </div>
-      <div id="research-list" class="rows"></div>
-    </section>
-
-    <section class="section">
-      <div class="section-head">
-        <h2>Uploaded cases</h2>
-        <button class="ghost" id="new-upload">+ upload</button>
-      </div>
-      <div id="cases-list" class="rows"></div>
-    </section>
+  <!-- All screens live in this stage; one visible at a time -->
+  <main class="stage" id="stage">
+    <!-- Screens are rendered dynamically by wizard.js -->
   </main>
 
-  <!-- ───────────── Upload sheet (modal) ───────────── -->
-  <div id="upload-sheet" class="sheet hidden">
-    <div class="sheet-body">
-      <h3>Upload a case file</h3>
-      <form id="upload-form">
-        <label class="field">
-          <span>Title</span>
-          <input type="text" id="upload-title" maxlength="200" placeholder="Sharma v. State of UP" />
-        </label>
-        <label class="field">
-          <span>PDF</span>
-          <input type="file" id="upload-file" accept="application/pdf" required />
-        </label>
-        <div class="sheet-actions">
-          <button type="button" class="ghost" data-close-sheet>Cancel</button>
-          <button type="submit" class="solid">Upload</button>
-        </div>
-        <p id="upload-status" class="row-meta"></p>
-      </form>
-    </div>
-  </div>
+  <footer class="footnote">
+    <span>Grounded legal research and drafting · Indian courts</span>
+    <a href="/admin" class="admin-link">admin</a>
+  </footer>
 
-  <!-- ───────────── New research sheet ───────────── -->
-  <div id="research-sheet" class="sheet hidden">
-    <div class="sheet-body">
-      <h3>New research session</h3>
-      <form id="research-form">
-        <label class="field">
-          <span>Title</span>
-          <input type="text" id="research-title" maxlength="200" placeholder="PMLA Section 19 written grounds" />
-        </label>
-        <div class="sheet-actions">
-          <button type="button" class="ghost" data-close-sheet>Cancel</button>
-          <button type="submit" class="solid">Begin</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ───────────── Screen 2: WORKSPACE ───────────── -->
-  <main id="screen-workspace" class="screen hidden">
-    <header class="ws-head">
-      <button id="back-to-list" class="ghost">← all</button>
-      <h2 id="ws-title">—</h2>
-      <span id="ws-meta" class="meta"></span>
-    </header>
-
-    <div class="ws-body">
-      <section class="ws-thread">
-        <div id="thread" class="thread"></div>
-        <form id="composer" class="composer">
-          <textarea id="composer-input" rows="1"
-                    placeholder="Type your question — or press ⌘M to talk"></textarea>
-          <div class="composer-actions">
-            <button type="button" id="mic-btn" class="icon" title="Voice (⌘M)">●</button>
-            <button type="submit" id="send-btn" class="icon" title="Send (↵)">→</button>
-          </div>
-        </form>
-      </section>
-
-      <aside class="ws-context">
-        <div class="ctx-block">
-          <h4>Context</h4>
-          <dl id="ctx-facts" class="ctx-facts"></dl>
-        </div>
-        <div class="ctx-block">
-          <h4>Research</h4>
-          <div id="ctx-research" class="ctx-research"></div>
-        </div>
-      </aside>
-    </div>
-
-    <audio id="agent-audio" autoplay></audio>
-  </main>
-
-  <script src="/app.js?v=17"></script>
+  <script src="/wizard.js?v=1" defer></script>
 </body>
 </html>

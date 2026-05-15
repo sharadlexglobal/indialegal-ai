@@ -451,7 +451,7 @@ function toolLine(tc) {
   let label = tc.name;
   if (tc.name === 'lookup_case_fact') label = `lookup · ${tc.args?.field || ''}`;
   else if (tc.name === 'search_case_file') label = `search case file · "${(tc.args?.query || '').slice(0, 50)}"`;
-  else if (tc.name === 'search_indian_kanoon') label = `Indian Kanoon · "${(tc.args?.query || '').slice(0, 50)}"`;
+  else if (tc.name === 'search_indian_kanoon') label = `precedent search · "${(tc.args?.query || '').slice(0, 50)}"`;
   const isErr = tc.result?.error;
   return el('div', { class: `tool-line${isErr ? ' error' : ''}` }, label);
 }
@@ -716,7 +716,7 @@ function bindResearchSSE(es, block, jobId) {
   });
   es.addEventListener('ikapi_search_start', (e) => {
     const d = JSON.parse(e.data);
-    stage(`searching Indian Kanoon — doctype: ${(d.doctypes || []).join(', ')}`);
+    stage(`searching precedents — doctype: ${(d.doctypes || []).join(', ')}`);
   });
   es.addEventListener('ikapi_broaden', (e) => {
     const d = JSON.parse(e.data);

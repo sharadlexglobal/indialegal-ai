@@ -18,9 +18,12 @@
 const fetch = require('node-fetch');
 
 const URL = 'https://api.deepseek.com/v1/chat/completions';
-const MODEL = 'deepseek-v4-flash';
+// Court identification is a reasoning task (disambiguating 5-judge
+// rotations, OCR confusion of "Hon'ble High Court" vs "District Court"),
+// so we use Reasoner. Override via DEEPSEEK_REASONER_MODEL env.
+const MODEL = process.env.DEEPSEEK_REASONER_MODEL || 'deepseek-v4-pro';
 
-async function ds(messages, { timeoutMs = 90000, label = '' } = {}) {
+async function ds(messages, { timeoutMs = 480000, label = '' } = {}) {
   for (let i = 0; i < 3; i++) {
     try {
       const ctl = new AbortController();
@@ -34,7 +37,8 @@ async function ds(messages, { timeoutMs = 90000, label = '' } = {}) {
         body: JSON.stringify({
           model: MODEL, messages,
           response_format: { type: 'json_object' },
-          temperature: 0
+          temperature: 0,
+          max_tokens: 8192
         }),
         signal: ctl.signal
       });
