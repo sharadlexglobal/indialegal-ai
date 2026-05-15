@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const { Pool } = require('pg');
 
 const { AccessToken } = require('livekit-server-sdk');
@@ -21,7 +23,30 @@ const {
 } = require('./prompts');
 
 const app = express();
-const upload = multer({ limits: { fileSize: 100 * 1024 * 1024 } });
+
+// Multer — disk-storage + 200 GB ceiling so multer itself NEVER rejects
+// based on size. Files stream to /tmp and we read them off disk in the
+// route handler. Memory footprint stays bounded regardless of upload size.
+//   NB: downstream Datalab caps at ~199 MB per submission. Files larger
+//   than that still need chunking, but multer is no longer the bottleneck.
+const UPLOAD_DIR = path.join(os.tmpdir(), 'indialegal-uploads');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: (req, file, cb) => {
+      const safe = String(file.originalname || 'upload.pdf')
+        .replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safe}`);
+    }
+  }),
+  limits: {
+    fileSize: 200 * 1024 * 1024 * 1024,   // 200 GB — multer hard ceiling
+    files: 1,
+    fields: 20
+  }
+});
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -136,25 +161,48 @@ app.get('/api/health', async (_req, res) => {
 });
 
 app.post('/api/cases', upload.single('pdf'), async (req, res) => {
+  // With disk-storage multer, req.file is { path, originalname, size, mimetype, ... }
+  // — buffer is NOT populated. We read the file lazily into a Buffer below.
+  let uploadedPath = null;
   try {
     if (!req.file) return res.status(400).json({ error: 'pdf file required' });
-    const title = (req.body.title || req.file.originalname || 'Untitled').trim().slice(0, 200);
+    uploadedPath = req.file.path;
+
+    const title = (req.body.title || req.file.originalname || 'Untitled')
+      .trim().slice(0, 200);
     const ins = await pool.query(
       `INSERT INTO cases (title, filename, status) VALUES ($1, $2, 'processing') RETURNING id`,
       [title, req.file.originalname]
     );
     const caseId = ins.rows[0].id;
-    processCase(caseId, req.file.buffer, req.file.originalname, title).catch(async (e) => {
-      console.error(`[case ${caseId}] processing failed`, e);
-      await pool.query(
-        `UPDATE cases SET status='failed', error=$1, updated_at=NOW() WHERE id=$2`,
-        [String(e.message || e), caseId]
-      );
-    });
-    res.json({ id: caseId, status: 'processing' });
+    const originalname = req.file.originalname;
+    const fileSize = req.file.size;
+
+    // Respond immediately; processing happens async.
+    res.json({ id: caseId, status: 'processing', sizeBytes: fileSize });
+
+    // ── Async processing — read file from disk, process, cleanup ──
+    // NB: readFileSync on truly massive files (>1 GB) will pressure RAM.
+    // Downstream Datalab caps at ~199 MB anyway. Chunking layer (planned)
+    // will replace this read with a streaming chunker.
+    (async () => {
+      try {
+        const buffer = fs.readFileSync(uploadedPath);
+        await processCase(caseId, buffer, originalname, title);
+      } catch (e) {
+        console.error(`[case ${caseId}] processing failed`, e);
+        await pool.query(
+          `UPDATE cases SET status='failed', error=$1, updated_at=NOW() WHERE id=$2`,
+          [String(e.message || e).slice(0, 1000), caseId]
+        ).catch(() => {});
+      } finally {
+        fs.unlink(uploadedPath, () => {});  // best-effort cleanup
+      }
+    })();
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e.message });
+    console.error('upload route error:', e);
+    if (uploadedPath) fs.unlink(uploadedPath, () => {});
+    if (!res.headersSent) res.status(500).json({ error: e.message });
   }
 });
 
