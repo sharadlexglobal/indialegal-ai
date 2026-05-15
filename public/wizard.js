@@ -6,6 +6,79 @@
 (() => {
   'use strict';
 
+  // ── Global error boundary ────────────────────────────────────
+  // Wraps fetch() so every API call has graceful failure handling.
+  // Shows a slide-in toast at the bottom-right; auto-dismisses.
+  function showToast(message, kind = 'error') {
+    let host = document.getElementById('toast-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'toast-host';
+      host.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:380px;';
+      document.body.appendChild(host);
+    }
+    const el = document.createElement('div');
+    el.style.cssText = `
+      background:${kind === 'error' ? '#6B1B1B' : '#1F3A5F'};
+      color:#FBF7EE;
+      padding:14px 18px;
+      border-radius:4px;
+      box-shadow:0 8px 24px rgba(0,0,0,0.15);
+      font-family:Inter,sans-serif;
+      font-size:0.92rem;
+      line-height:1.5;
+      animation:slideIn 220ms cubic-bezier(.2,.7,.2,1);
+    `;
+    el.textContent = message;
+    host.appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 240ms';
+      setTimeout(() => el.remove(), 260);
+    }, 6000);
+  }
+
+  // Add the slideIn keyframe once.
+  if (!document.getElementById('toast-styles')) {
+    const st = document.createElement('style');
+    st.id = 'toast-styles';
+    st.textContent = '@keyframes slideIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}';
+    document.head.appendChild(st);
+  }
+
+  // Wrap window.fetch — every API call now has automatic error UI.
+  const realFetch = window.fetch.bind(window);
+  window.fetch = async function(input, init) {
+    try {
+      const r = await realFetch(input, init);
+      if (r.status === 429) {
+        let msg = 'You are sending requests too quickly. Please wait a moment and try again.';
+        try { const j = await r.clone().json(); if (j.error) msg = j.error; } catch {}
+        showToast(msg);
+      } else if (r.status === 415) {
+        let msg = 'Only PDF files are accepted.';
+        try { const j = await r.clone().json(); if (j.error) msg = j.error; } catch {}
+        showToast(msg);
+      } else if (r.status >= 500) {
+        showToast('Something went wrong on our side. Please try again in a moment.');
+      }
+      return r;
+    } catch (err) {
+      showToast('Could not reach the server. Please check your connection.');
+      throw err;
+    }
+  };
+
+  // Catch any unhandled JS errors / promise rejections — never let the
+  // user see a blank screen.
+  window.addEventListener('error', (e) => {
+    console.error('caught error:', e.message);
+    showToast('Something went wrong. Please reload and try again.');
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error('unhandled promise rejection:', e.reason);
+  });
+
   // ── State ────────────────────────────────────────────────────
   const S = {
     path:           null,       // 'existing' | 'new'

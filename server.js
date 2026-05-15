@@ -1,9 +1,15 @@
 require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
+const helmet = require('helmet');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const rateLimit = require('express-rate-limit');
+const { z } = require('zod');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('crypto');
 const { Pool } = require('pg');
 
 const { AccessToken } = require('livekit-server-sdk');
@@ -23,6 +29,137 @@ const {
 } = require('./prompts');
 
 const app = express();
+
+// ─── Behind Render's reverse proxy ─────────────────────────────
+// Trust the first proxy hop so req.ip resolves to the real client IP
+// (not Render's internal load-balancer IP). Without this, rate-limit
+// would see every request as coming from one IP and would either
+// flag all traffic or let none through.
+app.set('trust proxy', 1);
+
+// ─── Security headers ──────────────────────────────────────────
+// Helmet sets 15+ HTTP security headers in one go: X-Frame-Options,
+// X-Content-Type-Options, Strict-Transport-Security, X-DNS-Prefetch-
+// Control, Referrer-Policy, etc. CSP relaxed to allow inline scripts
+// + Google Fonts (used by wizard.css) + the LiveKit CDN.
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      styleSrc:  ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:   ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc:    ["'self'", "data:", "https:"],
+      connectSrc:["'self'", "wss:", "https:"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"]
+    }
+  },
+  crossOriginEmbedderPolicy: false,   // allow Google Fonts woff2 cross-origin
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// ─── CORS lockdown ─────────────────────────────────────────────
+// Only allow same-origin + the production domain. Third-party sites
+// can't call our API from JavaScript.
+const ALLOWED_ORIGINS = [
+  'https://indialegal-ai.onrender.com',
+  // Add custom domain here when wired in Phase 9
+];
+app.use(cors({
+  origin: (origin, cb) => {
+    // Same-origin (no Origin header) is always fine.
+    if (!origin) return cb(null, true);
+    if (ALLOWED_ORIGINS.includes(origin) || /\.onrender\.com$/.test(new URL(origin).hostname)) {
+      return cb(null, true);
+    }
+    return cb(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
+
+app.use(cookieParser());
+
+// ─── Rate limiting ─────────────────────────────────────────────
+// Per-IP throttles. Tightest on expensive routes (LLM-heavy or
+// external API hops); generous on reads.
+function makeLimiter({ windowMs, max, message }) {
+  return rateLimit({
+    windowMs, max,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: message || 'Too many requests. Please try again later.' },
+    skip: (req) => req.method === 'OPTIONS'
+  });
+}
+
+const limitUpload = makeLimiter({
+  windowMs: 60 * 1000, max: 5,
+  message: 'Too many uploads. Please wait a minute and try again.'
+});
+const limitDraft = makeLimiter({
+  windowMs: 60 * 60 * 1000, max: 2,
+  message: 'Drafting is computationally expensive. Try again in an hour.'
+});
+const limitCnr = makeLimiter({
+  windowMs: 60 * 60 * 1000, max: 10,
+  message: 'Too many CNR lookups. Please wait a while.'
+});
+const limitGeneric = makeLimiter({
+  windowMs: 60 * 1000, max: 60
+});
+
+// ─── Anonymous-cookie session + LLM token budget ───────────────
+// Every visitor gets an opaque cookie identifier. We track their
+// approximate LLM-token consumption against an in-memory budget so
+// a single anonymous client cannot bankrupt our DeepSeek bill by
+// hammering /draft-experiment from one machine.
+// 500K input tokens + 50K output tokens per cookie per 24 hours.
+const TOKEN_BUDGET_INPUT  = 500_000;
+const TOKEN_BUDGET_OUTPUT =  50_000;
+const TOKEN_BUDGET_WINDOW = 24 * 60 * 60 * 1000;
+const tokenBudgets = new Map();   // sid → { input, output, resetAt }
+
+function ensureSession(req, res, next) {
+  let sid = req.cookies.sid;
+  if (!sid || !/^[a-f0-9]{32}$/.test(sid)) {
+    sid = crypto.randomBytes(16).toString('hex');
+    res.cookie('sid', sid, {
+      httpOnly: true, sameSite: 'lax', secure: true,
+      maxAge: 365 * 24 * 60 * 60 * 1000
+    });
+  }
+  req.sid = sid;
+  // Reset window if expired
+  const b = tokenBudgets.get(sid);
+  if (b && Date.now() > b.resetAt) tokenBudgets.delete(sid);
+  next();
+}
+
+function checkTokenBudget(req, res, next) {
+  const b = tokenBudgets.get(req.sid);
+  if (b && (b.input >= TOKEN_BUDGET_INPUT || b.output >= TOKEN_BUDGET_OUTPUT)) {
+    const minutesLeft = Math.ceil((b.resetAt - Date.now()) / 60000);
+    return res.status(429).json({
+      error: 'Daily LLM budget exceeded for this session. ' +
+             `Try again in ${Math.ceil(minutesLeft / 60)} hours.`
+    });
+  }
+  next();
+}
+
+// Helper: services call this after an LLM round-trip to debit the user.
+function debitTokens(sid, input = 0, output = 0) {
+  if (!sid) return;
+  let b = tokenBudgets.get(sid);
+  if (!b) {
+    b = { input: 0, output: 0, resetAt: Date.now() + TOKEN_BUDGET_WINDOW };
+    tokenBudgets.set(sid, b);
+  }
+  b.input += input; b.output += output;
+}
+// Expose for services that might want it later (not used by current pipeline)
+app.locals.debitTokens = debitTokens;
 
 // Multer — disk-storage + 200 GB ceiling so multer itself NEVER rejects
 // based on size. Files stream to /tmp and we read them off disk in the
@@ -55,6 +192,17 @@ const pool = new Pool({
 
 app.use(express.json({ limit: '20mb' }));
 
+// Issue / refresh anonymous session cookie for every API request.
+// Static assets bypass it for performance.
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) return ensureSession(req, res, next);
+  next();
+});
+
+// Generic per-IP throttle on all /api endpoints (60/min). Route-specific
+// limiters layered below for expensive routes.
+app.use('/api/', limitGeneric);
+
 // Force no-cache on the entry HTML so version-bumped assets are
 // always picked up. Static assets (with their own ?v= cache buster)
 // are served normally below.
@@ -73,6 +221,44 @@ app.get(['/admin', '/admin.html'], (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ─── Input validation schemas (zod) ────────────────────────────
+// Validate at API boundary. Reject early with 400 instead of letting
+// bad data reach DB / external APIs.
+const cnrSchema = z.object({
+  cnr: z.string().regex(/^[A-Z]{2}[A-Z0-9]{14}$/, 'CNR must be 16 chars [A-Z0-9]')
+});
+const titleSchema = z.string().trim().min(1).max(200);
+const newResearchSchema = z.object({
+  title: titleSchema.optional()
+});
+
+function validateBody(schema) {
+  return (req, res, next) => {
+    const r = schema.safeParse(req.body || {});
+    if (!r.success) {
+      return res.status(400).json({
+        error: 'Invalid input',
+        details: r.error.issues.map(i => `${i.path.join('.')}: ${i.message}`)
+      });
+    }
+    req.body = r.data;
+    next();
+  };
+}
+
+// ─── PDF magic-byte sniff ──────────────────────────────────────
+// Real PDFs start with %PDF- (bytes 25 50 44 46 2D). Reject fake .pdf
+// renames before they reach Datalab.
+function looksLikePdf(filePath) {
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(5);
+    fs.readSync(fd, buf, 0, 5, 0);
+    fs.closeSync(fd);
+    return buf.toString('ascii') === '%PDF-';
+  } catch { return false; }
+}
+
 // ─── CNR fetch — proxies to bail-watch manager ──────────────────
 // Submits CNR to bail-watch fan-out, polls until ready, returns
 // the parsed case.json + manifest summary. The bail-watch system
@@ -80,7 +266,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // extraction, and stores the result in Cloudflare R2.
 const BAILWATCH_BASE = process.env.BAILWATCH_BASE || 'https://bail-watch-app.onrender.com';
 
-app.post('/api/cnr-fetch', async (req, res) => {
+app.post('/api/cnr-fetch', limitCnr, validateBody(cnrSchema), async (req, res) => {
   const cnr = String(req.body?.cnr || '').trim().toUpperCase();
   if (!/^[A-Z]{2}[A-Z0-9]{14}$/.test(cnr)) {
     return res.status(400).json({ error: 'Invalid CNR format' });
@@ -160,7 +346,7 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
-app.post('/api/cases', upload.single('pdf'), async (req, res) => {
+app.post('/api/cases', limitUpload, checkTokenBudget, upload.single('pdf'), async (req, res) => {
   // With disk-storage multer, req.file is { path, originalname, size, mimetype, ... }
   // — buffer is NOT populated. We read the file lazily into a Buffer below.
   let uploadedPath = null;
@@ -168,8 +354,26 @@ app.post('/api/cases', upload.single('pdf'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'pdf file required' });
     uploadedPath = req.file.path;
 
-    const title = (req.body.title || req.file.originalname || 'Untitled')
-      .trim().slice(0, 200);
+    // MIME + magic-byte check — reject fake .pdf renames
+    if (req.file.mimetype && req.file.mimetype !== 'application/pdf' &&
+        req.file.mimetype !== 'application/octet-stream') {
+      fs.unlink(uploadedPath, () => {});
+      return res.status(415).json({ error: 'Only PDF files are accepted.' });
+    }
+    if (!looksLikePdf(uploadedPath)) {
+      fs.unlink(uploadedPath, () => {});
+      return res.status(415).json({
+        error: 'File does not appear to be a valid PDF (header check failed).'
+      });
+    }
+
+    const rawTitle = String(req.body.title || req.file.originalname || 'Untitled');
+    const titleCheck = titleSchema.safeParse(rawTitle);
+    if (!titleCheck.success) {
+      fs.unlink(uploadedPath, () => {});
+      return res.status(400).json({ error: 'Invalid title' });
+    }
+    const title = titleCheck.data;
     const ins = await pool.query(
       `INSERT INTO cases (title, filename, status) VALUES ($1, $2, 'processing') RETURNING id`,
       [title, req.file.originalname]
@@ -440,7 +644,7 @@ app.post('/api/cases/:id/voice-room', async (req, res) => {
 // so the existing research-room + execute_legal_research pipeline
 // works unchanged. Research findings index into THIS virtual case's
 // store and become permanently searchable in future Speak sessions.
-app.post('/api/research/new', async (req, res) => {
+app.post('/api/research/new', validateBody(newResearchSchema), async (req, res) => {
   try {
     const title = (req.body?.title || `Research session — ${new Date().toLocaleString()}`)
       .toString().trim().slice(0, 200);
@@ -717,12 +921,17 @@ app.get('/api/cases/:id/legal-issues', async (req, res) => {
 
 // Drafting experiment — template + DeepSeek fill, returns court-ready
 // markdown. POST /api/cases/:id/draft-experiment   (template_name optional)
-app.post('/api/cases/:id/draft-experiment', async (req, res) => {
+app.post('/api/cases/:id/draft-experiment', limitDraft, checkTokenBudget, async (req, res) => {
   try {
+    const idCheck = z.coerce.number().int().positive().safeParse(req.params.id);
+    if (!idCheck.success) return res.status(400).json({ error: 'Invalid case id' });
     const out = await draftExperiment.runExperiment({
-      pool, caseId: req.params.id,
+      pool, caseId: idCheck.data,
       templateName: req.body?.template_name || 'written_arguments_o6r17'
     });
+    // Debit the session — rough estimate of input + output tokens for
+    // the multi-step v8 pipeline (~600K input, ~30K output across all hops).
+    if (req.sid) debitTokens(req.sid, 600_000, 30_000);
     res.json(out);
   } catch (e) {
     console.error('draft-experiment error', e);
